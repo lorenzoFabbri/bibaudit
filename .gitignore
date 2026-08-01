@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# bibaudit's own registry cache, if a run is pointed at the repo
+.bibaudit-cache/
+
+# bibaudit's own output, if a run is pointed at the repo. --suggest writes
+# beside the bibliography it read, so a run inside a checkout leaves these here.
+*.suggested.bib
+*.suggested.diff
+
+# Development scratch: the multi-agent workflow scripts used to build this.
+# They carry absolute paths to private corpora and are not part of the package.
+.claude/workflows/
+
+# OS
+.DS_Store

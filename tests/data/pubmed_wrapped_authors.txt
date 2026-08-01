@@ -1,0 +1,26 @@
+PMID- 33069326
+OWN - NLM
+STAT- MEDLINE
+DP  - 2020 Oct
+VI  - 15
+IP  - 10
+TI  - Exposure misclassification in a multicase-control study.
+PG  - e0240506
+FAU - Espinosa, Ana
+AU  - Espinosa A
+AD  - Barcelona Institute for Global Health (ISGlobal), Doctor Aiguader 88,
+      08003 Barcelona, Spain.
+FAU - Kogevinas, Manolis
+AU  - Kogevinas M
+AD  - Universitat Pompeu Fabra (UPF), Barcelona, Spain.
+FAU - MCC-Spain Multi Case-Control Study Group of the Consortium for Biomedical
+      Research in Epidemiology and Public Health
+AU  - MCC-Spain Multi Case-Control Study Group of the Consortium for Biomedical
+      Research in Epidemiology and Public Health
+LA  - eng
+PT  - Journal Article
+PL  - United States
+TA  - PLoS One
+JT  - PloS one
+AID - 10.1371/journal.pone.0240506 [doi]
+PST - epublish

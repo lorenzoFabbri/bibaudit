@@ -1,0 +1,35 @@
+---
+title: "PanGenEU"
+acronym: "PanGenEU"
+design: "Case-control"
+---
+
+## Key publications
+
+See @tbl-pangeneu-pubs.
+
+```{r}
+#| label: tbl-pangeneu-pubs
+#| tbl-cap: "PanGenEU publications."
+library(reactable)
+
+pubs <- data.frame(
+  Year    = c(2017, 2017, 2018, 2020, 2021, 2026),
+  Authors = c("Gomez-Rubio et al.", "Gomez-Rubio et al.", "Molina-Montes et al.",
+              "Michaud et al.", "Lu et al.", "He et al."),
+  Theme   = c("Risk factors", "Risk factors", "Risk factors", "Genetics & omics",
+              "Genetics & omics", "Risk factors"),
+  Topic   = c("Multimorbidity patterns", "Asthma & nasal allergies",
+              "Family history of cancer", "DNA methylation & inflammation",
+              "miRNA-affecting variants", "Atopy (Mendelian randomization)"),
+  Role    = c("Primary", "Primary", "Primary", "Replication", "Replication",
+              "GWAS summary-level"),
+  Journal = c("Ann Oncol", "Gut", "Int J Epidemiol", "CEBP", "Front Genet", "CEBP"),
+  DOI     = c("10.1093/annonc/mdx167", "10.1136/gutjnl-2015-310442", "10.1093/ije/dyx269",
+              "10.1158/1055-9965.EPI-20-0378", "10.3389/fgene.2021.693933",
+              "10.1158/1055-9965.EPI-25-1601"),
+  stringsAsFactors = FALSE
+)
+
+reactable(pubs, filterable = TRUE, sortable = TRUE)
+```

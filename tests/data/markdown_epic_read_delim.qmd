@@ -1,0 +1,39 @@
+---
+title: "EPIC — European Prospective Investigation into Cancer and Nutrition"
+acronym: "EPIC"
+design: "Cohort"
+date: 1992-01-01
+---
+
+## Key publications
+
+The publication table is @tbl-epic-pubs; the acronym list is @tbl-epic-acronyms
+and the recruitment map is @fig-epic-centres. Cohort design is described in
+[@riboli1997epic] and the calibration substudy in [@slimani2002calibration].
+
+```{r}
+#| label: tbl-epic-pubs
+#| tbl-cap: "EPIC pancreatic-cancer publications (and cohort-description papers)."
+library(reactable)
+
+# Pipe-delimited so each paper is one line (avoids column misalignment).
+# Theme buckets: Cohort description / Biobank / Biomarkers / Diet / Risk factors /
+# Metabolomics / Genetics (PanScan) / Genetics (PanScan+PanC4).
+pubs <- read.delim(text =
+"Year|Authors|Theme|Topic|Data|N|Journal|DOI
+1997|Riboli & Kaaks|Cohort description|Rationale & study design|—|519,978 cohort|Int J Epidemiol|10.1093/ije/26.suppl_1.S6
+2002|Riboli et al.|Cohort description|Study populations & data collection|—|519,978 cohort|Public Health Nutr|10.1079/PHN2002394
+2006|Berrington de González et al.|Risk factors|Anthropometry & physical activity|Questionnaire|324 cases|Cancer Epidemiol Biomarkers Prev|10.1158/1055-9965.epi-05-0800
+2022|Porta et al.|Biomarkers|Persistent organic pollutants|Plasma|513 / 1,020|Int J Epidemiol|10.1093/ije/dyab115
+2026|Katzke et al.|Biomarkers|92 immune proteins (Olink)|Serum/plasma|406 / 406|Int J Cancer|10.1002/ijc.70581",
+  sep = "|", header = TRUE, quote = "", strip.white = TRUE,
+  check.names = FALSE, stringsAsFactors = FALSE, encoding = "UTF-8"
+)
+
+reactable(
+  pubs,
+  filterable    = TRUE,
+  sortable      = TRUE,
+  defaultSorted = list(Year = "asc")
+)
+```

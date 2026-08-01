@@ -1,0 +1,77 @@
+% Fixture for tests/test_bibtex.py.
+%
+% Deliberately irregular formatting: real .bib files exported by different
+% tools (EndNote, Zotero, hand-maintained files edited over a decade) never
+% agree on one entry per line, and a parser that only works on the tidy case
+% is not exercised by anything real. Do not "clean up" the two entries on
+% line 12, the duplicate citekey, or the unterminated block below — each one
+% is the point of a specific test.
+@article{oneline1, title = {First inline entry}, author = {Smith, John}, year = {2020}, journal = {Journal One}}@article{oneline2, title = {Second inline entry}, author = {Doe, Jane}, year = {2021}, journal = {Journal Two}}
+@article{atsign2021,
+  author  = {Garcia, Maria},
+  title   = {Response to {@}mentions in social media surveillance},
+  year    = {2021},
+  journal = {Journal of Digital Epidemiology}
+}
+@article{lancetdoi2003,
+  author  = {Papantoniou, K},
+  title   = {Shift work and colorectal cancer risk in a case-control study},
+  year    = {2003},
+  doi     = {10.1016/S0140-6736(03)14065-2},
+  journal = {The Lancet}
+}
+@article{urlonlydoi2019,
+  author  = {Rivera, Ana},
+  title   = {A paper carrying its DOI only in the url field},
+  year    = {2019},
+  url     = {https://doi.org/10.1234/urlonly.2019},
+  journal = {Journal of Something}
+}
+@book{editedvolume2015,
+  editor    = {Hidalgo, Pablo},
+  title     = {Methods in Biobanking},
+  year      = {2015},
+  publisher = {Academic Press}
+}
+@article{collectiveauthor2018,
+  author  = {{The Endogenous Hormones and Breast Cancer Collaborative Group}},
+  title   = {Endogenous hormones and breast cancer},
+  year    = {2018},
+  journal = {Journal of Endocrinology}
+}
+@article{etal2020,
+  author  = {Gil, Miguel and Huerta, Consuelo and others},
+  title   = {A study with a truncated author list},
+  year    = {2020},
+  journal = {Epidemiology Journal}
+}
+@article{shareddoia2021,
+  author  = {Alonso, Pedro},
+  title   = {First copy of a duplicated entry},
+  year    = {2021},
+  doi     = {10.5678/shared.doi},
+  journal = {Some Journal}
+}
+@article{shareddoib2021,
+  author  = {Alonso, Pedro},
+  title   = {Second copy of a duplicated entry},
+  year    = {2021},
+  doi     = {10.5678/SHARED.DOI},
+  journal = {Some Journal}
+}
+@article{dupkey2022,
+  author  = {Original, First},
+  title   = {The entry that should survive},
+  year    = {2022},
+  journal = {First Journal}
+}
+@article{dupkey2022,
+  author  = {Impostor, Second},
+  title   = {The entry that gets discarded},
+  year    = {2022},
+  journal = {Second Journal}
+}
+@article{malformed2023,
+  author = {Broken, Entry},
+  title = {An entry whose closing brace was never typed},
+  year = {2023}

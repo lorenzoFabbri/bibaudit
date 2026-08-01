@@ -1,0 +1,24 @@
+PMID- 15455608
+OWN - NLM
+STAT- MEDLINE
+DP  - 2004 Sep
+VI  - 52
+IP  - 4
+TI  - [Occupational exposure to pesticides and risk of cancer among
+      agricultural workers].
+PG  - 623-30
+FAU - Baldi, Isabelle
+AU  - Baldi I
+AD  - Laboratoire Sante Travail Environnement, Universite Victor Segalen
+      Bordeaux 2, France.
+LA  - fre
+PT  - English Abstract
+PT  - Journal Article
+PT  - Review
+TT  - Exposition professionnelle aux pesticides et risque de cancer chez les
+      travailleurs agricoles.
+PL  - France
+TA  - Rev Epidemiol Sante Publique
+JT  - Revue d'epidemiologie et de sante publique
+AID - 10.1016/s0398-7620(04)99012-3 [doi]
+PST - ppublish

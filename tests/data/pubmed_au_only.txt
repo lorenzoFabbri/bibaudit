@@ -1,0 +1,22 @@
+PMID- 7912306
+OWN - NLM
+STAT- MEDLINE
+DCOM- 19940901
+IS  - 0140-6736 (Print)
+VI  - 343
+IP  - 8910
+DP  - 1994 Jun 4
+TI  - Survival and local recurrence after adjuvant radiotherapy for rectal
+      cancer.
+PG  - 1401-4
+AU  - van Eijck CH
+AU  - Jeekel J
+AU  - Dutch Colorectal Cancer Group
+LA  - eng
+PT  - Journal Article
+PL  - England
+TA  - Lancet
+JT  - Lancet (London, England)
+JID - 2985213R
+AID - 10.1016/s0140-6736(94)92543-x [doi]
+PST - ppublish

@@ -1,0 +1,29 @@
+---
+title: "Million Women Study"
+acronym: "MWS"
+design: "Cohort"
+---
+
+## Key publications
+
+See @tbl-mws-pubs.
+
+```{r}
+#| label: tbl-mws-pubs
+#| tbl-cap: "Representative Million Women Study publications across outcomes."
+library(reactable)
+
+# Pipe-delimited so each paper is one line (avoids column misalignment).
+pubs <- read.delim(text =
+"Year|Authors|Theme|Topic|Journal|DOI
+1999|Million Women Study Collab. Group|Cohort/methods|Study design & population characteristics|Breast Cancer Res|10.1186/bcr16
+2003|Beral (MWS Collaborators)|Cancer—breast|HRT & breast cancer risk|Lancet|10.1016/s0140-6736(03)14065-2
+2013|Pirie et al.|Other chronic disease|21st-century hazards of smoking, benefits of stopping|Lancet|10.1016/S0140-6736(12)61720-6
+2020|Kim et al.|Other chronic disease|Alcohol intake & Parkinson's disease risk|Mov Disord|10.1002/mds.27933
+2021|Floud et al.|Other chronic disease|Cognitive/social activities & dementia risk|Lancet Public Health|10.1016/S2468-2667(20)30284-X",
+  sep = "|", header = TRUE, quote = "", strip.white = TRUE,
+  check.names = FALSE, stringsAsFactors = FALSE, encoding = "UTF-8"
+)
+
+reactable(pubs, filterable = TRUE, sortable = TRUE)
+```

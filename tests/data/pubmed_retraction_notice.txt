@@ -1,0 +1,29 @@
+PMID- 20137807
+OWN - NLM
+STAT- MEDLINE
+DCOM- 20100208
+LR  - 20211203
+IS  - 1474-547X (Electronic)
+IS  - 0140-6736 (Linking)
+VI  - 375
+IP  - 9713
+DP  - 2010 Feb 6
+TI  - Retraction--Ileal-lymphoid-nodular hyperplasia, non-specific colitis, and
+      pervasive developmental disorder in children.
+PG  - 445
+CN  - Editors of The Lancet
+LA  - eng
+PT  - Journal Article
+PT  - Retraction of Publication
+PL  - England
+TA  - Lancet
+JT  - Lancet (London, England)
+JID - 2985213R
+ROF - Wakefield AJ, Murch SH, Anthony A, Linnell J, Casson DM, Malik M,
+      Berelowitz M, Dhillon AP, Thomson MA, Harvey P, Valentine A, Davies SE,
+      Walker-Smith JA. Lancet. 1998 Feb 28;351(9103):637-41. PMID: 9500320
+SB  - AIM
+SB  - IM
+AID - 10.1016/S0140-6736(10)60175-4 [doi]
+PST - ppublish
+SO  - Lancet. 2010 Feb 6;375(9713):445.

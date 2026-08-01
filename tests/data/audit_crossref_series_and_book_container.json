@@ -1,0 +1,104 @@
+{
+  "publisher": "Humana Press",
+  "published-print": {
+    "date-parts": [
+      [
+        2011
+      ]
+    ]
+  },
+  "DOI": "10.1007/978-1-59745-423-0_7",
+  "type": "book-chapter",
+  "page": "179-191",
+  "title": [
+    "The European Prospective Investigation into Cancer and Nutrition Biobank"
+  ],
+  "author": [
+    {
+      "given": "Pierre",
+      "family": "Hainaut",
+      "sequence": "first",
+      "affiliation": [],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    },
+    {
+      "given": "Béatrice",
+      "family": "Vozar",
+      "sequence": "additional",
+      "affiliation": [],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    },
+    {
+      "given": "Sabina",
+      "family": "Rinaldi",
+      "sequence": "additional",
+      "affiliation": [],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    },
+    {
+      "given": "Elio",
+      "family": "Riboli",
+      "sequence": "additional",
+      "affiliation": [],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    },
+    {
+      "given": "Elodie",
+      "family": "Caboux",
+      "sequence": "additional",
+      "affiliation": [],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    }
+  ],
+  "published-online": {
+    "date-parts": [
+      [
+        2010,
+        9,
+        23
+      ]
+    ]
+  },
+  "container-title": [
+    "Methods in Molecular Biology",
+    "Methods in Biobanking"
+  ],
+  "issued": {
+    "date-parts": [
+      [
+        2010,
+        9,
+        23
+      ]
+    ]
+  },
+  "ISSN": [
+    "1064-3745",
+    "1940-6029"
+  ]
+}

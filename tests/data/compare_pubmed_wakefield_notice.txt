@@ -1,0 +1,33 @@
+
+PMID- 20137807
+OWN - NLM
+STAT- PubMed-not-MEDLINE
+DCOM- 20100308
+LR  - 20250103
+IS  - 1474-547X (Electronic)
+IS  - 0140-6736 (Linking)
+VI  - 375
+IP  - 9713
+DP  - 2010 Feb 6
+TI  - Retraction--Ileal-lymphoid-nodular hyperplasia, non-specific colitis, and 
+      pervasive developmental disorder in children.
+PG  - 445
+LID - 10.1016/S0140-6736(10)60175-4 [doi]
+LA  - eng
+PT  - Retraction Notice
+PL  - England
+TA  - Lancet
+JT  - Lancet (London, England)
+JID - 2985213R
+ROF - Lancet. 1998 Feb 28;351(9103):637-41. doi: 10.1016/s0140-6736(97)11096-0. PMID: 
+      9500320
+EDAT- 2010/02/09 06:00
+MHDA- 2010/03/10 06:00
+CRDT- 2010/02/09 06:00
+PHST- 2010/02/09 06:00 [entrez]
+PHST- 2010/02/09 06:00 [pubmed]
+PHST- 2010/03/10 06:00 [medline]
+AID - S0140-6736(10)60175-4 [pii]
+AID - 10.1016/S0140-6736(10)60175-4 [doi]
+PST - ppublish
+SO  - Lancet. 2010 Feb 6;375(9713):445. doi: 10.1016/S0140-6736(10)60175-4.

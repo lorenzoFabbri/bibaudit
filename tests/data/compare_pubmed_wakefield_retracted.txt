@@ -1,0 +1,163 @@
+
+PMID- 9500320
+OWN - NLM
+STAT- MEDLINE
+DCOM- 19980317
+LR  - 20240815
+IS  - 0140-6736 (Print)
+IS  - 0140-6736 (Linking)
+VI  - 351
+IP  - 9103
+DP  - 1998 Feb 28
+TI  - Ileal-lymphoid-nodular hyperplasia, non-specific colitis, and pervasive 
+      developmental disorder in children.
+PG  - 637-41
+AB  - BACKGROUND: We investigated a consecutive series of children with chronic 
+      enterocolitis and regressive developmental disorder. METHODS: 12 children (mean 
+      age 6 years [range 3-10], 11 boys) were referred to a paediatric gastroenterology 
+      unit with a history of normal development followed by loss of acquired skills, 
+      including language, together with diarrhoea and abdominal pain. Children 
+      underwent gastroenterological, neurological, and developmental assessment and 
+      review of developmental records. Ileocolonoscopy and biopsy sampling, 
+      magnetic-resonance imaging (MRI), electroencephalography (EEG), and lumbar 
+      puncture were done under sedation. Barium follow-through radiography was done 
+      where possible. Biochemical, haematological, and immunological profiles were 
+      examined. FINDINGS: Onset of behavioural symptoms was associated, by the parents, 
+      with measles, mumps, and rubella vaccination in eight of the 12 children, with 
+      measles infection in one child, and otitis media in another. All 12 children had 
+      intestinal abnormalities, ranging from lymphoid nodular hyperplasia to aphthoid 
+      ulceration. Histology showed patchy chronic inflammation in the colon in 11 
+      children and reactive ileal lymphoid hyperplasia in seven, but no granulomas. 
+      Behavioural disorders included autism (nine), disintegrative psychosis (one), and 
+      possible postviral or vaccinal encephalitis (two). There were no focal 
+      neurological abnormalities and MRI and EEG tests were normal. Abnormal laboratory 
+      results were significantly raised urinary methylmalonic acid compared with 
+      age-matched controls (p=0.003), low haemoglobin in four children, and a low serum 
+      IgA in four children. INTERPRETATION: We identified associated gastrointestinal 
+      disease and developmental regression in a group of previously normal children, 
+      which was generally associated in time with possible environmental triggers.
+FAU - Wakefield, A J
+AU  - Wakefield AJ
+AD  - Inflammatory Bowel Disease Study Group, University Department of Medicine, Royal 
+      Free Hospital and School of Medicine, London, UK.
+FAU - Murch, S H
+AU  - Murch SH
+FAU - Anthony, A
+AU  - Anthony A
+FAU - Linnell, J
+AU  - Linnell J
+FAU - Casson, D M
+AU  - Casson DM
+FAU - Malik, M
+AU  - Malik M
+FAU - Berelowitz, M
+AU  - Berelowitz M
+FAU - Dhillon, A P
+AU  - Dhillon AP
+FAU - Thomson, M A
+AU  - Thomson MA
+FAU - Harvey, P
+AU  - Harvey P
+FAU - Valentine, A
+AU  - Valentine A
+FAU - Davies, S E
+AU  - Davies SE
+FAU - Walker-Smith, J A
+AU  - Walker-Smith JA
+LA  - eng
+PT  - Journal Article
+PT  - Research Support, Non-U.S. Gov't
+PT  - Retracted Publication
+PL  - England
+TA  - Lancet
+JT  - Lancet (London, England)
+JID - 2985213R
+RN  - 0 (Measles Vaccine)
+RN  - 0 (Measles-Mumps-Rubella Vaccine)
+RN  - 0 (Mumps Vaccine)
+RN  - 0 (Rubella Vaccine)
+RN  - 0 (Vaccines, Combined)
+SB  - IM
+CIN - Lancet. 1998 Feb 28;351(9103):611-2. doi: 10.1016/S0140-6736(05)78423-3. PMID: 
+      9500313
+CIN - Lancet. 1998 Mar 21;351(9106):905; author reply 908-9. PMID: 9525390
+CIN - Lancet. 1998 Mar 21;351(9106):905-6; author reply 908-9. doi: 
+      10.1016/S0140-6736(05)70316-0. PMID: 9525391
+CIN - Lancet. 1998 Mar 21;351(9106):906; author reply 908-9. doi: 
+      10.1016/s0140-6736(05)70317-2. PMID: 9525392
+CIN - Lancet. 1998 Mar 21;351(9106):906-7; author reply 908-9. doi: 
+      10.1016/S0140-6736(05)70318-4. PMID: 9525393
+CIN - Lancet. 1998 Mar 21;351(9106):907; author reply 908-9. doi: 
+      10.1016/S0140-6736(05)70319-6. PMID: 9525394
+CIN - Lancet. 1998 Mar 21;351(9106):907; author reply 908-9. doi: 
+      10.1016/S0140-6736(05)70320-2. PMID: 9525395
+CIN - Lancet. 1998 Mar 21;351(9106):907-8; author reply 908-9. doi: 
+      10.1016/S0140-6736(05)70321-4. PMID: 9525396
+CIN - Lancet. 1998 May 2;351(9112):1355; author reply 1356. PMID: 9643815
+CIN - Lancet. 1998 May 2;351(9112):1355; author reply 1356. doi: 
+      10.1016/S0140-6736(05)79080-2. PMID: 9643816
+CIN - Lancet. 1998 May 2;351(9112):1355-6; author reply 1356. doi: 
+      10.1016/S0140-6736(05)79081-4. PMID: 9643817
+CIN - Lancet. 1998 May 2;351(9112):1356. doi: 10.1016/S0140-6736(05)79082-6. PMID: 
+      9643818
+CIN - Lancet. 1998 May 2;351(9112):1357. doi: 10.1016/S0140-6736(05)79085-1. PMID: 
+      9643820
+CIN - Lancet. 1998 May 2;351(9112):1357. doi: 10.1016/s0140-6736(05)79087-5. PMID: 
+      9643821
+CIN - Lancet. 1998 May 2;351(9112):1357-8. doi: 10.1016/S0140-6736(05)79088-7. PMID: 
+      9643822
+CIN - Lancet. 1998 May 2;351(9112):1358. doi: 10.1016/s0140-6736(05)79089-9. PMID: 
+      9643823
+CIN - Lancet. 1998 Jul 18;352(9123):234-5. doi: 10.1016/S0140-6736(05)77837-5. PMID: 
+      9683237
+CIN - Lancet. 2000 Jul 8;356(9224):160-1. doi: 10.1016/s0140-6736(05)73169-x. PMID: 
+      10963264
+CIN - Lancet. 2000 Jul 8;356(9224):161. doi: 10.1016/S0140-6736(05)73171-8. PMID: 
+      10963266
+CIN - Lancet. 2000 Jul 8;356(9224):161-2. doi: 10.1016/S0140-6736(05)73172-X. PMID: 
+      10963267
+CIN - Lancet. 2002 Jun 15;359(9323):2051-2. doi: 10.1016/S0140-6736(02)08948-1. PMID: 
+      12086756
+CIN - Lancet. 2004 Mar 6;363(9411):747-9. doi: 10.1016/S0140-6736(04)15714-0. PMID: 
+      15016482
+RIN - Lancet. 2004 Mar 6;363(9411):750. doi: 10.1016/S0140-6736(04)15715-2. PMID: 
+      15016483
+CIN - Lancet. 2004 Mar 6;363(9411):820-1. doi: 10.1016/S0140-6736(04)15699-7. PMID: 
+      15022645
+CIN - Lancet. 2004 Mar 6;363(9411):821-2. doi: 10.1016/s0140-6736(04)15708-5. PMID: 
+      15022648
+CIN - Lancet. 2004 Mar 6;363(9411):822-3. doi: 10.1016/S0140-6736(04)15709-7. PMID: 
+      15022649
+CIN - Lancet. 2004 Mar 6;363(9411):823-4. doi: 10.1016/S0140-6736(04)15710-3. PMID: 
+      15022650
+RIN - Lancet. 2010 Feb 6;375(9713):445. doi: 10.1016/S0140-6736(10)60175-4. PMID: 
+      20137807
+ECI - Eur J Gastroenterol Hepatol. 2011 Nov;23(11):1082. doi: 
+      10.1097/MEG.0b013e328349d184. PMID: 21971344
+MH  - Child
+MH  - Child, Preschool
+MH  - Developmental Disabilities/*etiology
+MH  - Enterocolitis/*etiology
+MH  - Female
+MH  - Humans
+MH  - Hyperplasia/pathology
+MH  - Ileum/*pathology
+MH  - Lymphoid Tissue/*pathology
+MH  - Male
+MH  - Measles/complications
+MH  - Measles Vaccine/*adverse effects
+MH  - Measles-Mumps-Rubella Vaccine
+MH  - Mumps Vaccine/*adverse effects
+MH  - Otitis Media/complications
+MH  - Rubella Vaccine/*adverse effects
+MH  - Vaccines, Combined/adverse effects
+EDAT- 1998/03/21 00:00
+MHDA- 1998/03/21 00:01
+CRDT- 1998/03/21 00:00
+PHST- 1998/03/21 00:00 [pubmed]
+PHST- 1998/03/21 00:01 [medline]
+PHST- 1998/03/21 00:00 [entrez]
+AID - S0140673697110960 [pii]
+AID - 10.1016/s0140-6736(97)11096-0 [doi]
+PST - ppublish
+SO  - Lancet. 1998 Feb 28;351(9103):637-41. doi: 10.1016/s0140-6736(97)11096-0.

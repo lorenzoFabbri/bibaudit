@@ -1,0 +1,201 @@
+{
+  "publisher": "American Association for Cancer Research (AACR)",
+  "issue": "9",
+  "published-print": {
+    "date-parts": [
+      [
+        2023,
+        9,
+        1
+      ]
+    ]
+  },
+  "DOI": "10.1158/1055-9965.epi-23-0009",
+  "type": "journal-article",
+  "page": "1242-1248",
+  "title": [
+    "Relationship between\n                    <i>ABO</i>\n                    Blood Group Alleles and Pancreatic Cancer Is Modulated by Secretor (\n                    <i>FUT2</i>\n                    ) Genotype, but Not Lewis Antigen (\n                    <i>FUT3</i>\n                    ) Genotype"
+  ],
+  "volume": "32",
+  "author": [
+    {
+      "ORCID": "https://orcid.org/0000-0001-7096-820X",
+      "authenticated-orcid": false,
+      "given": "Jihye",
+      "family": "Kim",
+      "sequence": "first",
+      "affiliation": [
+        {
+          "name": "1Program in Genetic Epidemiology and Statistical Genetics, Department of Epidemiology, Harvard T.H. Chan School of Public Health, Boston, Massachusetts."
+        }
+      ],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    },
+    {
+      "ORCID": "https://orcid.org/0000-0002-0708-9648",
+      "authenticated-orcid": false,
+      "given": "Chen",
+      "family": "Yuan",
+      "sequence": "additional",
+      "affiliation": [
+        {
+          "name": "2Department of Medical Oncology, Dana-Farber Cancer Institute, Boston, Massachusetts."
+        }
+      ],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    },
+    {
+      "ORCID": "https://orcid.org/0000-0003-1859-8971",
+      "authenticated-orcid": false,
+      "given": "Laufey T.",
+      "family": "Amundadottir",
+      "sequence": "additional",
+      "affiliation": [
+        {
+          "name": "3Laboratory of Translational Genomics, Division of Cancer Epidemiology and Genetics, National Cancer Institute, National Institutes of Health, Bethesda, Maryland."
+        }
+      ],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    },
+    {
+      "ORCID": "https://orcid.org/0000-0002-0455-1032",
+      "authenticated-orcid": false,
+      "given": "Brian M.",
+      "family": "Wolpin",
+      "sequence": "additional",
+      "affiliation": [
+        {
+          "name": "2Department of Medical Oncology, Dana-Farber Cancer Institute, Boston, Massachusetts."
+        }
+      ],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    },
+    {
+      "name": "for the Pancreatic Cancer Cohort Consortium (PanScan)",
+      "sequence": "additional",
+      "affiliation": [],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    },
+    {
+      "ORCID": "https://orcid.org/0000-0003-2737-8399",
+      "authenticated-orcid": false,
+      "given": "Alison P.",
+      "family": "Klein",
+      "sequence": "additional",
+      "affiliation": [
+        {
+          "name": "4Department of Oncology, Sidney Kimmel Comprehensive Cancer Center, Johns Hopkins School of Medicine, Baltimore, Maryland."
+        },
+        {
+          "name": "5Department of Pathology, Sol Goldman Pancreatic Cancer Research Center, Johns Hopkins School of Medicine, Baltimore, Maryland."
+        }
+      ],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    },
+    {
+      "name": "for the Pancreatic Cancer Case–Control Consortium (PanC4)",
+      "sequence": "additional",
+      "affiliation": [],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    },
+    {
+      "ORCID": "https://orcid.org/0000-0001-5337-3941",
+      "authenticated-orcid": false,
+      "given": "Harvey A.",
+      "family": "Risch",
+      "sequence": "additional",
+      "affiliation": [
+        {
+          "name": "6Department of Chronic Disease Epidemiology, Yale School of Public Health, New Haven, Connecticut."
+        }
+      ],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    },
+    {
+      "ORCID": "https://orcid.org/0000-0002-4472-8103",
+      "authenticated-orcid": false,
+      "given": "Peter",
+      "family": "Kraft",
+      "sequence": "additional",
+      "affiliation": [
+        {
+          "name": "1Program in Genetic Epidemiology and Statistical Genetics, Department of Epidemiology, Harvard T.H. Chan School of Public Health, Boston, Massachusetts."
+        },
+        {
+          "name": "7Department of Biostatistics, Harvard T.H. Chan School of Public Health, Boston, Massachusetts."
+        }
+      ],
+      "role": [
+        {
+          "vocabulary": "crossref",
+          "role": "author"
+        }
+      ]
+    }
+  ],
+  "published-online": {
+    "date-parts": [
+      [
+        2023,
+        6,
+        21
+      ]
+    ]
+  },
+  "container-title": [
+    "Cancer Epidemiology, Biomarkers &amp; Prevention"
+  ],
+  "issued": {
+    "date-parts": [
+      [
+        2023,
+        6,
+        21
+      ]
+    ]
+  },
+  "ISSN": [
+    "1055-9965",
+    "1538-7755"
+  ]
+}

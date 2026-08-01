@@ -1,0 +1,56 @@
+[
+  {
+    "key": "ABCD1234",
+    "version": 4211,
+    "data": {
+      "key": "ABCD1234",
+      "version": 4211,
+      "itemType": "journalArticle",
+      "title": "Shift work and colorectal cancer risk in the MCC-Spain case-control study",
+      "publicationTitle": "American Journal of Epidemiology",
+      "volume": "186",
+      "issue": "5",
+      "pages": "533-540",
+      "date": "2017-08-15",
+      "DOI": "10.1093/aje/kwx137",
+      "url": "https://doi.org/10.1093/aje/kwx137",
+      "creators": [
+        {
+          "creatorType": "author",
+          "firstName": "Kyriaki",
+          "lastName": "Papantoniou"
+        },
+        {
+          "creatorType": "author",
+          "name": "The Endogenous Hormones and Breast Cancer Collaborative Group"
+        }
+      ],
+      "collections": ["COLLKEY01"],
+      "tags": []
+    }
+  },
+  {
+    "key": "PDF00001",
+    "version": 4212,
+    "data": {
+      "key": "PDF00001",
+      "version": 4212,
+      "itemType": "attachment",
+      "parentItem": "ABCD1234",
+      "linkMode": "imported_url",
+      "title": "Full Text PDF",
+      "contentType": "application/pdf"
+    }
+  },
+  {
+    "key": "NOTE0001",
+    "version": 4213,
+    "data": {
+      "key": "NOTE0001",
+      "version": 4213,
+      "itemType": "note",
+      "parentItem": "ABCD1234",
+      "note": "<p>Check the exposure definition against the protocol.</p>"
+    }
+  }
+]

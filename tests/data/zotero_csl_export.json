@@ -1,0 +1,38 @@
+[
+  {
+    "id": "papantoniou2017",
+    "type": "article-journal",
+    "title": "Shift work and colorectal cancer risk in the MCC-Spain case-control study",
+    "container-title": "American Journal of Epidemiology",
+    "page": "533-540",
+    "volume": "186",
+    "issue": "5",
+    "DOI": "10.1093/aje/kwx137",
+    "URL": "https://doi.org/10.1093/aje/kwx137",
+    "author": [
+      { "family": "Papantoniou", "given": "Kyriaki" },
+      { "family": "Castano-Vinyals", "given": "Gemma" }
+    ],
+    "issued": { "date-parts": [["2017", 8, 15]] }
+  },
+  {
+    "id": "ehbccg2002",
+    "type": "article-journal",
+    "title": "Endogenous sex hormones and breast cancer in postmenopausal women",
+    "container-title": "JNCI: Journal of the National Cancer Institute",
+    "DOI": "10.1093/jnci/94.8.606",
+    "author": [
+      { "literal": "The Endogenous Hormones and Breast Cancer Collaborative Group" }
+    ],
+    "issued": { "date-parts": [[2002, 4, 17]] }
+  },
+  {
+    "id": "hidalgo2015",
+    "type": "book",
+    "title": "Cancer Epidemiology and Prevention",
+    "publisher": "Oxford University Press",
+    "ISBN": "9780190238667",
+    "editor": [{ "family": "Hidalgo", "given": "Manuel" }],
+    "issued": { "raw": "2015" }
+  }
+]

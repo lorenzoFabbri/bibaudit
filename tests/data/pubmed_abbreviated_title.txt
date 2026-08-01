@@ -1,0 +1,19 @@
+PMID- 27532363
+OWN - NLM
+STAT- MEDLINE
+DP  - 2016 Nov
+VI  - 59
+IP  - 11
+TI  - Occupational exposures and the burden of cancer mortality in the U.S.
+PG  - 1080-1089
+FAU - Purdue, Mark P
+AU  - Purdue MP
+AD  - Division of Cancer Epidemiology and Genetics, National Cancer Institute,
+      Bethesda, Maryland.
+LA  - eng
+PT  - Journal Article
+PL  - United States
+TA  - Am J Ind Med
+JT  - American journal of industrial medicine
+AID - 10.1002/ajim.22619 [doi]
+PST - ppublish

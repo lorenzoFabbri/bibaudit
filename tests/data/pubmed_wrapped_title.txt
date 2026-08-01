@@ -1,0 +1,36 @@
+PMID- 28338828
+OWN - NLM
+STAT- MEDLINE
+DCOM- 20180430
+LR  - 20181113
+IS  - 1476-6256 (Electronic)
+IS  - 0002-9262 (Print)
+IS  - 0002-9262 (Linking)
+VI  - 185
+IP  - 12
+DP  - 2017 Jun 15
+TI  - Night shift work, chronotype, and colorectal cancer risk in the MCC-Spain
+      case-control study: a population-based multicase-control study of common
+      tumors in Spain.
+PG  - 1265-1274
+AB  - Night shift work has been classified as a probable human carcinogen,
+      largely on the basis of circadian disruption. We evaluated the
+      association between night shift work and colorectal cancer risk.
+FAU - Papantoniou, Kyriaki
+AU  - Papantoniou K
+AD  - Barcelona Institute for Global Health (ISGlobal), Barcelona, Spain.
+FAU - Castano-Vinyals, Gemma
+AU  - Castano-Vinyals G
+AD  - Universitat Pompeu Fabra (UPF), Barcelona, Spain.
+LA  - eng
+PT  - Journal Article
+PT  - Research Support, Non-U.S. Gov't
+PL  - United States
+TA  - Am J Epidemiol
+JT  - American journal of epidemiology
+JID - 7910653
+SB  - IM
+EDAT- 2017/03/25 06:00
+AID - 10.1093/aje/kwx137 [doi]
+PST - ppublish
+SO  - Am J Epidemiol. 2017 Jun 15;185(12):1265-1274. doi: 10.1093/aje/kwx137.

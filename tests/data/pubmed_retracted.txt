@@ -1,0 +1,33 @@
+PMID- 9500320
+OWN - NLM
+STAT- MEDLINE
+DCOM- 19980409
+LR  - 20211203
+IS  - 0140-6736 (Print)
+IS  - 0140-6736 (Linking)
+VI  - 351
+IP  - 9103
+DP  - 1998 Feb 28
+TI  - Ileal-lymphoid-nodular hyperplasia, non-specific colitis, and pervasive
+      developmental disorder in children.
+PG  - 637-41
+FAU - Wakefield, A J
+AU  - Wakefield AJ
+AD  - Inflammatory Bowel Disease Study Group, University Departments of
+      Medicine and Histopathology, Royal Free Hospital and School of Medicine,
+      London, UK.
+FAU - Murch, S H
+AU  - Murch SH
+LA  - eng
+PT  - Journal Article
+PT  - Retracted Publication
+PL  - England
+TA  - Lancet
+JT  - Lancet (London, England)
+JID - 2985213R
+RIN - Retraction in: Lancet. 2010 Feb 6;375(9713):445. PMID: 20137807
+SB  - AIM
+SB  - IM
+AID - 10.1016/S0140-6736(97)11096-0 [doi]
+PST - ppublish
+SO  - Lancet. 1998 Feb 28;351(9103):637-41.

@@ -1,0 +1,50 @@
+PMID- 23741377
+OWN - NLM
+STAT- MEDLINE
+DCOM- 20140218
+LR  - 20211030
+IS  - 1932-6203 (Electronic)
+IS  - 1932-6203 (Linking)
+VI  - 8
+IP  - 5
+DP  - 2013
+TI  - Adult bone marrow neural crest stem cells and mesenchymal stem cells are not able
+      to replace lost neurons in acute MPTP-lesioned mice.
+PG  - e64723
+LID - 10.1371/journal.pone.0064723 [doi]
+LID - e64723
+AB  - Adult bone marrow stroma contains multipotent stem cells (BMSC) that are a mixed
+      population of mesenchymal and neural-crest derived stem cells. Both cells are
+      endowed with in vitro multi-lineage differentiation abilities, then constituting
+      an attractive and easy-available source of material for cell therapy in
+      neurological disorders.
+FAU - Neirinckx, Virginie
+AU  - Neirinckx V
+AD  - Groupe Interdisciplinaire de Genoproteomique Appliquee (GIGA), Unit of
+      Neurosciences, University of Liege, Liege, Belgium.
+FAU - Marquet, Alice
+AU  - Marquet A
+FAU - Coste, Cecile
+AU  - Coste C
+FAU - Rogister, Bernard
+AU  - Rogister B
+FAU - Wislet-Gendebien, Sabine
+AU  - Wislet-Gendebien S
+LA  - eng
+PT  - Journal Article
+PT  - Research Support, Non-U.S. Gov't
+DEP - 20130531
+PL  - United States
+TA  - PLoS One
+JT  - PloS one
+JID - 101285081
+SB  - IM
+ECI - PLoS One. 2021 Oct 28;16(10):e0256488. doi: 10.1371/journal.pone.0256488. PMID:
+      34710116
+PMC - PMC3669410
+EDAT- 2013/06/07 06:00
+MHDA- 2014/02/19 06:00
+AID - PONE-D-13-12071 [pii]
+AID - 10.1371/journal.pone.0064723 [doi]
+PST - epublish
+SO  - PLoS One. 2013 May 31;8(5):e64723. doi: 10.1371/journal.pone.0064723. Print 2013.
