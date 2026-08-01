@@ -134,5 +134,12 @@ the point.
 ## Git
 
 - No attribution trailers in commit messages, and no mention of the assistant
-  that helped write a change.
+  that helped write a change. A commit message is about the change, not about
+  who typed it.
 - Commit messages state what changed and why, in the imperative.
+
+The rule above is about commit messages only. The README and the documentation
+site *do* acknowledge that this was built with Claude Code, deliberately and at
+the author's instruction — the point being that a model wrote the comparison
+rules while no model evaluates one. Do not remove those sections as if they
+were stray attribution.

@@ -302,6 +302,31 @@ confirm a book that has no identifier at all — see
 `docs/registry-artifacts.md`. An entry nothing can confirm is reported as
 `UNCONFIRMED`, meaning *needs review*, never *fabricated*.
 
+## How this was built
+
+bibaudit was written with [Claude Code](https://claude.com/claude-code) — the
+implementation, the 1186-test suite, and the adversarial review passes that
+found most of the defects it now guards against, including the ones described
+above.
+
+That is worth stating precisely, because this tool's first rule is that **no
+language model is in the verdict path**. Those are different claims: a model
+helped write the comparison rules, and no model evaluates one.
+
+Every registry answer is saved to the cache verbatim — the URL that was asked,
+the timestamp, and the response body exactly as it arrived. The verdict is then
+computed from that stored response alone: fold the two titles, compare the first
+page, walk the author lists. Nothing in that path opens a socket or calls a
+model, which is what `CLAUDE.md`'s *comparison never performs I/O* enforces.
+
+So "re-derivable" is meant literally. If bibaudit reports a page mismatch, you
+can open the cache file, read the `page` field Crossref actually returned, and
+check the conclusion yourself — today, or in ten years, with no API key and
+nothing to run. That property is what the rule protects, and it does not depend
+on how the code was written.
+
+The rules the work was held to are in [`CLAUDE.md`](CLAUDE.md).
+
 ## Licence
 
 MIT.
