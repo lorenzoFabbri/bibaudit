@@ -97,7 +97,7 @@ for 27 of 30 `FIELD-MISMATCH` verdicts and all 15 remaining `authors`-only
 `INCOMPLETE` ones — 42 entries, 9.6% of the file, **not one of which disagreed
 with Crossref about a single person**.
 
-**Reported as.** `registry interleaves collective creator(s) the byline omits: `,
+**Reported as.** `registry interleaves collective creator(s) the byline omits`,
 followed by the organisations in full. The two whole-byline cases are reported as
 `collective author` (the bibliography stores one collective, the registry lists
 people) and `registry lists a collective author` (the reverse).

@@ -33,6 +33,16 @@ TITLE = "Shift work and colorectal cancer risk in the MCC-Spain case-control stu
 #: where pytest was invoked from.
 ARTIFACT_DOCS = Path(__file__).resolve().parents[1] / "docs" / "registry-artifacts.md"
 
+
+def _documented(reason: str) -> str:
+    """The form a reason is written in ``docs/registry-artifacts.md``.
+
+    One reason is a prefix that goes on to name the organisations it found, so
+    the trailing separator is not part of what gets documented.
+    """
+    return reason.rstrip().rstrip(":").rstrip()
+
+
 _DATA = Path(__file__).parent / "data"
 
 
@@ -512,7 +522,12 @@ class TestRuleScoping:
         noticing.
         """
         prose = ARTIFACT_DOCS.read_text(encoding="utf-8")
-        missing = [r for r in names.ARTIFACT_REASONS if r.strip().rstrip(":") not in prose]
+        # Matched as a backticked literal, not as a bare substring. Two reasons
+        # contain another ("registry mojibake" sits inside "registry mojibake
+        # truncated the surname", "collective author" inside "registry lists a
+        # collective author"), so a substring test passes for a reason whose own
+        # section was deleted — it finds the longer one and reports success.
+        missing = [r for r in names.ARTIFACT_REASONS if f"`{_documented(r)}`" not in prose]
         assert missing == []
 
 
