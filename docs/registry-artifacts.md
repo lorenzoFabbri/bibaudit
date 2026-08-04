@@ -20,8 +20,8 @@ Most of what follows is a reproducible defect in the registry's own data, but
 not all of it. Some sections describe a filing convention, an encoding choice or
 a representation both sides are entitled to, where nobody's record is wrong at
 all. They are here because they are reported as `REGISTRY-ARTIFACT` and so owe
-the reader the same explanation. Rather than list them here — a list that has
-already gone stale once — each section says which case it is.
+the reader the same explanation — read the section before concluding that a
+registry got something wrong.
 
 ---
 
@@ -131,10 +131,14 @@ Collaborative Group}` as a single creator while the registry lists the people, o
 the reverse. Neither is wrong. It is the same work described at two levels, and
 it is a representation difference rather than a defect in anyone's record.
 
-**No witnessed instance of its own.** The consortium shape the corpus actually
-produces is the interleaved one above, which has its own DOIs. This escape covers
-the whole-byline form, which the corpus does not contain; it is pinned by
-constructed cases in `tests/test_names.py` rather than by a recorded deposit.
+**Observed.** `key2002hormones` in the 438-entry corpus — *The Endogenous
+Hormones and Breast Cancer Collaborative Group*, stored as one creator against a
+registry byline of its members. It is one of the eight author flags that corpus
+recorded as false positives, and it is pinned at
+`tests/test_benign.py::TestAuthorArtifacts`. Neither the entry's DOI nor a
+registry response for it is recorded in this repository, so unlike the
+interleaved case above there is nothing here to read the suppression against —
+the citekey and the test are the whole of the evidence trail.
 
 **Reported as.** `collective author` when the *bibliography* holds the single
 collective, `registry lists a collective author` when the registry does.
@@ -266,7 +270,8 @@ on an initial that thousands of researchers share.
 
 **What happens.** The same people appear in both lists in a different order, so a
 position-against-position comparison reports every moved creator as a
-substitution.
+substitution. Neither record is wrong: an author order is a fact about the paper
+that both sides may serialise differently.
 
 **Reported as.** `reordered`.
 

@@ -111,9 +111,11 @@ challenged: every rule that can produce one has a section in
 [registry defects](registry-artifacts.md) explaining what it accepts and why,
 and a test fails the build if one does not. That covers both halves — the
 field-level checks and the author-comparison escapes, which are decided while
-walking two bylines in step and so live outside the check module. Each section
-names the case that motivated its rule — by DOI, with the registry's own
-response recorded in `tests/data`, wherever one was observed.
+walking two bylines in step and so live outside the check module. What the test
+enforces is that a section exists, not what it contains; many sections go
+further and name a witnessed instance by DOI, with the registry's own response
+kept verbatim under `tests/data` so the suppression can be checked against the
+bytes that produced it.
 
 `ADJUDICATED` says somebody on **this project** wrote a rule in `.bibaudit.toml`
 saying not to care. That rests on a person's say-so and it can go stale — a
