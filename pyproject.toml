@@ -48,7 +48,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6", "mypy>=1.11"]
+dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.16.1", "mypy>=1.11"]
 
 # Documentation only, and a dependency-group rather than an extra so that it
 # stays out of the test environment. `.github/workflows/ci.yml` installs with
