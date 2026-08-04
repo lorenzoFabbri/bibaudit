@@ -145,8 +145,9 @@ def build_parser() -> argparse.ArgumentParser:
     network.add_argument(
         "--no-isbn", action="store_true",
         help="do not resolve books through Open Library, by ISBN or by "
-             "title/author search; every book stored with only an ISBN, and "
-             "every book with no identifier at all, falls back to "
+             "title/author search; a book stored with only an ISBN is then "
+             "reported BAD-ID, because nothing that could hold it was "
+             "consulted, and a book with no identifier at all falls back to "
              "UNCONFIRMED",
     )
     network.add_argument(

@@ -1,10 +1,12 @@
 # bibaudit
 
+**Documentation: <https://lorenzofabbri.github.io/bibaudit/>**
+
 Checks that every reference in a bibliography **exists** and that **every stored
 field matches the publisher's record** — title, every author, year, journal,
 volume, issue, pages, publisher — against Crossref, DataCite, PubMed and, for
-books, Open Library. Every reference that resolves is also checked for
-retraction status against Retraction Watch's own export and PubMed's
+books, Open Library. Every reference that resolves **to a DOI** is also checked
+for retraction status against Retraction Watch's own export and PubMed's
 expression-of-concern cross-reference, independently of whatever a publisher
 happened to deposit with Crossref.
 
@@ -15,25 +17,31 @@ the cached registry response, and any of them can be re-derived by hand.
 $ bibaudit check references.bib
 bibaudit — 438 references checked
 
+BAD-ID  (1)  the identifier resolves in no consulted registry
+    jones2020method  references.bib:301
+      doi/unresolved  (resolves in no consulted registry)
+        stored   10.1016/j.jclinepi.2020.99999
+        registry 
+
 FIELD-MISMATCH  (2)  right work, but stored metadata disagrees with the registry
     smith2019cohort  references.bib:214
       year/mismatch
         stored   2019
         crossref print=2021, online=2020
-
-BAD-ID  (1)  the identifier resolves in no consulted registry
-    jones2020method  references.bib:301
-      doi/unresolved  (resolves in no consulted registry)
-        stored   10.1016/j.jclinepi.2020.99999
+    wang2021trial  references.bib:266
+      pages/mismatch
+        stored   1120
+        crossref 1102
 
 summary
+  BAD-ID             1
+  FIELD-MISMATCH     2
+  INCOMPLETE         74
   OK                 361
-  INCOMPLETE          74
-  FIELD-MISMATCH       2
-  BAD-ID               1
-  errors by field      year=2, doi=1
+  errors by field    year=1, pages=1, doi=1
 
-FAIL — 3 reference(s) need attention
+FAIL — 3 reference(s) in the failing set
+bibaudit verifies that each reference exists and that its stored metadata matches the publisher's record. It does not and cannot verify that a cited work supports the statement it is attached to — that requires reading the paper.
 ```
 
 ## Why not just check that the DOI resolves
@@ -45,7 +53,10 @@ corrupted fields** and 4% were **valid, resolving DOIs attached to the wrong
 paper**.[^taxonomy] Those two classes are invisible to every "does the DOI
 resolve" tool, and they are the ones that survive review.
 
-[^taxonomy]: Ansari, *Anatomy of a Fabricated Citation*, arXiv:2602.05930.
+[^taxonomy]: Ansari, S., *Compound Deception in Elite Peer Review: A Failure Mode
+Taxonomy of 100 Fabricated Citations at NeurIPS 2025*, arXiv:2602.05930. The
+100 citations appeared in 53 published papers, about 1% of that year's accepted
+papers; the taxonomy's remaining 3% are placeholder and semantic hallucinations.
 
 ## Why it never rewrites your bibliography
 
@@ -67,7 +78,7 @@ one, and leaves the decision to you. `--suggest` can write a corrected copy
 ## Install
 
 ```bash
-uv tool install bibaudit          # or: pipx install bibaudit
+uv tool install git+https://github.com/lorenzoFabbri/bibaudit
 ```
 
 From a checkout:
@@ -75,6 +86,9 @@ From a checkout:
 ```bash
 uv sync && uv run bibaudit --help
 ```
+
+Not on PyPI yet, so `uv tool install bibaudit` and `pipx install bibaudit` will
+work once 0.1.0 is released and not before.
 
 ## Use
 
@@ -185,9 +199,15 @@ publisher chose to deposit and the second two independently of it:
   `PT` value the second bullet reads — closing a gap where NLM knows about a
   concern and the tool, until this was added, did not.
 
-Checked for every reference that resolves, however it resolved — by DOI, by
-ISBN, or by a title/author search that confirmed one. A retraction **either
-one source records alone is still reported**, and the finding names which one
+Checked for every reference that resolves to a DOI — one stored in the entry, or
+one carried by a candidate a title/author search confirmed, which is new to the
+run and gets checked on the spot. A book resolved through its ISBN alone is the
+exception, and not a discretionary one: all four sources above are keyed on DOIs,
+and Open Library mints none, so there is nothing to ask them about. Its
+retraction status is not checked, and a clean report does not claim otherwise.
+
+A retraction **either one source records alone is still reported**, and the
+finding names which one
 — "recorded by pubmed and not by crossref, which answered for this work and
 carries no retraction linkage" is a different message from "recorded by
 crossref, pubmed", and the first is also a bug report for the publisher. An
@@ -276,7 +296,7 @@ yourself.
 ## In CI
 
 ```yaml
-- run: uv tool install bibaudit
+- run: uv tool install git+https://github.com/lorenzoFabbri/bibaudit
 - run: bibaudit check references.bib --mailto ${{ secrets.CONTACT_EMAIL }}
 ```
 
@@ -305,7 +325,7 @@ confirm a book that has no identifier at all — see
 ## How this was built
 
 bibaudit was written with [Claude Code](https://claude.com/claude-code) — the
-implementation, the 1186-test suite, and the adversarial review passes that
+implementation, the 1,194-test suite, and the adversarial review passes that
 found most of the defects it now guards against, including the ones described
 above.
 
