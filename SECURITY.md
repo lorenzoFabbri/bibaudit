@@ -21,9 +21,11 @@ Worth stating plainly, because it bounds what a vulnerability here could reach.
   DataCite, PubMed, Europe PMC, OpenAlex, Open Library and Retraction Watch. If
   an unpublished title is sensitive, `--no-search` keeps it off the wire and
   `--offline` sends nothing at all.
-- **`--mailto` puts your address in the query string** of Crossref and NCBI
-  requests, which is what those services ask for. It is the only personal data
-  the tool transmits, and it is opt-in.
+- **`--mailto` appends your address to the `User-Agent` header of every
+  request the tool makes** — not only Crossref and NCBI, which are the services
+  that ask for it. One HTTP client is shared by every registry, so the address
+  also reaches DataCite, Europe PMC, OpenAlex, Open Library and Retraction
+  Watch. It is the only personal data the tool transmits, and it is opt-in.
 - **No credentials of any kind.** There is no API key, token or account
   anywhere in this tool, so there is nothing for it to leak.
 - **The cache holds registry responses verbatim** under `--cache-dir`

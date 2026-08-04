@@ -172,9 +172,17 @@ is a genuine difference in how many elements the surname has.
 
 **Reported as.** `compound surname shortened`.
 
-**Detection.** `names.names_agree`. One side's surname must be a **token-level**
-suffix or prefix of the other's — whole elements, never a character prefix, so
-`Martin` is not accepted against `Martinez`. Recorded in `tests/test_names.py`.
+**Detection.** `names.names_agree`. The stored surname must be a **token-level
+suffix** of the registry's, or the registry's of the stored one — whole elements,
+never a character prefix, so `Martin` is not accepted against `Martinez`.
+
+Suffix, not "shares a final token", and the difference is the whole rule.
+Requiring the *shorter* name to end the longer one separates people who merely
+share a surname: `Krebs-Smith` is not `Davey Smith`, and `González-González` is
+not `Martínez-González`. Both pairs are real, both appear in the 438-entry corpus
+under different DOIs, and a final-token test clears both. `Clavel-Chapelon`
+against `Clavel` is rejected for the same reason — a leading element is not a
+shortening this rule recognises. Pinned in `tests/test_names.py`.
 
 ---
 
@@ -189,7 +197,7 @@ suffix or prefix of the other's — whole elements, never a character prefix, so
 together, each of which names what it excludes:
 
 - **one edit, not a shared prefix** — so `Martinez` (two edits from `Martin`) and
-  `Smithers` (four from `Smith`) are reported, not suppressed;
+  `Smithers` (three from `Smith`) are reported, not suppressed;
 - **the same first character** — so a leading-character difference is never waved
   through, leaving `Herman`/`Sherman` and `Rossman`/`Grossman` reported. That
   damage is `_surname_truncated_by_mojibake`'s business, and only under evidence;
@@ -205,9 +213,10 @@ developed against reaches this branch. It is kept, narrowly, for the
 transliteration variants a multilingual bibliography does produce, and it is a
 candidate for deletion rather than for widening. An earlier form of it accepted
 any two surnames sharing three leading characters on a matching initial, which
-cleared `Krebs-Smith` against `Davey Smith` and `González-González` against
-`Martínez-González` — different people, both pairs real and both present in the
-corpus under different DOIs.
+cleared `Chan` against `Chang`, `Wan` against `Wang`, `Martin` against
+`Martinez`, `Smith` against `Smithers`, `Gonzalez` against `Gonzalo` and `Sancho`
+against `Sanchez` — pairs of different families, each cleared against the other
+on an initial that thousands of researchers share.
 
 ---
 

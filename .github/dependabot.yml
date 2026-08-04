@@ -24,5 +24,8 @@ updates:
     commit-message:
       prefix: ""
     groups:
-      dev:
-        dependency-type: development
+      # One group for everything: `dependency-type: development` does not match
+      # here, because Dependabot's uv parser leaves entries from
+      # `[project.optional-dependencies]` untyped.
+      dependencies:
+        patterns: ["*"]

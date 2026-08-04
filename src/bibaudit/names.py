@@ -365,6 +365,16 @@ def _surname_text(name: Name) -> str:
 #: nothing, and before :func:`_agrees_informatively` existed they were enough to
 #: clear a whole byline: a registry list of ``[王, 李, 张]`` "aligned" against
 #: ``[Smith, Jones, Brown]`` and suppressed the author-count difference too.
+_REGISTRY_MOJIBAKE = "registry mojibake"
+_PARTICLE_FILING = "particle filing"
+_COMPOUND_SHORTENED = "compound surname shortened"
+_SPELLING_VARIANT = "spelling variant with matching initials"
+_STORED_COLLECTIVE = "collective author"
+_REGISTRY_COLLECTIVE = "registry lists a collective author"
+_INTERLEAVED_COLLECTIVES = "registry interleaves collective creator(s) the byline omits: "
+_FIRST_AUTHOR_OMITTED = "registry omits the first author"
+_MOJIBAKE_TRUNCATED = "registry mojibake truncated the surname"
+_REORDERED = "reordered"
 _NO_SURNAME = "one side has no surname"
 _UNREPRESENTABLE_SCRIPT = "surname outside the comparison alphabet"
 _REGISTRY_INITIAL_ONLY = "registry surname truncated"
@@ -394,16 +404,16 @@ ARTIFACT_REASONS: tuple[str, ...] = (
     _UNREPRESENTABLE_SCRIPT,
     _REGISTRY_INITIAL_ONLY,
     _ET_AL_REASON,
-    "registry mojibake",
-    "particle filing",
-    "compound surname shortened",
-    "spelling variant with matching initials",
-    "collective author",
-    "registry lists a collective author",
-    "registry interleaves collective creator(s) the byline omits: ",
-    "registry omits the first author",
-    "registry mojibake truncated the surname",
-    "reordered",
+    _REGISTRY_MOJIBAKE,
+    _PARTICLE_FILING,
+    _COMPOUND_SHORTENED,
+    _SPELLING_VARIANT,
+    _STORED_COLLECTIVE,
+    _REGISTRY_COLLECTIVE,
+    _INTERLEAVED_COLLECTIVES,
+    _FIRST_AUTHOR_OMITTED,
+    _MOJIBAKE_TRUNCATED,
+    _REORDERED,
 )
 
 
@@ -530,11 +540,11 @@ def names_agree(stored: Name, registry: Name) -> tuple[bool, str]:
         registry.literal or registry.family or ""
     )
     if was_mojibake and fold(repaired) == stored_key:
-        return True, "registry mojibake"
+        return True, _REGISTRY_MOJIBAKE
 
     # Particle filing differences: "van Eijck" vs "Eijck".
     if family_key(stored, drop_particles=True) == family_key(registry, drop_particles=True):
-        return True, "particle filing"
+        return True, _PARTICLE_FILING
 
     # Hyphen and space are interchangeable in compound surnames, and fold()
     # already turns both into a space, so a remaining difference is real —
@@ -565,7 +575,7 @@ def names_agree(stored: Name, registry: Name) -> tuple[bool, str]:
     registry_parts = registry_key.split()
     shorter, longer = sorted((stored_parts, registry_parts), key=len)
     if shorter and len(shorter) < len(longer) and longer[-len(shorter):] == shorter:
-        return True, "compound surname shortened"
+        return True, _COMPOUND_SHORTENED
 
     # A single-letter registry surname carries no information; treat it as the
     # registry being incomplete rather than as a contradiction.
@@ -589,7 +599,7 @@ def names_agree(stored: Name, registry: Name) -> tuple[bool, str]:
     # and each names what it excludes:
     #
     # * one edit, not a shared prefix, so `Martinez` (two edits from `Martin`)
-    #   and `Smithers` (four from `Smith`) are reported;
+    #   and `Smithers` (three from `Smith`) are reported;
     # * the same first character, so a *leading* character difference is never
     #   waved through here — that is the damage
     #   :func:`_surname_truncated_by_mojibake` handles under evidence, and
@@ -609,7 +619,7 @@ def names_agree(stored: Name, registry: Name) -> tuple[bool, str]:
         and stored_key[0] == registry_key[0]
         and _differs_by_one_edit(stored_key, registry_key)
     ):
-        return True, "spelling variant with matching initials"
+        return True, _SPELLING_VARIANT
 
     return False, ""
 
@@ -1022,11 +1032,11 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
     # representation difference, not a defect: Crossref splits some consortium
     # bylines into members while the bibliography keeps the group name.
     if len(stored) == 1 and stored[0].collective:
-        diff.reasons[1] = "collective author"
+        diff.reasons[1] = _STORED_COLLECTIVE
         diff.truncated = True
         return diff
     if len(registry) == 1 and registry[0].collective:
-        diff.reasons[1] = "registry lists a collective author"
+        diff.reasons[1] = _REGISTRY_COLLECTIVE
         diff.truncated = True
         return diff
 
@@ -1037,7 +1047,7 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
         # claim is "these particular creators are organisations the bibliography
         # left out" — so the report has to print which ones.
         diff.reasons[1] = (
-            "registry interleaves collective creator(s) the byline omits: "
+            _INTERLEAVED_COLLECTIVES
             + "; ".join(str(n) for n in interleaved)
         )
         diff.truncated = True
@@ -1050,7 +1060,7 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
         # also keeps ``reasons`` indexable against *both* lists by the same
         # position, which is the contract ``compare._check_authors`` relies on
         # when it prints the stored and registry values side by side.
-        diff.reasons[1] = "registry omits the first author"
+        diff.reasons[1] = _FIRST_AUTHOR_OMITTED
         diff.truncated = True
         return diff
 
@@ -1073,11 +1083,11 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
                 diff.reasons[index + 1] = reason
             continue
         if mojibake_byline and _surname_truncated_by_mojibake(left, right, registry, index):
-            diff.reasons[index + 1] = "registry mojibake truncated the surname"
+            diff.reasons[index + 1] = _MOJIBAKE_TRUNCATED
             continue
         left_key, right_key = family_key(left), family_key(right)
         if left_key in registry_keys and right_key in stored_keys:
-            diff.reasons[index + 1] = "reordered"
+            diff.reasons[index + 1] = _REORDERED
             continue
         diff.mismatches.append((index + 1, str(left), str(right)))
 

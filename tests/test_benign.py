@@ -15,6 +15,7 @@ test and cleaning them up would delete it.
 
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 
@@ -32,6 +33,44 @@ TITLE = "Shift work and colorectal cancer risk in the MCC-Spain case-control stu
 #: this file rather than the working directory so the test does not depend on
 #: where pytest was invoked from.
 ARTIFACT_DOCS = Path(__file__).resolve().parents[1] / "docs" / "registry-artifacts.md"
+
+#: The module whose author-comparison escapes must all be enumerated.
+NAMES_SOURCE = Path(__file__).resolve().parents[1] / "src" / "bibaudit" / "names.py"
+
+
+def _reason_literals(source: str) -> list[str]:
+    """Every string literal ``names.py`` uses *as* an author-comparison reason.
+
+    Reads the two shapes that produce one: the second element of a
+    ``return True, ...`` pair, and an assignment into ``diff.reasons[...]``
+    (whose interleaved-collectives case concatenates the organisations onto a
+    prefix, so the left operand is what counts). The empty string is the
+    "agreed, nothing to report" case and is not a reason.
+    """
+    found: list[str] = []
+
+    def literal(node: ast.expr) -> None:
+        if isinstance(node, ast.BinOp):
+            node = node.left
+        if isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value:
+            found.append(node.value)
+
+    for node in ast.walk(ast.parse(source)):
+        if (
+            isinstance(node, ast.Return)
+            and isinstance(node.value, ast.Tuple)
+            and len(node.value.elts) == 2
+        ):
+            literal(node.value.elts[1])
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if (
+                    isinstance(target, ast.Subscript)
+                    and isinstance(target.value, ast.Attribute)
+                    and target.value.attr == "reasons"
+                ):
+                    literal(node.value)
+    return found
 
 
 def _documented(reason: str) -> str:
@@ -529,6 +568,25 @@ class TestRuleScoping:
         # section was deleted — it finds the longer one and reports success.
         missing = [r for r in names.ARTIFACT_REASONS if f"`{_documented(r)}`" not in prose]
         assert missing == []
+
+    def test_no_author_reason_escapes_the_enumeration(self) -> None:
+        """``ARTIFACT_REASONS`` has to be *complete*, or documenting it proves nothing.
+
+        The test above checks that every listed reason is written up. Nothing
+        made the list itself exhaustive: a reason written as a bare literal at
+        its emission site, or an existing one reworded there, left the tuple
+        holding a string the code no longer produces — and the docs test went on
+        passing while a report printed a suppression with no section behind it.
+
+        So the emission sites are read directly. Every reason is bound to a
+        module constant, which is why no literal should be found here at all.
+        """
+        unlisted = [
+            r
+            for r in _reason_literals(NAMES_SOURCE.read_text(encoding="utf-8"))
+            if r not in names.ARTIFACT_REASONS
+        ]
+        assert unlisted == []
 
 
 class TestArtifactsAreReportedNotResolved:
