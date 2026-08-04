@@ -1,5 +1,18 @@
 # bibaudit
 
+[![CI](https://github.com/lorenzoFabbri/bibaudit/actions/workflows/ci.yml/badge.svg)](https://github.com/lorenzoFabbri/bibaudit/actions/workflows/ci.yml)
+[![Docs](https://github.com/lorenzoFabbri/bibaudit/actions/workflows/docs.yml/badge.svg)](https://lorenzofabbri.github.io/bibaudit/)
+[![License: MIT](https://img.shields.io/github/license/lorenzoFabbri/bibaudit)](LICENSE)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
+
+<!-- Add on the first PyPI release; until then each renders "not found" or, for
+     downloads, "rate limited by upstream service":
+[![PyPI](https://img.shields.io/pypi/v/bibaudit)](https://pypi.org/project/bibaudit/)
+[![Python versions](https://img.shields.io/pypi/pyversions/bibaudit)](https://pypi.org/project/bibaudit/)
+[![Downloads](https://img.shields.io/pypi/dm/bibaudit)](https://pypi.org/project/bibaudit/)
+-->
+
 **Documentation: <https://lorenzofabbri.github.io/bibaudit/>**
 
 Checks that every reference in a bibliography **exists** and that **every stored

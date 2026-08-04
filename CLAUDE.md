@@ -46,10 +46,13 @@ docs/
 `docs/registry-artifacts.md` is not prose beside the code — it is the reader's
 only way to challenge a `REGISTRY-ARTIFACT` line, and
 `tests/test_benign.py::test_every_check_is_written_up_in_the_registry_defect_docs`
-turns red for any rule in `benign.CHECKS` that has no section there. Defects
-handled outside `benign.py` (a list shape in `names.py`, a relation direction in
-`registries/crossref.py`) belong there too, and each such section says where it
-lives.
+turns red for any rule in `benign.CHECKS` that has no section there, and
+`test_every_author_escape_is_written_up_too` does the same for every reason in
+`names.ARTIFACT_REASONS` — the author-comparison escapes, which are decided
+while walking two bylines in step and so cannot be field-level checks. Both
+produce `REGISTRY-ARTIFACT` and both owe the reader a section. Defects handled
+elsewhere (a relation direction in `registries/crossref.py`) belong there too,
+and each such section says where it lives.
 
 Adapters never call registries. Registries never see a `Reference`. Comparison
 never performs I/O. Keeping those boundaries is what makes the logic testable

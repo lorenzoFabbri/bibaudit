@@ -107,12 +107,11 @@ incompatible statements indistinguishable in a report.
 
 `REGISTRY-ARTIFACT` says a **documented registry defect** explains the
 difference. It is settled for everybody, it needs no reader, and it can be
-challenged: the rules live in one module, each has a section in
-[registry defects](registry-artifacts.md) explaining the concrete case that
-motivated it, and a test fails the build if one of them does not. A handful of
-related exceptions live in the author-comparison code rather than that module
-and are documented by the same convention, but only the module's own rules are
-checked mechanically.
+challenged: every rule that can produce one has a section in
+[registry defects](registry-artifacts.md) naming the concrete case that
+motivated it, and a test fails the build if one does not. That covers both
+halves — the field-level checks and the author-comparison escapes, which are
+decided while walking two bylines in step and so live outside the check module.
 
 `ADJUDICATED` says somebody on **this project** wrote a rule in `.bibaudit.toml`
 saying not to care. That rests on a person's say-so and it can go stale — a

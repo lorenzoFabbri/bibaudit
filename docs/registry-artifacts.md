@@ -36,6 +36,8 @@ Kim et al., *Alcohol Consumption and Breast Cancer Risk in Younger Women*, with
 a clean American byline. Anyone auditing the rule through the documented DOI
 would have found no mojibake and concluded it was invented.
 
+**Reported as.** `registry mojibake`.
+
 **Detection.** Round-trip repair: `text.encode("latin-1").decode("utf-8")`. If
 the result decodes cleanly and matches the stored name, the registry value was
 mis-decoded. Implemented in `names.demojibake`, which is deterministic and does
@@ -60,6 +62,8 @@ lost outright: Crossref holds `ierssen` for *Dierssen*. A round trip cannot
 repair this — mis-decoding never deletes a byte, so there is nothing to undo.
 
 **Observed.** `10.5271/sjweh.3626` again, position 15 of 24 creators.
+
+**Reported as.** `registry mojibake truncated the surname`.
 
 **Detection.** `names._surname_truncated_by_mojibake`, and it is deliberately
 narrow because "a surname missing one leading character" is far too wide on its
@@ -93,6 +97,11 @@ for 27 of 30 `FIELD-MISMATCH` verdicts and all 15 remaining `authors`-only
 `INCOMPLETE` ones — 42 entries, 9.6% of the file, **not one of which disagreed
 with Crossref about a single person**.
 
+**Reported as.** `registry interleaves collective creator(s) the byline omits: `,
+followed by the organisations in full. The two whole-byline cases are reported as
+`collective author` (the bibliography stores one collective, the registry lists
+people) and `registry lists a collective author` (the reverse).
+
 **Detection.** `names._interleaved_collectives`. The collectives are dropped
 from the registry side and what remains must align **exactly**: same length as
 the stored list, every position agreeing informatively. That is the evidence the
@@ -120,6 +129,8 @@ a French cohort study on cancer risk factors*, Eur J Cancer Prev 1997, stored as
 `clavelchapelon1997e3n`), deposited by Ovid/Wolters Kluwer. Recorded in
 `tests/data/names_crossref_first_author_omitted.json`.
 
+**Reported as.** `registry omits the first author`.
+
 **Detection.** `names._registry_omits_first_author`. Alignment, not a special
 case for one citekey: exactly one creator missing and it must be the first; at
 least three remaining creators, all agreeing in order and *informatively*; the
@@ -131,6 +142,118 @@ list can separate the two. The difference is still printed with both names under
 `REGISTRY-ARTIFACT` — suppressed here means stated-and-not-failed, never
 hidden — it simply does not break the build. The evidence that would separate
 them (the citekey, the title) lives outside `names.py`.
+
+---
+
+## Particle filing
+
+**What happens.** A nobiliary particle is part of the filing surname in one
+source and not in the other: the bibliography stores *van Eijck* and the deposit
+files the creator under *Eijck*, or the reverse. Neither is wrong — the two
+conventions are both in use, and the choice is the cataloguer's.
+
+**Reported as.** `particle filing`.
+
+**Detection.** `names.names_agree`, via `family_key(..., drop_particles=True)` on
+both sides. The particle is dropped from *both* names and what remains must
+match exactly; nothing is inferred about which convention is correct, and the
+stored value is never adopted. `names._PARTICLES` is the vocabulary.
+
+---
+
+## Compound surnames shortened to their final element
+
+**What happens.** A registry keeps only the last element of a compound surname —
+`Chapelon` for *Clavel-Chapelon* — or sweeps a forename into the family field, so
+the deposit holds `Cristina-Marianini-Rios` where the bibliography holds
+`Marianini-Rios` with `Cristina` as the given name. Hyphen and space are already
+interchangeable here, because `fold()` turns both into a space, so what remains
+is a genuine difference in how many elements the surname has.
+
+**Reported as.** `compound surname shortened`.
+
+**Detection.** `names.names_agree`. One side's surname must be a **token-level**
+suffix or prefix of the other's — whole elements, never a character prefix, so
+`Martin` is not accepted against `Martinez`. Recorded in `tests/test_names.py`.
+
+---
+
+## One-character spelling variants
+
+**What happens.** Transliteration produces two spellings of one surname:
+*Ivanov* and *Ivanova*, *Papantoniou* and *Papantoniu*.
+
+**Reported as.** `spelling variant with matching initials`.
+
+**Detection.** `names.names_agree`, behind three conditions that must hold
+together, each of which names what it excludes:
+
+- **one edit, not a shared prefix** — so `Martinez` (two edits from `Martin`) and
+  `Smithers` (four from `Smith`) are reported, not suppressed;
+- **the same first character** — so a leading-character difference is never waved
+  through, leaving `Herman`/`Sherman` and `Rossman`/`Grossman` reported. That
+  damage is `_surname_truncated_by_mojibake`'s business, and only under evidence;
+- **at least six characters on both sides** — so the short surnames where one
+  edit is a different family entirely are reported: `Chan`/`Chang`, `Wan`/`Wang`,
+  `Lin`/`Liu`, `Kim`/`Kum`.
+
+The forename initials must also agree, which is what defeats `Kowalski, Anna`
+against `Kowalska, Piotr`.
+
+**No witnessed instance.** No entry in the 438-entry corpus this tool was
+developed against reaches this branch. It is kept, narrowly, for the
+transliteration variants a multilingual bibliography does produce, and it is a
+candidate for deletion rather than for widening. An earlier form of it accepted
+any two surnames sharing three leading characters on a matching initial, which
+cleared `Krebs-Smith` against `Davey Smith` and `González-González` against
+`Martínez-González` — different people, both pairs real and both present in the
+corpus under different DOIs.
+
+---
+
+## Author lists in a different order
+
+**What happens.** The same people appear in both lists in a different order, so a
+position-against-position comparison reports every moved creator as a
+substitution.
+
+**Reported as.** `reordered`.
+
+**Detection.** `names.compare_author_lists`. A position is only excused when the
+stored surname key appears somewhere in the registry list *and* the registry
+surname key appears somewhere in the stored list — a genuine exchange, not a name
+that merely went missing.
+
+**Why it is narrow.** Read together with *Consortia credited between people in
+the author array*: when a consortium sits inside the byline, every position after
+it is shifted by one, and each shifted creator does appear on both sides. Before
+`_interleaved_collectives` recognised that shape, this escape absorbed the whole
+tail and reported 1446 differences as a reordering that never happened. A rule
+that explains a shift it has no evidence for hides the substitution underneath.
+
+---
+
+## Author comparisons with nothing to compare
+
+**What happens.** Four situations let a position pass without either side being
+evidence that the two creators are the same person: one side has no surname at
+all; a surname is written outside the comparison alphabet, so `family_key`
+returns nothing usable; the registry truncated a surname to a single character;
+or the list carries an et-al marker rather than a creator.
+
+**Reported as.** `one side has no surname`, `registry surname truncated`,
+`et-al marker`, and `surname outside the comparison alphabet`.
+
+**Detection.** `names.names_agree` returns each as an honest "this comparison had
+nothing to work with", and every one is printed under `REGISTRY-ARTIFACT` so the
+reader can see it was reached.
+
+**Why it matters.** None of them may be counted as a creator that *aligned*.
+`names._agrees_informatively` excludes all four from the alignment arithmetic
+`_registry_omits_first_author` and `_interleaved_collectives` rest on. Three
+agreements of this kind are three pieces of nothing, and counting them let a
+registry list of `[王, 李, 张]` "align" against `[Smith, Jones, Brown]` and
+suppress the author-count difference on top.
 
 ---
 

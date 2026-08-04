@@ -28,6 +28,16 @@ so `uv sync --all-extras` does not install it into the test environment.
   `RetractionOutage`, a `Transient` naming every retraction source a raised
   outage took down rather than only the leg that raised.
 - Per-version `Programming Language :: Python :: 3.11/3.12/3.13` classifiers.
+- `names.ARTIFACT_REASONS`, the enumerated set of author-comparison escapes that
+  produce a `REGISTRY-ARTIFACT` suppression, and a test failing the build when
+  one of them has no section in `docs/registry-artifacts.md` — the contract
+  `benign.CHECKS` already had. Five sections were written to satisfy it:
+  particle filing, compound surnames shortened to their final element,
+  one-character spelling variants, author lists in a different order, and the
+  four comparisons that agree without being evidence of anything.
+- `CONTRIBUTING.md`, `SECURITY.md`, a Dependabot configuration, a coverage floor
+  (`fail_under = 92`, with branch coverage on), and a tag-triggered release
+  workflow using PyPI Trusted Publishing.
 
 ### Changed
 

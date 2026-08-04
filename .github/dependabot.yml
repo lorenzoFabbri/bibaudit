@@ -1,0 +1,28 @@
+version: 2
+
+updates:
+  # Actions drift silently: a workflow keeps running on a pinned major until the
+  # runner deprecates its Node runtime, and the first sign is a warning nobody
+  # reads on a green run.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ""
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Two runtime dependencies and a small dev set, so a monthly batch is enough
+  # noise. `bibtexparser` is deliberately capped below 3 in pyproject.toml;
+  # Dependabot will not cross that bound, which is the point of setting it.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ""
+    groups:
+      dev:
+        dependency-type: development

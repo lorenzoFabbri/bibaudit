@@ -75,6 +75,19 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/bibaudit"]
 
+[tool.coverage.report]
+# Branch coverage sits at 93.3%. The floor is a ratchet against a change that
+# quietly deletes coverage, not a target to chase: set close enough to bite and
+# far enough that an ordinary refactor moving lines around does not fail the
+# build for a reason nobody can act on. A number reported to a log nobody reads
+# enforces nothing, and a floor that cries wolf gets raised until it does too.
+fail_under = 92
+show_missing = true
+
+[tool.coverage.run]
+branch = true
+source = ["src/bibaudit"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # `-m "not network"` is the half that makes the marker below mean anything.

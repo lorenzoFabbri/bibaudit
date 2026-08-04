@@ -54,6 +54,7 @@ from .model import Name
 from .normalize import clean, fold
 
 __all__ = [
+    "ARTIFACT_REASONS",
     "AuthorDiff",
     "compare_author_lists",
     "demojibake",
@@ -62,6 +63,7 @@ __all__ = [
     "parse_name",
     "parse_name_list",
 ]
+
 
 #: Words that mark a corporate or collaborative author. A name containing one of
 #: these and no comma is treated as a single literal creator rather than being
@@ -370,6 +372,38 @@ _ET_AL_REASON = "et-al marker"
 
 _UNINFORMATIVE_AGREEMENTS = frozenset(
     {_NO_SURNAME, _UNREPRESENTABLE_SCRIPT, _REGISTRY_INITIAL_ONLY, _ET_AL_REASON}
+)
+
+#: Every reason this module attaches to an author position, each of which
+#: ``compare._check_authors`` turns into a ``REGISTRY-ARTIFACT`` suppression.
+#:
+#: The author half of the contract ``benign.CHECKS`` carries: a suppression a
+#: reader cannot look up is one nobody can challenge, so each string here has a
+#: section in ``docs/registry-artifacts.md`` and ``tests/test_benign.py`` fails
+#: the build when one does not. These escapes live here rather than in
+#: ``benign.py`` because they are decided while walking two bylines in step,
+#: where a field-level check has nothing to compare.
+#:
+#: Built from the constants above rather than retyping them, so a reworded
+#: reason cannot keep a stale entry here and quietly satisfy that test. The
+#: interleaved-collectives entry is a *prefix*: it goes on to name the
+#: organisations in full, because "these particular creators are organisations
+#: the bibliography left out" is not a claim a reader can check against a count.
+ARTIFACT_REASONS: tuple[str, ...] = (
+    _NO_SURNAME,
+    _UNREPRESENTABLE_SCRIPT,
+    _REGISTRY_INITIAL_ONLY,
+    _ET_AL_REASON,
+    "registry mojibake",
+    "particle filing",
+    "compound surname shortened",
+    "spelling variant with matching initials",
+    "collective author",
+    "registry lists a collective author",
+    "registry interleaves collective creator(s) the byline omits: ",
+    "registry omits the first author",
+    "registry mojibake truncated the surname",
+    "reordered",
 )
 
 

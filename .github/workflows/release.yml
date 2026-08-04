@@ -1,0 +1,60 @@
+name: Release
+
+# Publishing is deliberately manual: pushing a `v*` tag is the only thing that
+# triggers it, so nothing reaches PyPI as a side effect of a merge.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          enable-cache: true
+      # The tag is the claim; this checks the package agrees with it before
+      # anything is uploaded, because a version cannot be re-uploaded to PyPI.
+      - name: Check the tag matches the packaged version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          packaged="$(uv run --no-project --with hatchling python -c \
+            'import tomllib,pathlib;print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
+          if [ "$tag" != "$packaged" ]; then
+            echo "tag $GITHUB_REF_NAME does not match pyproject version $packaged" >&2
+            exit 1
+          fi
+      - name: Test
+        run: |
+          uv sync --all-extras --locked
+          uv run ruff check .
+          uv run mypy
+          uv run pytest
+      - name: Build
+        run: uv build --out-dir dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    # Trusted Publishing: PyPI verifies this workflow's OIDC identity, so there
+    # is no API token to store, rotate or leak. It has to be configured once on
+    # PyPI for the project before the first release will go through.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/bibaudit
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1

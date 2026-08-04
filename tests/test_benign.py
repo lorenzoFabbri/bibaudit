@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from bibaudit import benign
+from bibaudit import benign, names
 from bibaudit.compare import compare
 from bibaudit.model import Name, Record, Reference, Result
 from bibaudit.names import parse_name_list
@@ -498,6 +498,21 @@ class TestRuleScoping:
         """
         prose = ARTIFACT_DOCS.read_text(encoding="utf-8")
         missing = [c.__name__ for c in benign.CHECKS if c.__name__ not in prose]
+        assert missing == []
+
+    def test_every_author_escape_is_written_up_too(self) -> None:
+        """The author half of the same contract.
+
+        ``names.compare_author_lists`` decides its escapes while walking two
+        bylines in step, which is why they are not in ``CHECKS`` — but
+        ``compare._check_authors`` turns each one into a ``REGISTRY-ARTIFACT``
+        suppression exactly like a check in this module, and a reader has the
+        same claim to look it up. Only ``CHECKS`` was covered here, so the
+        author escapes could be added, changed or reworded with nothing
+        noticing.
+        """
+        prose = ARTIFACT_DOCS.read_text(encoding="utf-8")
+        missing = [r for r in names.ARTIFACT_REASONS if r.strip().rstrip(":") not in prose]
         assert missing == []
 
 
