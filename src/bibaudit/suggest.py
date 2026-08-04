@@ -138,11 +138,19 @@ def _insert_fields(raw: str, new_fields: dict[str, str]) -> str:
     if not between:
         between = "\n"
 
+    # That whitespace runs from the last field to the "}", so its final line is
+    # the closing brace's own indentation and belongs after the added fields,
+    # not before them. Splicing it in front instead pushes the first new field
+    # one level too deep and leaves the "}" in column 1 — a reformatted line the
+    # user did not ask to change, in a file whose whole purpose is to be read as
+    # a diff.
+    blank_lines, _, closing_indent = between.rpartition("\n")
+
     indent_match = _FIELD_LINE_RE.search(raw)
     indent = indent_match.group(1) if indent_match else _DEFAULT_INDENT
 
     added = "".join(f"{indent}{name} = {{{value}}},\n" for name, value in new_fields.items())
-    return f"{before_rstripped}{comma}{between}{added}}}{trailer}"
+    return f"{before_rstripped}{comma}{blank_lines}\n{added}{closing_indent}}}{trailer}"
 
 
 @dataclass(slots=True)
@@ -165,6 +173,14 @@ def _entry_spans(path: pathlib.Path, text: str) -> dict[str, _EntrySpan]:
     whose offset cannot be confirmed is dropped from the map rather than
     guessed at; :func:`build_suggestion` then simply has nothing to suggest
     for it.
+
+    ``raw`` begins at the ``@``, while ``start_line`` names the line that
+    holds it, so the two meet at the start of the line only for an entry
+    written flush left. The entry's own leading whitespace is skipped to
+    bring them together, and nothing beyond it: an offset that may move
+    forward by a known amount is still confirmed against ``raw`` before it
+    is used, and a file whose entries are indented is a formatting choice,
+    not a reason to have nothing to suggest.
     """
     # bibtexparser re-exports parse_file from .entrypoint without listing it
     # in __init__.py's own __all__ (see adapters.bibtex.read_bibtex, which
@@ -182,7 +198,8 @@ def _entry_spans(path: pathlib.Path, text: str) -> dict[str, _EntrySpan]:
         raw = entry.raw
         if raw is None or entry.start_line is None or entry.start_line >= len(line_starts):
             continue
-        offset = line_starts[entry.start_line]
+        line = lines[entry.start_line]
+        offset = line_starts[entry.start_line] + (len(line) - len(line.lstrip()))
         if text[offset : offset + len(raw)] != raw:
             continue
         spans[entry.key] = _EntrySpan(offset=offset, raw=raw, kind=normalize_kind(entry.entry_type))

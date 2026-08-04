@@ -85,5 +85,13 @@ so `uv sync --all-extras` does not install it into the test environment.
 - The CI matrix ran a single interpreter. `.python-version` pins 3.11 and
   nothing passed `matrix.python-version` to the toolchain step, so 3.12 and 3.13
   were never exercised despite the job names.
+- **`--suggest` proposed nothing for an entry that does not start in column 1.**
+  An entry's source span was located at the start of its first line while
+  bibtexparser's `raw` starts at the `@`, so any leading whitespace failed the
+  verbatim check and the entry was dropped from the span map without a word. A
+  file exported with every entry indented got an empty suggestion, and one entry
+  moved by hand got a suggestion missing exactly that entry. The fields added to
+  an indented entry now also keep the file's own indentation, and its closing
+  brace keeps its own.
 
 [Unreleased]: https://github.com/lorenzoFabbri/bibaudit/commits/main

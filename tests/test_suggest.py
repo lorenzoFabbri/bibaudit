@@ -159,6 +159,46 @@ class TestFillsOnlyTrueGaps:
         assert suggestion is not None
         assert "\n    journal = {Journal of Testing}," in suggestion.new_text
 
+    def test_an_indented_entry_is_still_proposed_for(self, tmp_path: pathlib.Path) -> None:
+        """An entry that does not start in column 1 is a formatting choice.
+
+        ``start_line`` names the line, ``raw`` starts at the ``@``, and the two
+        meet only when the entry is flush left. Anything before it — a file
+        exported with every entry indented, or one entry moved by hand — and the
+        span is not found, so ``--suggest`` proposes nothing and says nothing
+        about why.
+        """
+        indented = "".join(f"\t{line}\n" for line in _SMITH_BIB.strip().splitlines())
+        bib = _write_bib(tmp_path, "indented.bib", indented)
+        suggestion = build_suggestion(bib, [_smith_result()])
+        assert suggestion is not None
+        assert suggestion.entries_changed == 1
+        assert suggestion.fields_filled == 5
+        assert "\n\t  journal = {Journal of Testing},\n" in suggestion.new_text
+
+    def test_an_indented_entry_is_rewritten_only_where_it_gained_a_field(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """The lines around the added ones keep the shape the file gave them.
+
+        The whitespace before an entry's ``}`` is that brace's indentation, and
+        the added fields go between the two. Both sides of the splice are the
+        user's formatting, and a diff that also moves them is the noise
+        ``--suggest`` exists to avoid.
+        """
+        indented = "".join(f"\t{line}\n" for line in _SMITH_BIB.strip().splitlines())
+        bib = _write_bib(tmp_path, "tabbed.bib", indented)
+        suggestion = build_suggestion(bib, [_smith_result()])
+        assert suggestion is not None
+        assert "\t@article{smith2020,\n" in suggestion.new_text
+        assert "\n\t  publisher = {Test Publisher},\n\t}\n" in suggestion.new_text
+        # The untouched entry survives byte for byte, indentation included.
+        assert (
+            "\t@article{jones2019,\n\t  title = {Another study},\n"
+            "\t  author = {Jones, Ann},\n\t  year = {2019},\n\t  journal = {J. Test},\n"
+            "\t  volume = {5},\n\t  pages = {1-10},\n\t}\n"
+        ) in suggestion.new_text
+
 
 class TestNeverOverwritesADisagreement:
     def test_agreeing_fields_produce_no_suggestion(self, tmp_path: pathlib.Path) -> None:
