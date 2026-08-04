@@ -4,6 +4,9 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+# mkdocs' output directory: `mkdocs build` and `mkdocs serve` write it into the
+# repo root, and the docs workflow uploads it from a throwaway checkout.
+site/
 .venv/
 venv/
 

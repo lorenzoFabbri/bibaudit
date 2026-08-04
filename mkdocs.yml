@@ -1,0 +1,69 @@
+site_name: bibaudit
+site_description: >-
+  Deterministic, field-level verification of bibliographies against Crossref,
+  DataCite, PubMed, Europe PMC and Open Library. No language model in the
+  verdict path.
+site_url: https://lorenzofabbri.github.io/bibaudit/
+repo_url: https://github.com/lorenzoFabbri/bibaudit
+repo_name: lorenzoFabbri/bibaudit
+copyright: MIT licensed.
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - content.code.copy
+    - toc.follow
+  palette:
+    # The verdict tables are read in both; neither is the "real" one.
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - Why field-level: why.md
+  - Inputs: inputs.md
+  - Verdicts: verdicts.md
+  - Retraction: retraction.md
+  - Command line: cli.md
+  - Adjudicating a difference: suppressions.md
+  - Proposing fixes: suggest.md
+  - In CI: ci.md
+  - Registry defects: registry-artifacts.md
+  - Limits: limits.md
+  - How this was built: colophon.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/lorenzoFabbri/bibaudit
+
+not_in_nav: |
+  /*.inc.md

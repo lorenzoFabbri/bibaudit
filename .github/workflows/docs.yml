@@ -1,0 +1,51 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+  # So a documentation change can be reviewed before it is published.
+  pull_request:
+
+permissions:
+  contents: read
+
+# One Pages deployment at a time. Two pushes to main in quick succession
+# otherwise race at the deployment API and the second run fails outright
+# ("Deployment request failed ... due to in progress deployment"), turning a
+# green docs change red for a reason that has nothing to do with the docs.
+# Not cancel-in-progress: a half-deployed site is worse than a queued one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      # --strict fails the build on a broken internal link, so a page that
+      # points at a file somebody renamed is caught here rather than by a
+      # reader hitting a 404.
+      - name: Build
+        run: uv run --group docs mkdocs build --strict
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: site
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

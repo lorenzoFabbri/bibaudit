@@ -37,8 +37,19 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6", "mypy>=1.11"]
 
+# Documentation only, and a dependency-group rather than an extra so that it
+# stays out of the test environment. `.github/workflows/ci.yml` installs with
+# `uv sync --all-extras` on three Python versions; that unions every entry in
+# `[project.optional-dependencies]`, so a `docs` *extra* would have been
+# installed by the very command this separation exists to keep it out of.
+# `--all-extras` does not pull non-default dependency-groups, so this does.
+# The docs build asks for it by name: `uv run --group docs mkdocs build`.
+[dependency-groups]
+docs = ["mkdocs>=1.6", "mkdocs-material>=9.5"]
+
 [project.urls]
 Homepage = "https://github.com/lorenzoFabbri/bibaudit"
+Documentation = "https://lorenzofabbri.github.io/bibaudit/"
 Issues = "https://github.com/lorenzoFabbri/bibaudit/issues"
 
 [project.scripts]
