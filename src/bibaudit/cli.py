@@ -227,6 +227,24 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _once(paths: list[Path]) -> list[Path]:
+    """*paths* with each file kept once, in the order it was first named.
+
+    Compared on the resolved path and returned as the user spelled it, because
+    the spelling is what a report's locators and ``--suggest``'s output filename
+    are built from. ``bibaudit notes/ notes/refs.bib`` names one file twice, and
+    reading it twice duplicates every reference in it.
+    """
+    seen: set[Path] = set()
+    kept: list[Path] = []
+    for path in paths:
+        resolved = path.resolve()
+        if resolved not in seen:
+            seen.add(resolved)
+            kept.append(path)
+    return kept
+
+
 def _expand(paths: Sequence[str]) -> tuple[list[Path], list[Path], list[str]]:
     """Sort the arguments into bibliographies, documents and library sources."""
     bibs: list[Path] = []
@@ -274,7 +292,7 @@ def _expand(paths: Sequence[str]) -> tuple[list[Path], list[Path], list[str]]:
         else:
             raise _Usage(f"do not know how to read {raw}")
 
-    return bibs, docs, libraries
+    return _once(bibs), _once(docs), list(dict.fromkeys(libraries))
 
 
 def _collect(
@@ -292,21 +310,32 @@ def _collect(
     defined: set[str] = set()
     citekeys: dict[str, list[str]] = {}
 
+    # Identity is the file, not the spelling of the path that reached it. A
+    # document's front matter yields a resolved absolute path while the command
+    # line yields whatever the user typed, so `refs.bib` and the same file
+    # discovered through a .qmd compare unequal, and the bibliography is read
+    # twice: every entry duplicated, and a summary counting them all.
+    seen = {bib.resolve() for bib in bibs}
+
+    def remember(path: Path) -> None:
+        resolved = path.resolve()
+        if resolved not in seen:
+            seen.add(resolved)
+            bibs.append(path)
+
     scan = scan_markdown(docs) if docs else None
     if scan is not None:
         references.extend(scan.references)
         citekeys = scan.citekeys
         # A document may declare its own bibliography; those count as inputs.
         for discovered in scan.bibliographies:
-            if discovered not in bibs:
-                bibs.append(discovered)
+            remember(discovered)
 
     for extra in args.bibliography:
         path = Path(extra).expanduser()
         if not path.is_file():
             raise _Usage(f"no such bibliography: {extra}")
-        if path not in bibs:
-            bibs.append(path)
+        remember(path)
 
     for bib in bibs:
         entries = read_bibtex(bib)

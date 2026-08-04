@@ -13,6 +13,7 @@ property the tests enforce rather than assume.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import importlib
 import json
@@ -23,7 +24,7 @@ from pathlib import Path
 import pytest
 
 from bibaudit import __version__
-from bibaudit.cli import build_parser, main
+from bibaudit.cli import _collect, build_parser, main
 from bibaudit.model import FAILING_VERDICTS, Name, Record, Reference
 from bibaudit.normalize import normalize_doi
 from bibaudit.registries.http import Transient
@@ -915,6 +916,66 @@ class TestInputExpansion:
         install_registries(monkeypatch, crossref=resolving_crossref())
 
         assert main(check(tmp_path, str(project))) == 0
+
+    def test_a_bibliography_reached_two_ways_is_read_once(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """A document's front matter names the same file the command line does.
+
+        Front-matter discovery resolves what it finds; the command line keeps
+        what the user typed. Compared as written, `references.bib` and the
+        absolute path to the same file are two inputs, and the bibliography is
+        read twice.
+
+        Asserted here rather than through a report because ``_deduplicate``
+        collapses on the identifier, so an entry carrying a DOI survives the
+        double read and one without it does not — the visible damage is a
+        summary that counts part of a bibliography twice, and which part depends
+        on how much of it has DOIs.
+        """
+        project = tmp_path / "project"
+        project.mkdir()
+        (project / "references.bib").write_text(BIB_MAIN, encoding="utf-8")
+        (project / "paper.qmd").write_text(
+            "---\nbibliography: references.bib\n---\n\nText citing "
+            "@molinamontes2018family.\n",
+            encoding="utf-8",
+        )
+        monkeypatch.chdir(project)
+
+        references, _, defined, bibs = _collect(
+            argparse.Namespace(paths=["paper.qmd", "references.bib"], bibliography=[])
+        )
+        assert bibs == [Path("references.bib")]
+        assert [ref.key for ref in references] == ["molinamontes2018family"]
+        assert defined == {"molinamontes2018family"}
+
+    def test_the_same_file_named_twice_is_read_once(self, tmp_path: Path) -> None:
+        """`bibaudit check notes/ notes/references.bib` names one file twice."""
+        project = tmp_path / "project"
+        project.mkdir()
+        bib = project / "references.bib"
+        bib.write_text(BIB_MAIN, encoding="utf-8")
+
+        references, _, _, bibs = _collect(
+            argparse.Namespace(paths=[str(project), str(bib)], bibliography=[])
+        )
+        assert bibs == [bib]
+        assert [ref.key for ref in references] == ["molinamontes2018family"]
+
+    def test_the_bibliography_flag_does_not_re_add_a_named_file(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """`--bibliography` reaches the same set through the same comparison."""
+        bib = tmp_path / "references.bib"
+        bib.write_text(BIB_MAIN, encoding="utf-8")
+        monkeypatch.chdir(tmp_path)
+
+        references, _, _, bibs = _collect(
+            argparse.Namespace(paths=[str(bib)], bibliography=["./references.bib"])
+        )
+        assert bibs == [bib]
+        assert [ref.key for ref in references] == ["molinamontes2018family"]
 
     def test_generated_copies_of_the_sources_are_not_audited(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path

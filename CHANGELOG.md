@@ -93,5 +93,13 @@ so `uv sync --all-extras` does not install it into the test environment.
   moved by hand got a suggestion missing exactly that entry. The fields added to
   an indented entry now also keep the file's own indentation, and its closing
   brace keeps its own.
+- **A bibliography reached both from the command line and from a document's
+  front matter was read twice.** Discovery resolves the paths it finds while the
+  command line keeps what was typed, so the two compared unequal and every entry
+  was collected twice. `_deduplicate` collapses on the identifier, so entries
+  carrying a DOI survived it and the rest did not: the summary over-counted an
+  arbitrary part of the file. Inputs are now compared as resolved paths, which
+  also covers `bibaudit check notes/ notes/references.bib` and a `--bibliography`
+  repeating a file already named.
 
 [Unreleased]: https://github.com/lorenzoFabbri/bibaudit/commits/main
