@@ -111,7 +111,9 @@ summary
   suppressed         1  (1 adjudicated here)
 
 PASS — no reference in the failing set
-bibaudit verifies that each reference exists and that its stored metadata matches the publisher's record. It does not and cannot verify that a cited work supports the statement it is attached to — that requires reading the paper.
+bibaudit verifies that each reference exists and that its stored metadata
+matches the publisher's record. It does not and cannot verify that a cited
+work supports the statement it is attached to — that requires reading the paper.
 ```
 
 Without that flag the entry is not printed — there is nothing to act on — but

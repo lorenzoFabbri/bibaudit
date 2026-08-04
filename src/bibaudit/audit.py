@@ -283,31 +283,25 @@ def _resolve_retractions(
     which only ever adds to a DOI ``_resolve_dois`` already put an entry
     under — never creates the first one.
 
-    The two sources fail through different channels, and both end in
-    *unreachable*. A :class:`~bibaudit.registries.http.Transient` reaching
-    this function is specifically PubMed's leg failing, because Retraction
-    Watch's own fetch failing is absorbed *inside*
-    :meth:`Retractions.status_for` rather than raised. Absorbed is not
-    ignored: it comes back as
-    :attr:`~bibaudit.registries.retractions.RetractionStatus.unreachable`, and
-    folding that into *unreachable* here is what makes
-    ``compare._status_issues`` report ``retraction-unverified`` instead of a
-    silently clean run. Both names carry a retraction signal in
-    :data:`~bibaudit.compare._NO_RETRACTION_SIGNAL`'s terms, so both count.
-
-    Dropping the returned set on the floor would reinstate the defect this
-    signature was widened to fix: a cached Retraction Watch export aged past
-    its seven-day TTL is re-fetched, the fetch fails, every reference reports
-    ``OK``, and the run prints ``PASS`` over a source nobody reached — with
-    ``consulted`` claiming ``retraction-watch: answered``, since
-    :func:`_asked_registries` puts it in ``asked`` unconditionally.
+    The two sources fail through different channels and both must end in
+    *unreachable*. A :class:`~bibaudit.registries.http.Transient` reaching this
+    function is specifically PubMed's leg; Retraction Watch's own fetch failing
+    is absorbed inside :meth:`Retractions.status_for` and returned as
+    :attr:`~bibaudit.registries.retractions.RetractionStatus.unreachable`, so
+    that set has to be folded in here. Both names carry a retraction signal in
+    :data:`~bibaudit.compare._NO_RETRACTION_SIGNAL`'s terms, and it is
+    *unreachable* that makes ``compare._status_issues`` state the gap rather
+    than let a run that consulted nothing read as clean.
     """
     if registries.retractions is None:
         return
     try:
         status = registries.retractions.status_for(dois)
-    except Transient:
-        unreachable.add("pubmed")
+    except Transient as exc:
+        # `RetractionOutage` names every retraction source that was down, not
+        # just the leg that raised; a plain Transient from anywhere else is
+        # PubMed's.
+        unreachable |= getattr(exc, "unreachable", frozenset({"pubmed"}))
         return
     unreachable |= status.unreachable
     _merge_retraction_notices(records, status.notices)
@@ -452,7 +446,11 @@ def audit(refs: Sequence[Reference], options: AuditOptions | None = None) -> lis
                 found,
                 thresholds=options.thresholds,
                 unreachable=unreachable,
-                asked={"openlibrary"},
+                # Under ``--no-isbn`` there is no OpenLibrary to query, so
+                # naming it would claim it was asked and held nothing. The
+                # empty set is what makes ``compare`` report UNCHECKED instead
+                # of accusing a book whose ISBN nobody looked up.
+                asked={"openlibrary"} if registries.openlibrary is not None else set(),
             )
         elif ref.isbn:
             # The ISBN is present but its check digit fails: a fact about the
@@ -465,10 +463,19 @@ def audit(refs: Sequence[Reference], options: AuditOptions | None = None) -> lis
             result = compare(ref, {}, thresholds=options.thresholds, asked=set())
             if result.issues:
                 result.issues[0].field = "isbn"
+                result.issues[0].kind = "malformed"
+                result.issues[0].severity = "error"
                 result.issues[0].note = (
                     "ISBN fails its check digit; treated as a malformed "
                     "identifier, not queried against any registry"
                 )
+            # Both this branch and `--no-isbn` hand `compare` an empty `asked`,
+            # and they must not share a verdict. There, a registry could have
+            # answered and was not consulted, so the entry is UNCHECKED. Here
+            # the check digit is arithmetic on the stored value and it failed:
+            # no registry's answer could change that, so it is a finding about
+            # the bibliography rather than a gap in coverage.
+            result.verdict = "BAD-ID"
         elif options.search_unidentified:
             # Offline runs take this path too. The search goes through the same
             # Client, which either serves a cached response or raises Transient
@@ -617,8 +624,8 @@ def _audit_unidentified(
         asked = asked | {"pubmed", "retraction-watch"}
         try:
             status = registries.retractions.status_for([record.doi])
-        except Transient:
-            failed = failed | {"pubmed"}
+        except Transient as exc:
+            failed = failed | getattr(exc, "unreachable", frozenset({"pubmed"}))
         else:
             # Same reason as in `_resolve_retractions`: a Retraction Watch
             # outage never raises, so the only way it reaches `consulted` —

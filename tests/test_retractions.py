@@ -417,14 +417,13 @@ class TestOutageHandling:
     ) -> None:
         """Degrading to PubMed alone is only acceptable if the caller is told.
 
-        Without this, ``audit.py`` has nothing to add to its *unreachable* set,
+        Without it ``audit.py`` has nothing to add to its *unreachable* set,
         ``compare`` cannot raise ``retraction-unverified``, and a run whose
         cached export has aged past the seven-day TTL prints a green ``PASS``
         over a source nobody reached -- while ``consulted`` reports
         ``retraction-watch: answered``, because ``_asked_registries`` puts it in
-        ``asked`` unconditionally. That is the "clean bill of health from
-        ignorance" CLAUDE.md forbids, and it is what the old ``dict`` return
-        type made unavoidable.
+        ``asked`` unconditionally. That is the clean bill of health from
+        ignorance CLAUDE.md forbids.
         """
         stub = _client(rw_transient=True)
         with pytest.warns(RuntimeWarning, match="Retraction Watch"):

@@ -53,7 +53,9 @@ summary
   suppressed         1  (1 registry defect(s))  (--show-suppressed to list)
 
 FAIL — 2 reference(s) in the failing set
-bibaudit verifies that each reference exists and that its stored metadata matches the publisher's record. It does not and cannot verify that a cited work supports the statement it is attached to — that requires reading the paper.
+bibaudit verifies that each reference exists and that its stored metadata
+matches the publisher's record. It does not and cannot verify that a cited
+work supports the statement it is attached to — that requires reading the paper.
 ```
 
 What is in that report, and why:

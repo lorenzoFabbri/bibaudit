@@ -611,15 +611,11 @@ def _check_kind(ctx: _Context) -> None:
 #: reachable DataCite could not have resolved, on every dataset, preprint and
 #: Zenodo deposit in the file.
 #:
-#: Open Library is here for the same reason and was found the same way, one
-#: audit later: ``registries/openlibrary.py`` contains no retraction handling of
-#: any kind — the word does not appear in it — because it is a book catalogue
-#: with nothing in its data model to carry a notice. But ``audit.py`` does add
-#: ``"openlibrary"`` to *unreachable* when the ISBN leg times out, so without
-#: this entry an Open Library outage rendered "retraction status not
-#: corroborated: openlibrary could not be reached" against every book in the
-#: file — manufacturing precisely the doubt the DataCite paragraph above forbids,
-#: and manufacturing it about the one registry least able to resolve it.
+#: Open Library qualifies on the same test: it is a book catalogue with nothing
+#: in its data model to carry a notice, and ``registries/openlibrary.py`` sets
+#: no retraction field. ``audit.py`` does add it to *unreachable* when the ISBN
+#: leg times out, so naming it below would put a retraction caveat on every book
+#: in the file for a doubt a reachable Open Library could not have resolved.
 #:
 #: Written as an exclusion rather than as the list of registries that *do* carry
 #: the signal, because the two fail in opposite directions: a registry missing
@@ -629,6 +625,20 @@ def _check_kind(ctx: _Context) -> None:
 #: has to come here to opt out. ``"retraction-watch"`` is deliberately *not*
 #: here: it is the one source in this set that exists only to carry the signal.
 _NO_RETRACTION_SIGNAL = frozenset({"datacite", "openlibrary"})
+
+#: The mirror image, and the sharper of the two. These sources hold no
+#: bibliographic record and can never resolve an identifier, so their being
+#: unreachable is not ignorance about whether a work *exists* — Retraction
+#: Watch is consulted for post-publication status alone. They share the
+#: run-wide *unreachable* set with registries that can answer that question,
+#: and the "nothing answered" branch below must exclude them: otherwise one
+#: stale side-channel turns every fabricated DOI in a file into ``UNCHECKED``
+#: and the exit code to 0, while ``consulted`` reports that Crossref, DataCite
+#: and PubMed all answered.
+#:
+#: Open Library is deliberately absent: it *can* resolve an ISBN, so its outage
+#: is genuine ignorance about a book's existence.
+_NO_RESOLUTION_SIGNAL = frozenset({"retraction-watch"})
 
 #: Folded ``retraction_kind`` values that are **not** a retraction: the work has
 #: not been pulled back at all. An expression of concern is an editor recording
@@ -962,7 +972,12 @@ def compare(
         primary = records[_in_registry_order(records)[0]]
 
     if primary is None:
-        if unreachable and not records:
+        # Only registries that could have *held* the work count here. A
+        # retraction side-channel going down says nothing about whether the
+        # work exists, and letting it answer that question turns a fabricated
+        # DOI into a network problem.
+        blind_to_existence = set(unreachable) - _NO_RESOLUTION_SIGNAL
+        if blind_to_existence and not records:
             # Nothing answered. Silence from an unreachable registry is not
             # evidence of anything.
             result.verdict = "UNCHECKED"
@@ -973,6 +988,28 @@ def compare(
                     severity="info",
                     stored=ref.identifier or "",
                     note="no registry could be reached; not checked",
+                )
+            )
+            return result
+        if ref.identifier and asked is not None and not asked:
+            # ``BAD-ID`` requires a registry that answered. With nothing
+            # consulted, "resolves in no consulted registry" is vacuously true
+            # and reads as an accusation the run has no evidence for: it would
+            # turn the caller's decision not to look into a failing verdict on
+            # a work that may well exist. ``--no-isbn`` is the caller that does
+            # this, on books whose ISBN is perfectly valid.
+            #
+            # An empty *asked* asserts that nothing was consulted; ``None``
+            # means the caller did not say, which every direct ``compare`` call
+            # relies on and which must keep its BAD-ID.
+            result.verdict = "UNCHECKED"
+            result.issues.append(
+                Issue(
+                    field="doi" if ref.doi else "identifier",
+                    kind="not-asked",
+                    severity="info",
+                    stored=ref.identifier,
+                    note="no registry was asked about this identifier; not checked",
                 )
             )
             return result

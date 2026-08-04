@@ -146,7 +146,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-isbn", action="store_true",
         help="do not resolve books through Open Library, by ISBN or by "
              "title/author search; a book stored with only an ISBN is then "
-             "reported BAD-ID, because nothing that could hold it was "
+             "reported UNCHECKED, since nothing that could hold it was "
              "consulted, and a book with no identifier at all falls back to "
              "UNCONFIRMED",
     )

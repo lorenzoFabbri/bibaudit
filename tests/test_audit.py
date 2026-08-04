@@ -488,11 +488,11 @@ class TestOutageIsNeverAFinding:
         The scenario is ordinary, not exotic: ``--offline`` (or any run whose
         cached Retraction Watch export has aged past its seven-day TTL) fails to
         load the index, every field agrees with Crossref, and the run reports
-        ``OK`` and exits 0. Before this, it did so with nothing anywhere saying
-        the one source that exists solely to carry retraction status was never
-        reached — and ``consulted`` positively asserted ``answered`` for it,
-        because ``_asked_registries`` adds ``"retraction-watch"`` to ``asked``
-        whenever ``--no-retraction-check`` is not passed.
+        ``OK`` and exits 0. It must not do so silently: ``consulted`` would
+        otherwise assert ``answered`` for the one source that exists solely to
+        carry retraction status, because ``_asked_registries`` adds
+        ``"retraction-watch"`` to ``asked`` whenever ``--no-retraction-check``
+        is not passed.
 
         The verdict and the exit code deliberately do not move. An outage is not
         a defect in anybody's bibliography. What must move is what the run says
@@ -1102,6 +1102,30 @@ class TestReferencesWithoutAnIdentifier:
         assert proposed[0].registry == DOI
         assert proposed[0].severity == "warning"
         assert ref.doi is None
+
+    def test_a_retraction_outage_on_the_search_path_is_reported_too(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """An entry confirmed by search gets its own retraction check, and its
+        own chance to lose a source.
+
+        ``_audit_unidentified`` checks the confirmed candidate's DOI on the spot
+        rather than through ``resolve``, so it folds the returned outage into
+        its local ``failed`` set instead of the run-wide one. Drop that fold and
+        the entry reports a clean retraction status over a source nobody
+        reached, on the one path where the DOI was never in the run's DOI list
+        to begin with.
+        """
+        _install(
+            monkeypatch,
+            search=_StubSearch(candidates=[make_record()]),
+            retractions=_StubRetractions(rw_unreachable=True),
+        )
+
+        result = audit([make_ref(doi=None)], _options(tmp_path))[0]
+
+        assert result.consulted["retraction-watch"] == UNREACHABLE
+        assert any(i.kind == "retraction-unverified" for i in result.issues)
         assert result.ref.doi is None
 
     def test_a_match_found_only_through_a_non_crossref_source_is_labelled_correctly(
@@ -1164,6 +1188,78 @@ class TestReferencesWithoutAnIdentifier:
         assert result.verdict == "UNCONFIRMED"
         assert not any(i.kind == "proposed" for i in result.issues)
         assert "type" in result.issues[-1].note
+
+    def test_no_isbn_does_not_accuse_a_book_of_not_existing(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """``--no-isbn`` switches off the only registry organised around books.
+
+        A book whose valid ISBN nobody looked up must not come back ``BAD-ID``.
+        "The identifier resolves in no consulted registry" is vacuously true
+        when nothing was consulted, and reads as "this book does not exist" —
+        ignorance rendered as absence, on a failing verdict.
+        """
+        stubs = _install(monkeypatch)
+        ref = make_ref(key="knuth1997art", doi=None, kind="book", isbn="0-201-89683-4")
+
+        result = audit([ref], _options(tmp_path, use_isbn=False))[0]
+
+        assert result.verdict == "UNCHECKED"
+        assert not result.fails
+        assert Summary([result]).exit_code() == 0
+        # Nothing was asked, and the report must say so rather than imply an
+        # answer: OpenLibrary is `not-asked`, never `answered`.
+        assert result.consulted.get("openlibrary", "not-asked") == "not-asked"
+        assert stubs.openlibrary.by_isbns_calls == []
+
+    def test_a_retraction_watch_outage_does_not_clear_fabricated_dois(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """End to end, through the run-wide unreachable set.
+
+        ``_resolve_retractions`` folds a Retraction Watch outage into the same
+        set ``compare`` derives "nothing could be reached" from, so without the
+        ``_NO_RESOLUTION_SIGNAL`` guard every invented DOI in the file turns
+        from ``BAD-ID``/exit 1 into ``UNCHECKED``/exit 0 — a bibliography of
+        fabricated citations passing CI because a side-channel was stale.
+        """
+        _install(
+            monkeypatch,
+            crossref=_StubRegistry("crossref", records={DOI: make_record()}),
+            retractions=_StubRetractions(rw_unreachable=True),
+        )
+        refs = [
+            make_ref(key="real"),
+            make_ref(key="invented", doi="10.9999/does-not-exist"),
+        ]
+        results = audit(refs, _options(tmp_path))
+
+        assert [r.verdict for r in results] == ["OK", "BAD-ID"]
+        assert Summary(results).exit_code() == 1
+        # ...and the gap that *is* real is still stated on the entry that resolved.
+        assert any(i.kind == "retraction-unverified" for i in results[0].issues)
+
+    def test_a_malformed_isbn_still_fails_with_no_registry_consulted(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The other side of the same empty ``asked`` set.
+
+        Both cases consult nothing, and they must not share a verdict. A failed
+        check digit is arithmetic on the stored value: no registry's answer
+        could change it, so it is a finding about the bibliography and fails.
+        Turning it into ``UNCHECKED`` alongside the case above would let a
+        mistyped identifier pass CI.
+        """
+        _install(monkeypatch)
+        ref = make_ref(key="bad1999isbn", doi=None, kind="book", isbn="0-306-40615-3")
+
+        result = audit([ref], _options(tmp_path))[0]
+
+        assert result.verdict == "BAD-ID"
+        assert result.fails
+        issue = result.issues[0]
+        assert (issue.field, issue.kind) == ("isbn", "malformed")
+        assert "check digit" in issue.note
 
     def test_search_is_not_attempted_when_switched_off(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

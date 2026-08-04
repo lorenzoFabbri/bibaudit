@@ -29,7 +29,7 @@ run is the part that needs no action.
 | `REGISTRY-ARTIFACT` | difference explained by a known registry defect | no |
 | `TITLE-DRIFT` | title differs in wording but denotes the same work | no |
 | `COSMETIC` | identical apart from glyphs or capitalisation | no |
-| `UNCHECKED` | no registry could be reached; nothing was verified | no |
+| `UNCHECKED` | nothing was verified: no registry answered, or none was asked | no |
 | `OK` | every checked field agrees | no |
 
 The verdict is the most severe single thing found. An unresolvable identifier
@@ -107,8 +107,12 @@ incompatible statements indistinguishable in a report.
 
 `REGISTRY-ARTIFACT` says a **documented registry defect** explains the
 difference. It is settled for everybody, it needs no reader, and it can be
-challenged: every rule behind it has a section in
-[registry defects](registry-artifacts.md), and a test fails if one does not.
+challenged: the rules live in one module, each has a section in
+[registry defects](registry-artifacts.md) explaining the concrete case that
+motivated it, and a test fails the build if one of them does not. A handful of
+related exceptions live in the author-comparison code rather than that module
+and are documented by the same convention, but only the module's own rules are
+checked mechanically.
 
 `ADJUDICATED` says somebody on **this project** wrote a rule in `.bibaudit.toml`
 saying not to care. That rests on a person's say-so and it can go stale — a

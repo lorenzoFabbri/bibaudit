@@ -41,7 +41,9 @@ summary
   errors by field    year=1, pages=1, doi=1
 
 FAIL — 3 reference(s) in the failing set
-bibaudit verifies that each reference exists and that its stored metadata matches the publisher's record. It does not and cannot verify that a cited work supports the statement it is attached to — that requires reading the paper.
+bibaudit verifies that each reference exists and that its stored metadata
+matches the publisher's record. It does not and cannot verify that a cited
+work supports the statement it is attached to — that requires reading the paper.
 ```
 
 ## Why not just check that the DOI resolves
@@ -158,7 +160,7 @@ identifier of the two.
 | `REGISTRY-ARTIFACT` | difference explained by a known registry defect | no |
 | `TITLE-DRIFT` | wording differs, same work | no |
 | `COSMETIC` | differs only in glyphs or capitalisation | no |
-| `UNCHECKED` | no registry could be reached | no |
+| `UNCHECKED` | nothing was verified: no registry answered, or none was asked | no |
 | `OK` | every checked field agrees | no |
 
 `RETRACTED` means the *cited work* was retracted. A retraction **notice** — the

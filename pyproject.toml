@@ -23,14 +23,27 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    # Kept in step with the matrix in .github/workflows/ci.yml; a version
+    # claimed here and untested there is a claim nothing backs.
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering",
     "Topic :: Text Processing :: Markup :: LaTeX",
+    "Typing :: Typed",
 ]
 
 # Kept deliberately small. Every dependency is one more thing that must be
 # present in a CI container before a citation can be checked.
 dependencies = [
-    "bibtexparser>=2.0.0b7", # v2 parses one-line and multi-entry-per-line files correctly
+    # v2 parses one-line and multi-entry-per-line files correctly. The upper
+    # bound is not ceremony: naming a pre-release makes resolvers accept every
+    # later pre-release too, and `bibtex.py` calls `parse_file`, which v2 does
+    # not list in its public exports. A lockfile constrains this repo and CI,
+    # not somebody installing the published package.
+    "bibtexparser>=2.0.0b7,<3",
+
     "rapidfuzz>=3.0",        # fuzzy matching that stays fast on thousands of entries
 ]
 

@@ -97,15 +97,18 @@ report, whose `consulted` map stops naming `retraction-watch` at all.
 **`--no-isbn`** means Open Library is never constructed, so no book is resolved
 through it — neither by ISBN nor by the title/author search used for books with
 no identifier at all. A book with no identifier then loses the one candidate
-source organised around books. A book that stores only an ISBN loses more than
-that: it carries an identifier that nothing was asked about, and in a run where
-no registry was unreachable it is reported `BAD-ID`, a failing verdict.
+source organised around books. A book that stores only an ISBN carries an
+identifier that nothing was asked about, and is reported `UNCHECKED`: nothing
+was verified, and the run says so rather than treating your decision not to look
+as evidence the book does not exist.
 
-!!! note "The flag's own help text overstates this"
+!!! note "This flag cannot fail a book for existing"
 
-    `--help` says an ISBN-only book "falls back to UNCONFIRMED". The code path
-    reaches `BAD-ID` instead, because the ISBN is a stored identifier and no
-    record resolved it. The behaviour above is what the tool does.
+    `BAD-ID` requires a registry that answered "I do not hold this". Switching
+    the only competent registry off produces no such answer, so it cannot
+    produce that verdict. A malformed ISBN is different and still fails: a bad
+    check digit is arithmetic on the stored value, and no registry's answer
+    could change it. See [verdicts](verdicts.md).
 
 **`--no-europepmc`** and **`--no-openalex`** affect only the confirmation path
 for entries with no identifier; neither is consulted for a DOI. They are not

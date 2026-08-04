@@ -94,7 +94,7 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bibtexparser", specifier = ">=2.0.0b7" },
+    { name = "bibtexparser", specifier = ">=2.0.0b7,<3" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },

@@ -205,24 +205,31 @@ class RetractionNotice:
     date: str | None
 
 
+class RetractionOutage(Transient):
+    """A propagating retraction outage that names every source it took down.
+
+    A :class:`~bibaudit.registries.http.Transient` out of
+    :meth:`Retractions.status_for` is PubMed's leg, but Retraction Watch may
+    already have failed on the way there. Subclassing keeps every existing
+    ``except Transient`` working while letting a caller that cares fold
+    :attr:`unreachable` into its own set rather than assuming "pubmed" alone.
+    """
+
+    def __init__(self, message: str, unreachable: frozenset[str]) -> None:
+        super().__init__(message)
+        #: Every source known to be unreachable when this was raised.
+        self.unreachable = unreachable
+
+
 @dataclass(frozen=True, slots=True)
 class RetractionStatus:
     """What :meth:`Retractions.status_for` found, and what it could not reach.
 
-    The second half is the point. A retraction answer that does not say which
-    of its sources went unanswered cannot be reported honestly: silence from
-    Retraction Watch looks exactly like Retraction Watch having nothing to
-    say, and CLAUDE.md's rule is that ignorance about retraction must never
+    The second half is the point, and it is why this is a class rather than a
+    bare mapping. Silence from Retraction Watch is indistinguishable from
+    Retraction Watch having nothing to say unless the answer carries which of
+    its sources went unanswered, and ignorance about retraction must never
     render as a clean bill of health.
-
-    This class exists because it once did. :meth:`_rw_signals` caught the
-    outage, warned, and returned ``{}``; the old ``dict`` return type had
-    nowhere to put "and Retraction Watch never answered", so ``audit.py``
-    could not add it to *unreachable*, ``compare`` could not raise
-    ``retraction-unverified``, and a run whose cached export had aged past its
-    seven-day TTL printed a green ``PASS`` over a source nobody consulted.
-    The ``consulted`` map said ``retraction-watch: answered`` while it was at
-    it. Widening the return type is the fix that docstring asked for.
     """
 
     #: Merged notices, keyed by normalised DOI, exactly as the old ``dict``
@@ -516,7 +523,17 @@ class Retractions:
             return RetractionStatus(notices={}, unreachable=frozenset())
 
         from_rw, rw_unreachable = self._rw_signals(wanted)
-        from_pubmed = self._pubmed_signals(wanted)
+        try:
+            from_pubmed = self._pubmed_signals(wanted)
+        except Transient as exc:
+            # PubMed's outage still propagates — it is a registry this project
+            # relies on for corroboration. But Retraction Watch's fate is
+            # already known by now and would be lost with this frame, leaving
+            # the caller to report `retraction-watch: answered` for a source
+            # that was never reached. Carry both out on the exception.
+            raise RetractionOutage(
+                str(exc), frozenset({"pubmed"}) | rw_unreachable
+            ) from exc
 
         merged: dict[str, RetractionNotice] = {}
         for doi in {*from_rw, *from_pubmed}:
@@ -529,15 +546,13 @@ class Retractions:
     ) -> tuple[dict[str, RetractionNotice], frozenset[str]]:
         """Retraction Watch's answer for *dois*, and whether it answered at all.
 
-        "Raise Transient for that source only and let the others answer"
-        means exactly this: the outage is caught *here*, at the boundary of
-        the one source it belongs to, rather than propagated out of
-        :meth:`status_for` and losing PubMed's independent answer along with
-        it. What the outage must not do is disappear — so it comes back as the
-        second element, ``frozenset({"retraction-watch"})``, and
-        :meth:`status_for` hands it to the caller. The ``warnings.warn`` below
-        is kept as well: it is what a library consumer not reading
-        :attr:`RetractionStatus.unreachable` still sees, and it costs nothing.
+        "Raise Transient for that source only and let the others answer" means
+        exactly this: the outage is caught here, at the boundary of the one
+        source it belongs to, rather than propagated out of :meth:`status_for`
+        and losing PubMed's independent answer with it. It must not vanish
+        either, so it comes back as the second element for :meth:`status_for`
+        to hand on. The ``warnings.warn`` is what a library consumer that never
+        reads :attr:`RetractionStatus.unreachable` still sees.
         """
         try:
             index = self._load_index()

@@ -931,6 +931,68 @@ class TestConsulted:
         assert result.fails
         assert result.consulted["pubmed"] == "not-asked"
 
+    def test_an_identifier_nobody_was_asked_about_is_not_a_bad_id(self) -> None:
+        """The other half of the trap above.
+
+        ``asked={"crossref"}`` must stay ``BAD-ID``: one registry answering
+        "not mine" is evidence. An *empty* ``asked`` is the opposite situation.
+        Nothing was consulted, so "resolves in no consulted registry" is
+        vacuously true and reads as an accusation the run cannot support —
+        a decision not to look is not evidence that the work does not exist.
+        ``--no-isbn`` is the caller that reaches this.
+        """
+        result = compare(make_ref(), {}, asked=set())
+        assert result.verdict == "UNCHECKED"
+        assert not result.fails
+        status = next(i for i in result.issues if i.kind == "not-asked")
+        assert status.severity == "info"
+        assert "not checked" in status.note
+
+    def test_a_retraction_source_outage_does_not_excuse_a_fabricated_doi(self) -> None:
+        """The worst way this tool could fail, and the narrowest path to it.
+
+        Retraction Watch holds no bibliographic record and can never resolve an
+        identifier, so its export being unreachable says nothing about whether a
+        work exists. It shares the run-wide *unreachable* set with the
+        registries that *can* answer that question, and the "nothing answered"
+        branch must not read it: a bibliography full of invented DOIs would come
+        back UNCHECKED and exit 0 because a side-channel was down, while
+        ``consulted`` reported that Crossref, DataCite and PubMed all answered.
+        """
+        result = compare(
+            make_ref(),
+            {},
+            unreachable={"retraction-watch"},
+            asked={"crossref", "datacite", "pubmed", "retraction-watch"},
+        )
+        assert result.verdict == "BAD-ID"
+        assert result.fails
+        assert result.consulted["crossref"] == "answered"
+
+    def test_a_real_registry_outage_is_still_unchecked(self) -> None:
+        """The guard above must not go too far the other way: a registry that
+        could have held the work being unreachable is exactly the ignorance
+        UNCHECKED exists for.
+        """
+        result = compare(
+            make_ref(),
+            {},
+            unreachable={"crossref", "retraction-watch"},
+            asked={"crossref", "retraction-watch"},
+        )
+        assert result.verdict == "UNCHECKED"
+        assert not result.fails
+
+    def test_omitting_asked_entirely_still_reports_bad_id(self) -> None:
+        """``asked=None`` means the caller did not say, not that it asked
+        nothing. Collapsing the two would turn every genuine BAD-ID from a
+        caller that never passed ``asked`` into a silent UNCHECKED — the exact
+        regression the test above this one guards from the other direction.
+        """
+        result = compare(make_ref(), {})
+        assert result.verdict == "BAD-ID"
+        assert result.fails
+
     def test_an_outage_everywhere_is_still_unchecked(self) -> None:
         result = compare(
             make_ref(),

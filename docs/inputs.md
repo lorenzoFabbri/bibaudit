@@ -255,6 +255,6 @@ a book matched by ISBN alone gets no retraction check, because Open Library
 mints no DOI for the retraction sources to be keyed on. [Retraction](retraction.md)
 states that gap in full. `--no-isbn` skips Open Library entirely, at a cost
 worth knowing before you reach for it: a book stored with only an ISBN is then
-never looked up at all, and because its ISBN is still the entry's identifier the
-entry is reported as `BAD-ID` — an identifier that resolved in no consulted
-registry — rather than as merely unconfirmed.
+never looked up at all, and is reported `UNCHECKED` — nothing was verified about
+it. It does not fail the run, and it is not evidence against the book; it simply
+records that the one registry organised around books was not consulted.
