@@ -16,12 +16,12 @@ saying which of the registry's own values matched.
 The list is deliberately short. A "tolerance" that is really just "this check is
 noisy" belongs in a threshold or in a project's own `.bibaudit.toml`, not here.
 
-Most of what follows is a reproducible defect in the registry's own data. Some
-is not, and says so: a *filing convention* both sides are entitled to (particle
-filing), an ordering difference, and four comparisons that agree because they had
-nothing to work with. Those are still reported as `REGISTRY-ARTIFACT` and still
-owe the reader an explanation, which is why they are here — but nobody's record
-is wrong in them, and the section says which case it is.
+Most of what follows is a reproducible defect in the registry's own data, but
+not all of it. Some sections describe a filing convention, an encoding choice or
+a representation both sides are entitled to, where nobody's record is wrong at
+all. They are here because they are reported as `REGISTRY-ARTIFACT` and so owe
+the reader the same explanation. Rather than list them here — a list that has
+already gone stale once — each section says which case it is.
 
 ---
 
@@ -131,6 +131,11 @@ Collaborative Group}` as a single creator while the registry lists the people, o
 the reverse. Neither is wrong. It is the same work described at two levels, and
 it is a representation difference rather than a defect in anyone's record.
 
+**No witnessed instance of its own.** The consortium shape the corpus actually
+produces is the interleaved one above, which has its own DOIs. This escape covers
+the whole-byline form, which the corpus does not contain; it is pinned by
+constructed cases in `tests/test_names.py` rather than by a recorded deposit.
+
 **Reported as.** `collective author` when the *bibliography* holds the single
 collective, `registry lists a collective author` when the registry does.
 
@@ -144,7 +149,9 @@ alignment is available as evidence, so this escape suppresses the author-count
 difference on the strength of "one side is a single collective creator" alone. It
 therefore cannot tell a consortium byline from a bibliography that replaced a
 real author list with a group name. Both values are printed under
-`REGISTRY-ARTIFACT` so a reader can see which happened; the tool does not decide.
+`REGISTRY-ARTIFACT` at the first position, so the report shows the collective
+against the registry's *first* creator rather than the two bylines in full. That
+is enough to see which shape it is, and the tool does not decide between them.
 
 ---
 
@@ -181,6 +188,11 @@ them (the citekey, the title) lives outside `names.py`.
 source and not in the other: the bibliography stores *van Eijck* and the deposit
 files the creator under *Eijck*, or the reverse. Neither is wrong — the two
 conventions are both in use, and the choice is the cataloguer's.
+
+**Observed.** `van Eijck` is a real surname in the 438-entry corpus and is one
+of the two the module is written around (the other being `Clavel-Chapelon`), but
+no deposit was recorded in which the two sides file it differently, so there is
+no DOI to cite here. The rule is pinned in `tests/test_names.py`.
 
 **Reported as.** `particle filing`.
 
@@ -282,6 +294,11 @@ or the list carries an et-al marker rather than a creator.
 
 **Reported as.** `one side has no surname`, `registry surname truncated`,
 `et-al marker`, and `surname outside the comparison alphabet`.
+
+**Observed.** No single deposit is cited: these arise from the shape of a byline
+rather than from one registry's defect. The case that motivated separating them
+out is recorded in `names.py` — a registry list of `[王, 李, 张]` "aligning"
+against `[Smith, Jones, Brown]` — and is pinned in `tests/test_names.py`.
 
 **Detection.** `names.names_agree` returns each as an honest "this comparison had
 nothing to work with", and every one is printed under `REGISTRY-ARTIFACT` so the

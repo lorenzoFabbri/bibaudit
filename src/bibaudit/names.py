@@ -361,15 +361,6 @@ def _surname_text(name: Name) -> str:
     return clean(name.literal or name.family)
 
 
-#: Reasons :func:`names_agree` returns when it accepted a pair **without any
-#: evidence that the two creators are the same person**. Each is an honest "this
-#: comparison had nothing to work with", and each is printed under
-#: REGISTRY-ARTIFACT — but none of them may be counted as a creator that
-#: *aligned*, which is what :func:`_registry_omits_first_author` does with its
-#: three-in-a-row arithmetic. Three agreements of this kind are three pieces of
-#: nothing, and before :func:`_agrees_informatively` existed they were enough to
-#: clear a whole byline: a registry list of ``[王, 李, 张]`` "aligned" against
-#: ``[Smith, Jones, Brown]`` and suppressed the author-count difference too.
 class Reason(StrEnum):
     """Every explanation this module can attach to an author position.
 

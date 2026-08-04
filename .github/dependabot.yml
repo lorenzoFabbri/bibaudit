@@ -15,14 +15,14 @@ updates:
         patterns: ["*"]
 
   # Two runtime dependencies and a small dev set, so a monthly batch is enough
-  # noise. `increase` rather than the default: widening a range would let an
-  # update cross the `<3` cap pyproject.toml puts on bibtexparser, which is the
-  # one bound worth keeping.
+  # noise. No `versioning-strategy`: the bounds in pyproject.toml — the `<3` cap
+  # on bibtexparser among them — are authored deliberately, and a proposal that
+  # moves one is a decision for the reviewer of the pull request, not something
+  # to encode here.
   - package-ecosystem: uv
     directory: /
     schedule:
       interval: monthly
-    versioning-strategy: increase
     commit-message:
       prefix: ""
     groups:

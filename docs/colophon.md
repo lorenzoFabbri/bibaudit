@@ -101,8 +101,8 @@ Two of those constraints are enforced by the test suite rather than by good
 intentions. Adding a rule that suppresses a difference as a known registry
 defect, without a section naming it in [registry defects](registry-artifacts.md),
 turns a test red, because a suppression a reader cannot look up is one nobody
-can challenge. And the default test run deselects anything networked: 1,193 of
-the 1,194 tests run and pass with no internet at all, and the one that does not
+can challenge. And the default test run deselects anything networked: 1,203 of
+the 1,204 tests run and pass with no internet at all, and the one that does not
 run is the `network`-marked test that gives the deselection something to filter.
 A suite that needs the network gets skipped, and a skipped suite protects
 nobody.

@@ -541,8 +541,10 @@ class TestRuleScoping:
         read-only mapping so nothing else can write one, and ``names_agree``
         returns ``Reason | Literal[""]``.
 
-        This pins the derivation, which is the one part a future edit could
-        quietly undo by retyping the tuple as literals.
+        What this catches is any *divergence* between the tuple and the enum.
+        Retyping the tuple as the same fourteen literals passes, because at that
+        moment nothing has diverged; the test fires the first time a member is
+        added or reworded without the list following.
         """
         assert tuple(r.value for r in names.Reason) == names.ARTIFACT_REASONS
         assert len(set(names.ARTIFACT_REASONS)) == len(names.ARTIFACT_REASONS)
