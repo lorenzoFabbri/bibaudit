@@ -17,6 +17,11 @@ jobs:
       - uses: astral-sh/setup-uv@v9.0.0
         with:
           enable-cache: true
+          # Without a version, setup-uv resolves "latest" by fetching a
+          # manifest from raw.githubusercontent.com on every job — a short
+          # timeout on a network call that an otherwise offline run does not
+          # need. Pinning also keeps the toolchain identical to a laptop's.
+          version: "0.11.7"
       # The tag is the claim; this checks the package agrees with it before
       # anything is uploaded, because a version cannot be re-uploaded to PyPI.
       - name: Check the tag matches the packaged version

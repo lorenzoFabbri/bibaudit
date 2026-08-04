@@ -23,6 +23,11 @@ jobs:
       - uses: astral-sh/setup-uv@v9.0.0
         with:
           enable-cache: true
+          # Without a version, setup-uv resolves "latest" by fetching a
+          # manifest from raw.githubusercontent.com on every job — a short
+          # timeout on a network call that an otherwise offline run does not
+          # need. Pinning also keeps the toolchain identical to a laptop's.
+          version: "0.11.7"
           # `.python-version` pins 3.11, so without this every job in the
           # matrix resolves the same interpreter and the job names lie. This
           # input sets UV_PYTHON, which takes precedence over that file.
