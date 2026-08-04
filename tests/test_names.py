@@ -22,6 +22,8 @@ import pytest
 
 from bibaudit.model import Name
 from bibaudit.names import (
+    AuthorDiff,
+    Reason,
     compare_author_lists,
     demojibake,
     family_key,
@@ -247,8 +249,10 @@ class TestSpellingVariants:
     """"Spelling variant with matching initials" is a suppression like any other.
 
     It carries **no witnessed instance** — no entry in the 438-entry corpus
-    reaches it, and `TODO.md`'s eight author flags are all accounted for by the
-    collective, et-al, first-author-omission and mojibake rules. It survives
+    reaches it, and the eight author differences that run did flag are all
+    accounted for by the collective, et-al, first-author-omission and mojibake
+    rules. That corpus is private and its baseline is not in this
+    repository, so the count is stated rather than checkable here. It survives
     only for the transliteration variants a multilingual bibliography does
     produce, and it is held to the same bar as every other rule that makes the
     tool complain less: the shape without the evidence has to still fire.
@@ -343,9 +347,10 @@ class TestSurnamesOutsideTheComparisonAlphabet:
         assert not agreed
 
     def test_the_same_han_surname_agrees(self) -> None:
+        """And carries no reason: `_script_key` compared the glyphs and they matched."""
         agreed, reason = names_agree(Name(family="王", given="L"), Name(family="王", given="L"))
         assert agreed
-        assert reason == ""
+        assert reason is None
 
     def test_a_native_form_against_a_romanised_one_is_accepted_and_stated(self) -> None:
         """No key can bridge 山田 and Yamada, so the pair is accepted — out loud.
@@ -485,6 +490,7 @@ class TestAuthorListComparison:
         diff = compare_author_lists(stored, registry)
         assert not diff.mismatches
         assert not diff.count_differs
+        assert diff.reasons == {1: "registry lists a collective author"}
 
 
 #: The byline of `clavelchapelon1997e3n` exactly as the corpus stores it. Ten
@@ -504,8 +510,9 @@ class TestRegistryOmittingTheFirstAuthor:
     creators beginning with `van Liere`, whom the deposit even marks
     `"sequence": "first"`. Compared position against position, a correct
     ten-author entry produces ten "different person" errors and fails as
-    FIELD-MISMATCH. `TODO.md`'s acceptance baseline lists it among the eight
-    author flags that are all false positives.
+    FIELD-MISMATCH. It is one of the eight author differences the corpus run
+    flagged, all of them false positives. Unlike that count, this one can be
+    checked from here: the deposit itself is in `tests/data`.
     """
 
     def test_the_recorded_deposit_still_carries_the_omission(self) -> None:
@@ -937,3 +944,163 @@ class TestSurnameTruncatedInsideAMojibakeByline:
         ]
         diff = compare_author_lists(stored, registry)
         assert diff.mismatches
+
+
+#: One byline pair per :class:`Reason`, and the position the reason lands at.
+#: Every entry produces a *suppressed* difference, which is the shape that needs
+#: watching: an escape records its reason and then returns a diff that is clean
+#: by every other measure, so the recorded string is the only thing separating
+#: "stated and not failed" from "hidden". Asserting the diff is clean asserts
+#: nothing about it.
+_WITNESSED_REASONS: tuple[tuple[Reason, int, list[Name], list[Name]], ...] = (
+    # Nothing to compare: a creator deposited with no surname at all.
+    (
+        Reason.NO_SURNAME, 2,
+        [Name(family="Alpha", given="A"), Name(given="B")],
+        [Name(family="Alpha", given="A"), Name(family="Bravo", given="B")],
+    ),
+    # A native form against a romanised one: no key spans them.
+    (
+        Reason.UNREPRESENTABLE_SCRIPT, 2,
+        [Name(family="Alpha", given="A"), Name(family="山田", given="T")],
+        [Name(family="Alpha", given="A"), Name(family="Yamada", given="T")],
+    ),
+    # A registry surname cut to one character carries no information.
+    (
+        Reason.REGISTRY_INITIAL_ONLY, 2,
+        [Name(family="Alpha", given="A"), Name(family="Bravo", given="B")],
+        [Name(family="Alpha", given="A"), Name(family="B", given="B")],
+    ),
+    (
+        Reason.ET_AL, 2,
+        [Name(family="Alpha", given="A"), Name(et_al=True)],
+        [Name(family="Alpha", given="A"), Name(family="Bravo", given="B")],
+    ),
+    (
+        Reason.REGISTRY_MOJIBAKE, 1,
+        [Name(family="Aragonés", given="Nuria")],
+        [Name(family="AragonÃ©s", given="Nuria")],  # mojibake, deliberately
+    ),
+    (
+        Reason.PARTICLE_FILING, 1,
+        [Name(family="van Eijck", given="Casper")],
+        [Name(family="Eijck", given="Casper")],
+    ),
+    (
+        Reason.COMPOUND_SHORTENED, 1,
+        [Name(family="Clavel-Chapelon", given="F")],
+        [Name(family="Chapelon", given="F")],
+    ),
+    (
+        Reason.SPELLING_VARIANT, 1,
+        [Name(family="Papantoniou", given="K")],
+        [Name(family="Papantoniu", given="K")],
+    ),
+    (
+        Reason.STORED_COLLECTIVE, 1,
+        [Name(literal="The Study Group", collective=True)],
+        [Name(family="Smith"), Name(family="Jones")],
+    ),
+    (
+        Reason.REGISTRY_COLLECTIVE, 1,
+        [Name(family="Smith"), Name(family="Jones")],
+        [Name(literal="The Study Group", collective=True)],
+    ),
+    (
+        Reason.INTERLEAVED_COLLECTIVES, 1,
+        [Name(family="Alpha", given="A"), Name(family="Bravo", given="B")],
+        [
+            Name(family="Alpha", given="A"),
+            Name(literal="DiscovEHR", collective=True),
+            Name(family="Bravo", given="B"),
+        ],
+    ),
+    (
+        Reason.FIRST_AUTHOR_OMITTED, 1,
+        [
+            Name(family="Alpha", given="A"), Name(family="Bravo", given="B"),
+            Name(family="Charlie", given="C"), Name(family="Delta", given="D"),
+        ],
+        [
+            Name(family="Bravo", given="B"), Name(family="Charlie", given="C"),
+            Name(family="Delta", given="D"),
+        ],
+    ),
+    # The Dierssen defect: a surname that lost its first character inside a
+    # byline two other creators prove is mis-decoded.
+    (
+        Reason.MOJIBAKE_TRUNCATED, 1,
+        [
+            Name(family="Dierssen", given="Trinidad"), Name(family="Aragonés", given="Nuria"),
+            Name(family="Espinosa", given="Ana"),
+        ],
+        [
+            Name(family="ierssen", given="Trinidad"),
+            Name(family="AragonÃ©s", given="Nuria"),  # mojibake, deliberately
+            Name(family="Espinosa", given="Ana"),
+        ],
+    ),
+    (
+        Reason.REORDERED, 1,
+        [Name(family="Real"), Name(family="Malats")],
+        [Name(family="Malats"), Name(family="Real")],
+    ),
+)
+
+
+class TestEveryReasonIsActuallyRecorded:
+    """The other half of the contract ``tests/test_benign.py`` enforces.
+
+    That module checks every reason has a section in the documentation. This one
+    checks the reason still reaches the report at all — a section explaining a
+    string nothing emits documents nothing.
+    """
+
+    @pytest.mark.parametrize(
+        ("reason", "position", "stored", "registry"),
+        _WITNESSED_REASONS,
+        ids=[reason.name for reason, _, _, _ in _WITNESSED_REASONS],
+    )
+    def test_the_witness_records_its_reason(
+        self, reason: Reason, position: int, stored: list[Name], registry: list[Name]
+    ) -> None:
+        recorded = compare_author_lists(stored, registry).reasons.get(position, "")
+        assert recorded.startswith(reason.value), recorded
+
+    def test_every_reason_has_a_witness(self) -> None:
+        """Complete by construction, like ``ARTIFACT_REASONS`` itself.
+
+        A new member of ``Reason`` cannot be added without a byline that produces
+        it, so "this escape is tested" stops being something to remember.
+        """
+        assert {reason for reason, _, _, _ in _WITNESSED_REASONS} == set(Reason)
+
+
+class TestOnlyDocumentedReasonsReachAReport:
+    """``AuthorDiff.note`` is the whole of the path from an escape to the report."""
+
+    def test_the_reason_that_names_what_it_found_is_refused_by_note(self) -> None:
+        """Otherwise it emits its own prefix and then names nothing.
+
+        ``registry interleaves collective creator(s) the byline omits:`` with an
+        empty tail is a claim about particular creators, printed without them.
+        """
+        with pytest.raises(ValueError, match="note_collectives"):
+            AuthorDiff().note(1, Reason.INTERLEAVED_COLLECTIVES)
+
+    def test_naming_no_collectives_at_all_is_refused(self) -> None:
+        with pytest.raises(ValueError, match="named"):
+            AuthorDiff().note_collectives(1, [])
+
+    def test_the_organisations_are_printed_in_full(self) -> None:
+        diff = AuthorDiff()
+        diff.note_collectives(1, [Name(literal="DiscovEHR"), Name(literal="UK Biobank")])
+        assert diff.reasons[1] == (
+            "registry interleaves collective creator(s) the byline omits: "
+            "DiscovEHR; UK Biobank"
+        )
+
+    def test_reasons_cannot_be_written_through_the_public_name(self) -> None:
+        """The mapping is the report's only source for why a difference was excused."""
+        with pytest.raises(TypeError):
+            AuthorDiff().reasons[1] = "a reason nobody documented"  # type: ignore[index]

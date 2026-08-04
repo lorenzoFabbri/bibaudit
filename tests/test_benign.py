@@ -7,10 +7,10 @@ second is the one that earns its keep — a suppression with no counter-test is
 indistinguishable from a check somebody switched off, and this module is the
 only thing standing between the user and a report full of false alarms.
 
-Every case is taken from ``docs/registry-artifacts.md`` or from the 438-entry
-corpus whose expected baseline ``TODO.md`` records. Several strings below are
-*damaged on purpose*; the comments say which, because they are the point of the
-test and cleaning them up would delete it.
+Every case is taken from ``docs/registry-artifacts.md`` or from the private
+438-entry corpus described in ``tests/test_audit_corpus.py``. Several strings
+below are *damaged on purpose*; the comments say which, because they are the
+point of the test and cleaning them up would delete it.
 """
 
 from __future__ import annotations
@@ -503,11 +503,18 @@ class TestRuleScoping:
 
         A docstring alone is not enough: it is invisible to the person deciding
         whether to trust a ``REGISTRY-ARTIFACT`` line in a report. Adding a rule
-        to ``CHECKS`` without a section in ``docs/registry-artifacts.md`` naming
-        it turns this test red, which is the only automatic reminder there is.
+        to ``CHECKS`` without ``docs/registry-artifacts.md`` naming it turns this
+        test red, which is the only automatic reminder there is.
+
+        Matched as the backticked ``benign.``-qualified form the documentation
+        actually uses, for the reason the author test below spells out: these
+        names are prefix-shaped — ``_title_shortened``, ``_year_online_first``,
+        ``_pages_article_number`` — so a bare substring would let the first
+        ``_title_shortened_by_publisher``-style addition be satisfied by the
+        older rule's section.
         """
         prose = ARTIFACT_DOCS.read_text(encoding="utf-8")
-        missing = [c.__name__ for c in benign.CHECKS if c.__name__ not in prose]
+        missing = [c.__name__ for c in benign.CHECKS if f"`benign.{c.__name__}`" not in prose]
         assert missing == []
 
     def test_every_author_escape_is_written_up_too(self) -> None:
@@ -530,24 +537,24 @@ class TestRuleScoping:
         missing = [r for r in names.ARTIFACT_REASONS if f"`{_documented(r)}`" not in prose]
         assert missing == []
 
-    def test_the_enumeration_cannot_fall_behind_the_reasons_that_exist(self) -> None:
+    def test_no_reason_is_an_alias_for_another(self) -> None:
         """Documenting the list proves nothing unless the list is complete.
 
-        Completeness is structural rather than checked: every reason is a member
-        of ``names.Reason`` and ``ARTIFACT_REASONS`` is derived from it, so a
-        reason cannot exist without being in the tuple the test above walks.
-        What stops a bare string reaching a report instead is ``mypy``, which CI
-        runs: :meth:`AuthorDiff.note` takes a ``Reason``, ``reasons`` is a
-        read-only mapping so nothing else can write one, and ``names_agree``
-        returns ``Reason | Literal[""]``.
+        Most of completeness is structural: ``ARTIFACT_REASONS`` is derived from
+        ``names.Reason``, so a reason cannot exist outside the tuple the test
+        above walks, and ``mypy`` covers the rest — ``note`` takes a ``Reason``,
+        ``reasons`` is read-only, ``names_agree`` returns ``Reason | None`` — so
+        a bare string fails CI at the emission site.
 
-        What this catches is any *divergence* between the tuple and the enum.
-        Retyping the tuple as the same fourteen literals passes, because at that
-        moment nothing has diverged; the test fires the first time a member is
-        added or reworded without the list following.
+        Neither reaches a member whose value repeats another's. ``Enum`` makes
+        that an *alias*: it vanishes from iteration, so every derived collection
+        still looks right, while it answers to the older member's name and emits
+        the older member's reason. ``@unique`` on ``Reason`` turns it into an
+        ``ImportError``; this pins the property over ``__members__``, the one
+        view that shows aliases, so the guarantee survives the decorator.
         """
-        assert tuple(r.value for r in names.Reason) == names.ARTIFACT_REASONS
-        assert len(set(names.ARTIFACT_REASONS)) == len(names.ARTIFACT_REASONS)
+        members = names.Reason.__members__
+        assert len({member.value for member in members.values()}) == len(members)
 
 
 class TestArtifactsAreReportedNotResolved:
@@ -581,12 +588,13 @@ class TestArtifactsAreReportedNotResolved:
 
 
 class TestAuthorArtifacts:
-    """The eight author flags TODO.md records as false positives on the real corpus.
+    """The eight author differences the corpus run flagged, all false positives.
 
     Author differences are adjudicated in :mod:`bibaudit.names` rather than by a
     rule in :mod:`bibaudit.benign`, but they surface through the same
     REGISTRY-ARTIFACT channel, and they are the cases that decide whether the
-    report is readable.
+    report is readable. The corpus is private and the baseline that recorded the
+    eight is not in this repository; what is here is one test per shape.
     """
 
     def test_a_collective_author_is_not_an_author_count_defect(self) -> None:

@@ -49,10 +49,9 @@ evidence a list-level rule then counts:
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
-from enum import StrEnum
+from collections.abc import Mapping, Sequence
+from enum import StrEnum, unique
 from types import MappingProxyType
-from typing import Literal
 
 from .model import Name
 from .normalize import clean, fold
@@ -361,6 +360,7 @@ def _surname_text(name: Name) -> str:
     return clean(name.literal or name.family)
 
 
+@unique
 class Reason(StrEnum):
     """Every explanation this module can attach to an author position.
 
@@ -377,49 +377,63 @@ class Reason(StrEnum):
     describes only records what somebody remembered to add.
 
     ``StrEnum`` so a member compares equal to the string a report prints, which
-    is what ``_UNINFORMATIVE_AGREEMENTS`` and every caller already rely on.
+    is what every caller already relies on. ``@unique`` because a member repeating
+    another's value becomes an *alias* rather than an error: it disappears from
+    iteration, answers to the older member's name, and every site that writes it
+    then emits a reason nobody chose. Iteration cannot show that, so the
+    decorator has to.
+
+    Each member also states whether an agreement ending in it counts as a creator
+    that *aligned*. The flag is mandatory because there is no safe default:
+    :func:`_registry_omits_first_author` and :func:`_interleaved_collectives`
+    read a run of aligned positions as proof that the registry dropped or
+    interleaved creators, and an agreement reached without comparing anything is
+    not proof of anything. Three of them in a row clear a whole byline — a
+    registry list of ``[王, 李, 张]`` against ``[Smith, Jones, Brown]``, three
+    surnames :func:`fold` discards, agreeing position for position.
     """
 
-    #: The four below agree without being evidence that two creators are the
-    #: same person; see :data:`_UNINFORMATIVE_AGREEMENTS`.
-    NO_SURNAME = "one side has no surname"
-    UNREPRESENTABLE_SCRIPT = "surname outside the comparison alphabet"
-    REGISTRY_INITIAL_ONLY = "registry surname truncated"
-    ET_AL = "et-al marker"
+    counts_as_alignment: bool
 
-    REGISTRY_MOJIBAKE = "registry mojibake"
-    PARTICLE_FILING = "particle filing"
-    COMPOUND_SHORTENED = "compound surname shortened"
-    SPELLING_VARIANT = "spelling variant with matching initials"
-    STORED_COLLECTIVE = "collective author"
-    REGISTRY_COLLECTIVE = "registry lists a collective author"
-    #: A prefix: the organisations it found are appended, because "these
-    #: particular creators are organisations the bibliography left out" is not a
-    #: claim a reader can check against a count.
-    INTERLEAVED_COLLECTIVES = "registry interleaves collective creator(s) the byline omits: "
-    FIRST_AUTHOR_OMITTED = "registry omits the first author"
-    MOJIBAKE_TRUNCATED = "registry mojibake truncated the surname"
-    REORDERED = "reordered"
+    def __new__(cls, value: str, counts_as_alignment: bool) -> Reason:
+        obj = str.__new__(cls, value)
+        obj._value_ = value
+        obj.counts_as_alignment = counts_as_alignment
+        return obj
+
+    #: Accepted for want of anything to compare: one side carries no surname the
+    #: comparison alphabet can represent, or the entry is an et-al marker rather
+    #: than a creator. Honest agreements, and evidence of nothing.
+    NO_SURNAME = ("one side has no surname", False)
+    UNREPRESENTABLE_SCRIPT = ("surname outside the comparison alphabet", False)
+    REGISTRY_INITIAL_ONLY = ("registry surname truncated", False)
+    ET_AL = ("et-al marker", False)
+
+    #: Two surnames were compared and do denote the same person.
+    REGISTRY_MOJIBAKE = ("registry mojibake", True)
+    PARTICLE_FILING = ("particle filing", True)
+    COMPOUND_SHORTENED = ("compound surname shortened", True)
+    SPELLING_VARIANT = ("spelling variant with matching initials", True)
+
+    #: Recorded by :func:`compare_author_lists` rather than returned by
+    #: :func:`names_agree`, so :func:`_agrees_informatively` never sees one.
+    #: ``False`` is the answer that stays correct for a caller that does.
+    STORED_COLLECTIVE = ("collective author", False)
+    REGISTRY_COLLECTIVE = ("registry lists a collective author", False)
+    #: A prefix: :meth:`AuthorDiff.note_collectives` appends the organisations it
+    #: found, because "these particular creators are organisations the
+    #: bibliography left out" is not a claim a reader can check against a count.
+    INTERLEAVED_COLLECTIVES = (
+        "registry interleaves collective creator(s) the byline omits: ",
+        False,
+    )
+    FIRST_AUTHOR_OMITTED = ("registry omits the first author", False)
+    MOJIBAKE_TRUNCATED = ("registry mojibake truncated the surname", False)
+    REORDERED = ("reordered", False)
 
 
 #: Derived, never retyped, so it cannot fall behind the reasons that exist.
 ARTIFACT_REASONS: tuple[str, ...] = tuple(r.value for r in Reason)
-
-#: Agreements that are **not** evidence that two creators are the same person.
-#: Each is an honest "this comparison had nothing to work with", and each is
-#: printed under REGISTRY-ARTIFACT — but none may be counted as a creator that
-#: *aligned*, which is what :func:`_registry_omits_first_author` does with its
-#: three-in-a-row arithmetic. Before :func:`_agrees_informatively` existed, three
-#: agreements of this kind were enough to clear a whole byline: a registry list
-#: of ``[王, 李, 张]`` "aligned" against ``[Smith, Jones, Brown]``.
-_UNINFORMATIVE_AGREEMENTS = frozenset(
-    {
-        Reason.NO_SURNAME,
-        Reason.UNREPRESENTABLE_SCRIPT,
-        Reason.REGISTRY_INITIAL_ONLY,
-        Reason.ET_AL,
-    }
-)
 
 
 def _script_key(text: str) -> str:
@@ -445,7 +459,7 @@ def _script_key(text: str) -> str:
 
 def _agree_without_a_comparison_key(
     stored: Name, registry: Name
-) -> tuple[bool, Reason | Literal[""]]:
+) -> tuple[bool, Reason | None]:
     """Decide a pair where at least one side folds to an empty key.
 
     Two situations arrive here and they are not the same fact:
@@ -475,13 +489,13 @@ def _agree_without_a_comparison_key(
     stored_text, registry_text = _surname_text(stored), _surname_text(registry)
     if stored_text and registry_text and not fold(stored_text) and not fold(registry_text):
         if _script_key(stored_text) == _script_key(registry_text):
-            return True, ""
-        return False, ""
+            return True, None
+        return False, None
 
     stored_initial = _given_initials(stored)[:1]
     registry_initial = _given_initials(registry)[:1]
     if stored_initial and registry_initial and stored_initial != registry_initial:
-        return False, ""
+        return False, None
 
     if not stored_text or not registry_text:
         return True, Reason.NO_SURNAME
@@ -518,16 +532,18 @@ def _differs_by_one_edit(left: str, right: str) -> bool:
     return edits + (len(right) - j) + (len(left) - i) == 1
 
 
-def names_agree(stored: Name, registry: Name) -> tuple[bool, Reason | Literal[""]]:
+def names_agree(stored: Name, registry: Name) -> tuple[bool, Reason | None]:
     """Whether two creators denote the same person.
 
     Returns the decision and a short reason, which the report uses to explain
-    why an apparent mismatch was accepted. Forenames are compared only by
-    initial: registries record "E", "Esther" and "Esther M." for one person, and
-    demanding equality there invents mismatches on nearly every entry.
+    why an apparent mismatch was accepted. ``None`` is not a reason: it means the
+    two surname keys matched outright and there is nothing to explain. Forenames
+    are compared only by initial: registries record "E", "Esther" and "Esther M."
+    for one person, and demanding equality there invents mismatches on nearly
+    every entry.
 
-    A reason listed in :data:`_UNINFORMATIVE_AGREEMENTS` means "accepted for
-    want of anything to compare", not "shown to be the same person". Callers
+    A reason whose :attr:`Reason.counts_as_alignment` is false means "accepted
+    for want of anything to compare", not "shown to be the same person". Callers
     that count agreements as evidence must use :func:`_agrees_informatively`.
     """
     if stored.et_al or registry.et_al:
@@ -540,7 +556,7 @@ def names_agree(stored: Name, registry: Name) -> tuple[bool, Reason | Literal[""
         return _agree_without_a_comparison_key(stored, registry)
 
     if stored_key == registry_key:
-        return True, ""
+        return True, None
 
     # A registry value that only differs by mojibake is a registry defect.
     repaired, was_mojibake = demojibake(
@@ -590,9 +606,12 @@ def names_agree(stored: Name, registry: Name) -> tuple[bool, Reason | Literal[""
         return True, Reason.REGISTRY_INITIAL_ONLY
 
     # **NO WITNESSED INSTANCE.** No entry in the 438-entry corpus reaches this
-    # branch: `TODO.md`'s baseline lists eight author flags and every one of them
-    # is a collective author, an et-al marker, the E3N omission or Latin-1
-    # mojibake. It is kept, narrowly, for the transliteration variants a
+    # branch: the run flagged eight author differences and every one of them is a
+    # collective author, an et-al marker, the E3N omission or Latin-1 mojibake.
+    # The corpus is private and the baseline that recorded those eight is not in
+    # this repository, so that count cannot be checked from here — what can is
+    # the branch's own emptiness, which `tests/test_names.py` pins case by case.
+    # It is kept, narrowly, for the transliteration variants a
     # multilingual bibliography does produce — `Kowalski`/`Kowalska`,
     # `Ivanov`/`Ivanova`, `Papantoniou`/`Papantoniu` — and it is a candidate for
     # deletion, not for widening.
@@ -628,7 +647,7 @@ def names_agree(stored: Name, registry: Name) -> tuple[bool, Reason | Literal[""
     ):
         return True, Reason.SPELLING_VARIANT
 
-    return False, ""
+    return False, None
 
 
 def _agrees_informatively(stored: Name, registry: Name) -> bool:
@@ -637,10 +656,11 @@ def _agrees_informatively(stored: Name, registry: Name) -> bool:
     The distinction exists because :func:`_registry_omits_first_author` treats a
     run of agreements as proof, and :func:`names_agree` returns agreement in
     several situations that prove nothing at all — see
-    :data:`_UNINFORMATIVE_AGREEMENTS`.
+    :attr:`Reason.counts_as_alignment`. ``None`` is the strongest agreement
+    there is: the two surname keys were equal.
     """
     agreed, reason = names_agree(stored, registry)
-    return agreed and reason not in _UNINFORMATIVE_AGREEMENTS
+    return agreed and (reason is None or reason.counts_as_alignment)
 
 
 def _registry_omits_first_author(stored: list[Name], registry: list[Name]) -> bool:
@@ -976,7 +996,7 @@ class AuthorDiff:
         Accepted-difference explanations keyed by position, for the report.
     """
 
-    __slots__ = ("_reasons", "mismatches", "registry_count", "stored_count", "truncated")
+    __slots__ = ("_reasons", "_view", "mismatches", "registry_count", "stored_count", "truncated")
 
     def __init__(self) -> None:
         self.mismatches: list[tuple[int, str, str]] = []
@@ -984,30 +1004,60 @@ class AuthorDiff:
         self.registry_count: int = 0
         self.truncated: bool = False
         self._reasons: dict[int, str] = {}
+        self._view: Mapping[int, str] = MappingProxyType(self._reasons)
 
     @property
     def reasons(self) -> Mapping[int, str]:
         """Accepted-difference explanations by position, for the report.
 
-        Read-only, so :meth:`note` is the only way in. A plain dict here let a
-        caller write any string it liked, which is the one way an explanation
-        with no section in ``docs/registry-artifacts.md`` can still reach a
-        report — the enum on :meth:`note` would have nothing to check.
+        A live read-only view of the positions recorded so far, so a caller
+        holding it sees later ones appear. Read-only because a writable mapping
+        here is a way into a report that bypasses the enum on :meth:`note`, and
+        an explanation with no section in ``docs/registry-artifacts.md`` is
+        exactly what that enum exists to keep out. It is a view rather than a
+        guarantee: ``self._reasons`` is reachable from anywhere in the package,
+        and what this stops is a write through the public name.
         """
-        return MappingProxyType(self._reasons)
+        return self._view
 
-    def note(self, position: int, reason: Reason, detail: str = "") -> None:
+    def note(self, position: int, reason: Reason) -> None:
         """Record *reason* at a 1-based *position*.
 
-        The only writer of ``reasons``, and it takes a :class:`Reason` rather
-        than a string so that a reason absent from the enumeration cannot reach
-        a report: ``mypy`` rejects the bare literal at the call site, and
-        :data:`ARTIFACT_REASONS` is derived from the enum, so whatever is
-        emitted here is a reason ``docs/registry-artifacts.md`` has to explain.
+        Takes a :class:`Reason` rather than a string so that a reason absent from
+        the enumeration cannot reach a report: ``mypy`` rejects the bare literal
+        at the call site, and :data:`ARTIFACT_REASONS` is derived from the enum,
+        so whatever is emitted here is a reason ``docs/registry-artifacts.md``
+        has to explain.
 
-        *detail* is appended for the one reason that names what it found.
+        The guarantee covers the whole recorded string, not just its opening,
+        because a member's value is all there is to record: what a reader sees
+        under REGISTRY-ARTIFACT is a string ``ARTIFACT_REASONS`` contains. The
+        one reason that goes on to name what it found has
+        :meth:`note_collectives`, and it is excluded here rather than by a type
+        because Python cannot say "any member but this one" without retyping the
+        other thirteen.
         """
-        self._reasons[position] = f"{reason.value}{detail}"
+        if reason is Reason.INTERLEAVED_COLLECTIVES:
+            raise ValueError(
+                "INTERLEAVED_COLLECTIVES names the organisations it found; "
+                "record it with note_collectives"
+            )
+        self._reasons[position] = reason.value
+
+    def note_collectives(self, position: int, found: Sequence[Name]) -> None:
+        """Record the interleaved consortia at a 1-based *position*.
+
+        The organisations are named in full rather than counted, and the payload
+        is built here, from the creators the escape found, so the only text that
+        can follow the prefix is that list. An empty *found* is refused: the claim
+        is "these particular creators are organisations the bibliography left
+        out", and a report that makes it and then lists nothing is a suppression
+        the reader cannot check.
+        """
+        if not found:
+            raise ValueError("the interleaved consortia have to be named, and none was given")
+        named = "; ".join(str(name) for name in found)
+        self._reasons[position] = f"{Reason.INTERLEAVED_COLLECTIVES.value}{named}"
 
     @property
     def count_differs(self) -> bool:
@@ -1077,11 +1127,7 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
         # reader cannot look up is a check nobody can audit, and here the whole
         # claim is "these particular creators are organisations the bibliography
         # left out" — so the report has to print which ones.
-        diff.note(
-            1,
-            Reason.INTERLEAVED_COLLECTIVES,
-            "; ".join(str(n) for n in interleaved),
-        )
+        diff.note_collectives(1, interleaved)
         diff.truncated = True
         return diff
 
@@ -1111,7 +1157,7 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
         left, right = stored[index], registry[index]
         agreed, reason = names_agree(left, right)
         if agreed:
-            if reason:
+            if reason is not None:
                 diff.note(index + 1, reason)
             continue
         if mojibake_byline and _surname_truncated_by_mojibake(left, right, registry, index):
