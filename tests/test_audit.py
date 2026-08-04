@@ -31,7 +31,7 @@ from bibaudit.audit import AuditOptions, audit, resolve
 from bibaudit.model import ANSWERED, UNREACHABLE, Name, Record, Reference
 from bibaudit.normalize import normalize_doi
 from bibaudit.registries.http import Cache, Client, Transient
-from bibaudit.registries.retractions import RetractionNotice
+from bibaudit.registries.retractions import RetractionNotice, RetractionStatus
 from bibaudit.report import Summary
 from bibaudit.suppress import Suppression, Suppressions
 
@@ -239,9 +239,14 @@ class _StubRetractions:
         *,
         notices: dict[str, RetractionNotice] | None = None,
         transient: bool = False,
+        rw_unreachable: bool = False,
     ) -> None:
         self.notices = dict(notices or {})
         self.transient = transient
+        #: The Retraction Watch export failing, which the real class reports
+        #: through its return value rather than by raising -- ``transient``
+        #: above is the *other* outage, PubMed's, which does raise.
+        self.rw_unreachable = rw_unreachable
         self.constructions = 0
         self.client: object = None
         self.status_for_calls: list[list[str]] = []
@@ -251,12 +256,15 @@ class _StubRetractions:
         self.client = client
         return self
 
-    def status_for(self, dois: Sequence[str]) -> dict[str, RetractionNotice]:
+    def status_for(self, dois: Sequence[str]) -> RetractionStatus:
         self.status_for_calls.append(list(dois))
         if self.transient:
             raise Transient("retractions: simulated outage")
         wanted = {normalize_doi(doi) for doi in dois}
-        return {doi: notice for doi, notice in self.notices.items() if doi in wanted}
+        return RetractionStatus(
+            notices={doi: notice for doi, notice in self.notices.items() if doi in wanted},
+            unreachable=frozenset({"retraction-watch"}) if self.rw_unreachable else frozenset(),
+        )
 
 
 @dataclass(slots=True)
@@ -472,6 +480,39 @@ class TestOutageIsNeverAFinding:
         assert result.consulted["crossref"] == ANSWERED
         assert stubs.pubmed.by_dois_calls == [[DOI]]
 
+    def test_a_retraction_watch_outage_is_stated_not_swallowed(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """End to end, the defect this whole path was widened to fix.
+
+        The scenario is ordinary, not exotic: ``--offline`` (or any run whose
+        cached Retraction Watch export has aged past its seven-day TTL) fails to
+        load the index, every field agrees with Crossref, and the run reports
+        ``OK`` and exits 0. Before this, it did so with nothing anywhere saying
+        the one source that exists solely to carry retraction status was never
+        reached — and ``consulted`` positively asserted ``answered`` for it,
+        because ``_asked_registries`` adds ``"retraction-watch"`` to ``asked``
+        whenever ``--no-retraction-check`` is not passed.
+
+        The verdict and the exit code deliberately do not move. An outage is not
+        a defect in anybody's bibliography. What must move is what the run says
+        out loud.
+        """
+        _install(
+            monkeypatch,
+            crossref=_StubRegistry("crossref", records={DOI: make_record()}),
+            retractions=_StubRetractions(rw_unreachable=True),
+        )
+        result = audit([make_ref()], _options(tmp_path))[0]
+
+        assert result.consulted["retraction-watch"] == UNREACHABLE
+        status = next(i for i in result.issues if i.field == "status")
+        assert status.kind == "retraction-unverified"
+        assert "retraction-watch" in status.source
+        assert result.verdict == "OK"
+        assert not result.fails
+        assert Summary([result]).exit_code() == 0
+
     def test_a_datacite_outage_does_not_turn_its_dois_into_bad_ids(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -574,6 +615,30 @@ class TestAbsenceIsDistinguishableFromIgnorance:
 
         assert records == {DOI: {}}  # nobody had it
         assert unreachable == {"crossref"}  # and one of them was never asked
+
+    def test_a_retraction_watch_outage_reaches_the_unreachable_set(self) -> None:
+        """The Retraction Watch leg fails by *returning*, not by raising.
+
+        ``Retractions.status_for`` absorbs its own bulk-export outage so that
+        PubMed's independent answer is not lost with it, and reports the failed
+        source in the returned ``RetractionStatus`` instead. If ``resolve`` drops
+        that set, nothing downstream can tell the difference between "Retraction
+        Watch had nothing on this DOI" and "Retraction Watch was never reached",
+        and the second reads as the first — a clean bill of health from
+        ignorance.
+        """
+        registries = audit_module._Registries(
+            crossref=_StubRegistry("crossref"),  # type: ignore[arg-type]
+            datacite=_StubRegistry("datacite"),  # type: ignore[arg-type]
+            pubmed=_StubRegistry("pubmed"),  # type: ignore[arg-type]
+            search=_StubSearch(),  # type: ignore[arg-type]
+            retractions=_StubRetractions(rw_unreachable=True),  # type: ignore[arg-type]
+        )
+        _, unreachable = resolve([make_ref()], registries)
+
+        assert "retraction-watch" in unreachable
+        # PubMed answered; only the leg that failed may be named.
+        assert "pubmed" not in unreachable
 
     def test_one_entrys_outage_does_not_mask_another_entrys_finding(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

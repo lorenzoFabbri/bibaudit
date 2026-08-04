@@ -792,6 +792,41 @@ class TestRetractionEvidenceIsNeverAssumed:
         assert result.verdict == "OK"
         assert not result.issues
 
+    def test_open_library_going_down_says_nothing_about_retraction(self) -> None:
+        """Open Library is a book catalogue with no retraction element either.
+
+        The same argument as DataCite above, found one audit later and by the
+        opposite route: ``audit.py`` really does add ``"openlibrary"`` to
+        *unreachable* when the ISBN leg times out, so before it was excluded
+        here an Open Library outage printed "retraction status not corroborated:
+        openlibrary could not be reached" against every book in the file. A
+        caveat that appears on a whole class of entries for a reason nobody can
+        act on is the noise CLAUDE.md's third rule exists to keep out.
+        """
+        result = compare(make_ref(), {"crossref": make_record()}, unreachable={"openlibrary"})
+        assert result.verdict == "OK"
+        assert not result.issues
+
+    def test_a_retraction_watch_outage_leaves_a_stated_gap(self) -> None:
+        """The opposite direction, and the reason the exclusion set stays an
+        exclusion set: Retraction Watch exists *only* to carry this signal, so
+        its going unreached is the most consequential gap this check can state.
+
+        It reaches ``unreachable`` through ``Retractions.status_for``'s returned
+        :class:`~bibaudit.registries.retractions.RetractionStatus`, not through a
+        raise -- see ``audit._resolve_retractions``.
+        """
+        result = compare(
+            make_ref(), {"crossref": make_record()}, unreachable={"retraction-watch"}
+        )
+        status = next(i for i in result.issues if i.field == "status")
+        assert status.kind == "retraction-unverified"
+        assert status.source == "retraction-watch"
+        assert "could not be reached" in status.note
+        # An outage still may not fail a build or accuse a bibliography.
+        assert result.verdict == "OK"
+        assert not result.fails
+
     def test_a_found_retraction_needs_no_caveat(self) -> None:
         """Once one registry has said it, another's silence changes nothing."""
         result = compare(

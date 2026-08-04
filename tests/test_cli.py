@@ -27,7 +27,7 @@ from bibaudit.cli import build_parser, main
 from bibaudit.model import FAILING_VERDICTS, Name, Record, Reference
 from bibaudit.normalize import normalize_doi
 from bibaudit.registries.http import Transient
-from bibaudit.registries.retractions import RetractionNotice
+from bibaudit.registries.retractions import RetractionNotice, RetractionStatus
 
 #: The module object, not ``bibaudit.audit`` the function: the package
 #: re-exports ``audit()`` under that name, so a plain
@@ -186,18 +186,28 @@ class _StubRetractions:
     """
 
     def __init__(
-        self, *, notices: dict[str, RetractionNotice] | None = None, transient: bool = False
+        self,
+        *,
+        notices: dict[str, RetractionNotice] | None = None,
+        transient: bool = False,
+        rw_unreachable: bool = False,
     ) -> None:
         self.notices = dict(notices or {})
         self.transient = transient
+        #: Retraction Watch's export failing, reported through the return
+        #: value; ``transient`` is PubMed's, which raises.
+        self.rw_unreachable = rw_unreachable
         self.status_for_calls: list[list[str]] = []
 
-    def status_for(self, dois: Sequence[str]) -> dict[str, RetractionNotice]:
+    def status_for(self, dois: Sequence[str]) -> RetractionStatus:
         self.status_for_calls.append(list(dois))
         if self.transient:
             raise Transient("retractions: stubbed outage")
         wanted = {normalize_doi(doi) for doi in dois}
-        return {doi: notice for doi, notice in self.notices.items() if doi in wanted}
+        return RetractionStatus(
+            notices={doi: notice for doi, notice in self.notices.items() if doi in wanted},
+            unreachable=frozenset({"retraction-watch"}) if self.rw_unreachable else frozenset(),
+        )
 
 
 def install_registries(

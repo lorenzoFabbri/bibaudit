@@ -86,13 +86,17 @@ Sources, in order of independence from one another:
 
 A partial outage degrades rather than fails: if the Retraction Watch export
 cannot be fetched, that source alone contributes nothing to this call and
-PubMed still answers (see :meth:`Retractions._rw_signals`). A PubMed outage,
-by contrast, propagates as :class:`~bibaudit.registries.http.Transient`
-exactly as :meth:`PubMed.by_dois` already raises it — that is a real,
-reportable outage of a registry this project relies on for retraction
-corroboration, not a routine gap in one bulk file's freshness, and swallowing
-it here would be the single worst thing this module could do: silence about
-a registry that could have said "retracted" rendering as a clean citation.
+PubMed still answers (see :meth:`Retractions._rw_signals`). Degrading is not
+the same as going unmentioned, though — :meth:`Retractions.status_for` names
+the failed source in :attr:`RetractionStatus.unreachable`, so a caller can
+report the gap instead of printing a clean run over a source nobody reached.
+A PubMed outage, by contrast, propagates as
+:class:`~bibaudit.registries.http.Transient` exactly as
+:meth:`PubMed.by_dois` already raises it — that is a real, reportable outage
+of a registry this project relies on for retraction corroboration, not a
+routine gap in one bulk file's freshness, and swallowing it here would be the
+single worst thing this module could do: silence about a registry that could
+have said "retracted" rendering as a clean citation.
 """
 
 from __future__ import annotations
@@ -199,6 +203,39 @@ class RetractionNotice:
     #: (PubMed's ``ECI`` citation and its own PT-flagged record carry no more
     #: than a year). ``None`` when nothing date-shaped was available at all.
     date: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class RetractionStatus:
+    """What :meth:`Retractions.status_for` found, and what it could not reach.
+
+    The second half is the point. A retraction answer that does not say which
+    of its sources went unanswered cannot be reported honestly: silence from
+    Retraction Watch looks exactly like Retraction Watch having nothing to
+    say, and CLAUDE.md's rule is that ignorance about retraction must never
+    render as a clean bill of health.
+
+    This class exists because it once did. :meth:`_rw_signals` caught the
+    outage, warned, and returned ``{}``; the old ``dict`` return type had
+    nowhere to put "and Retraction Watch never answered", so ``audit.py``
+    could not add it to *unreachable*, ``compare`` could not raise
+    ``retraction-unverified``, and a run whose cached export had aged past its
+    seven-day TTL printed a green ``PASS`` over a source nobody consulted.
+    The ``consulted`` map said ``retraction-watch: answered`` while it was at
+    it. Widening the return type is the fix that docstring asked for.
+    """
+
+    #: Merged notices, keyed by normalised DOI, exactly as the old ``dict``
+    #: return value was. A DOI absent from here carries no signal from any
+    #: source that *answered* — read together with :attr:`unreachable`, never
+    #: alone.
+    notices: Mapping[str, RetractionNotice]
+    #: Names of sources that could not be reached on this call, in the same
+    #: vocabulary ``audit.py`` keeps its *unreachable* set in — currently only
+    #: ever ``{"retraction-watch"}``, because a PubMed outage raises
+    #: :class:`~bibaudit.registries.http.Transient` out of this module rather
+    #: than being reported through here.
+    unreachable: frozenset[str]
 
 
 def _fold_nature(raw: str) -> str:
@@ -455,14 +492,17 @@ class Retractions:
         #: single call would cost real time for no benefit within one process.
         self._index: dict[str, RetractionNotice] | None = None
 
-    def status_for(self, dois: Sequence[str]) -> dict[str, RetractionNotice]:
+    def status_for(self, dois: Sequence[str]) -> RetractionStatus:
         """Retraction status for *dois*, keyed by normalized DOI.
 
-        A DOI absent from the result carries no signal from either source —
-        which is not the same claim as "confirmed not retracted"; see the
-        module docstring's discussion of what a caller can and cannot
-        conclude from silence here. Never raises for a Retraction Watch
-        outage (see :meth:`_rw_signals`); does raise
+        A DOI absent from :attr:`RetractionStatus.notices` carries no signal
+        from either source — which is not the same claim as "confirmed not
+        retracted"; see the module docstring's discussion of what a caller can
+        and cannot conclude from silence here. Weaker still when
+        :attr:`RetractionStatus.unreachable` is non-empty, which is precisely
+        why that field is returned beside the notices rather than left for the
+        caller to guess at. Never raises for a Retraction Watch outage (see
+        :meth:`_rw_signals`); does raise
         :class:`~bibaudit.registries.http.Transient` for a genuine PubMed
         outage, exactly as :meth:`PubMed.by_dois` already does, because that
         is real ignorance about a registry this project relies on for
@@ -470,30 +510,34 @@ class Retractions:
         """
         wanted = list(dict.fromkeys(doi for raw in dois if (doi := normalize_doi(raw))))
         if not wanted:
-            return {}
+            # Nothing was asked, so nothing went unanswered: an empty request
+            # must not manufacture an outage any more than it may manufacture
+            # a finding.
+            return RetractionStatus(notices={}, unreachable=frozenset())
 
-        from_rw = self._rw_signals(wanted)
+        from_rw, rw_unreachable = self._rw_signals(wanted)
         from_pubmed = self._pubmed_signals(wanted)
 
         merged: dict[str, RetractionNotice] = {}
         for doi in {*from_rw, *from_pubmed}:
             candidates = [n for n in (from_rw.get(doi), from_pubmed.get(doi)) if n is not None]
             merged[doi] = _combine(candidates)
-        return merged
+        return RetractionStatus(notices=merged, unreachable=rw_unreachable)
 
-    def _rw_signals(self, dois: Sequence[str]) -> dict[str, RetractionNotice]:
-        """Retraction Watch's answer for *dois*, or ``{}`` on a source outage.
+    def _rw_signals(
+        self, dois: Sequence[str]
+    ) -> tuple[dict[str, RetractionNotice], frozenset[str]]:
+        """Retraction Watch's answer for *dois*, and whether it answered at all.
 
         "Raise Transient for that source only and let the others answer"
         means exactly this: the outage is caught *here*, at the boundary of
         the one source it belongs to, rather than propagated out of
         :meth:`status_for` and losing PubMed's independent answer along with
-        it. A caller that wants to know the bulk source specifically failed
-        this run has only the emitted warning to go on — the return type
-        promised by this module's required interface has no room for a
-        per-source outage flag, so degrading silently *to the caller* (while
-        still telling *someone*, via ``warnings.warn``) is the least-bad
-        option available within that contract.
+        it. What the outage must not do is disappear — so it comes back as the
+        second element, ``frozenset({"retraction-watch"})``, and
+        :meth:`status_for` hands it to the caller. The ``warnings.warn`` below
+        is kept as well: it is what a library consumer not reading
+        :attr:`RetractionStatus.unreachable` still sees, and it costs nothing.
         """
         try:
             index = self._load_index()
@@ -505,9 +549,9 @@ class Retractions:
                 RuntimeWarning,
                 stacklevel=3,
             )
-            return {}
+            return {}, frozenset({"retraction-watch"})
         wanted = set(dois)
-        return {doi: notice for doi, notice in index.items() if doi in wanted}
+        return {doi: notice for doi, notice in index.items() if doi in wanted}, frozenset()
 
     def _load_index(self) -> dict[str, RetractionNotice]:
         """The full Retraction Watch DOI index, fetched or replayed from cache.

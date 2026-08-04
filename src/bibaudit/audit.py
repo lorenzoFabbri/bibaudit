@@ -281,25 +281,36 @@ def _resolve_retractions(
 
     Filtering happens on the way *out*, in :func:`_merge_retraction_notices`,
     which only ever adds to a DOI ``_resolve_dois`` already put an entry
-    under — never creates the first one. A genuine outage here is narrower
-    than :meth:`Retractions.status_for`'s own contract suggests: Retraction
-    Watch's own fetch failing is absorbed *inside* that method (a
-    ``warnings.warn``, not a raise — see its docstring), so a
-    :class:`~bibaudit.registries.http.Transient` reaching this function is
-    specifically PubMed's leg failing, and ``"pubmed"`` already carries a
-    retraction signal in :data:`~bibaudit.compare._NO_RETRACTION_SIGNAL`'s
-    terms — adding it to *unreachable* is what makes
+    under — never creates the first one.
+
+    The two sources fail through different channels, and both end in
+    *unreachable*. A :class:`~bibaudit.registries.http.Transient` reaching
+    this function is specifically PubMed's leg failing, because Retraction
+    Watch's own fetch failing is absorbed *inside*
+    :meth:`Retractions.status_for` rather than raised. Absorbed is not
+    ignored: it comes back as
+    :attr:`~bibaudit.registries.retractions.RetractionStatus.unreachable`, and
+    folding that into *unreachable* here is what makes
     ``compare._status_issues`` report ``retraction-unverified`` instead of a
-    silently clean run.
+    silently clean run. Both names carry a retraction signal in
+    :data:`~bibaudit.compare._NO_RETRACTION_SIGNAL`'s terms, so both count.
+
+    Dropping the returned set on the floor would reinstate the defect this
+    signature was widened to fix: a cached Retraction Watch export aged past
+    its seven-day TTL is re-fetched, the fetch fails, every reference reports
+    ``OK``, and the run prints ``PASS`` over a source nobody reached — with
+    ``consulted`` claiming ``retraction-watch: answered``, since
+    :func:`_asked_registries` puts it in ``asked`` unconditionally.
     """
     if registries.retractions is None:
         return
     try:
-        notices = registries.retractions.status_for(dois)
+        status = registries.retractions.status_for(dois)
     except Transient:
         unreachable.add("pubmed")
         return
-    _merge_retraction_notices(records, notices)
+    unreachable |= status.unreachable
+    _merge_retraction_notices(records, status.notices)
 
 
 def _merge_retraction_notices(
@@ -605,11 +616,16 @@ def _audit_unidentified(
     if record.doi and registries.retractions is not None:
         asked = asked | {"pubmed", "retraction-watch"}
         try:
-            notices = registries.retractions.status_for([record.doi])
+            status = registries.retractions.status_for([record.doi])
         except Transient:
             failed = failed | {"pubmed"}
         else:
-            _merge_retraction_notices({record.doi: found_records}, notices)
+            # Same reason as in `_resolve_retractions`: a Retraction Watch
+            # outage never raises, so the only way it reaches `consulted` —
+            # which `asked` above has already promised to report on — is
+            # through the returned set.
+            failed = failed | status.unreachable
+            _merge_retraction_notices({record.doi: found_records}, status.notices)
 
     result = compare(
         ref,

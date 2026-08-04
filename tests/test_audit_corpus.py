@@ -37,6 +37,7 @@ from bibaudit.names import compare_author_lists, names_agree
 from bibaudit.normalize import clean
 from bibaudit.registries.crossref import Crossref
 from bibaudit.registries.http import Transient
+from bibaudit.registries.retractions import RetractionStatus
 
 #: The package re-exports the ``audit`` *function* as ``bibaudit.audit``, so the
 #: attribute of that name is the function, not the module. The module has to be
@@ -180,9 +181,9 @@ class _RetractionsRecorder:
     def make(self, client: object) -> _RetractionsRecorder:
         return self
 
-    def status_for(self, dois: list[str]) -> dict[str, Any]:
+    def status_for(self, dois: list[str]) -> RetractionStatus:
         self.status_for_calls.append(list(dois))
-        return {}
+        return RetractionStatus(notices={}, unreachable=frozenset())
 
 
 @dataclass(slots=True)

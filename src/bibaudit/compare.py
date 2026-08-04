@@ -611,13 +611,24 @@ def _check_kind(ctx: _Context) -> None:
 #: reachable DataCite could not have resolved, on every dataset, preprint and
 #: Zenodo deposit in the file.
 #:
+#: Open Library is here for the same reason and was found the same way, one
+#: audit later: ``registries/openlibrary.py`` contains no retraction handling of
+#: any kind — the word does not appear in it — because it is a book catalogue
+#: with nothing in its data model to carry a notice. But ``audit.py`` does add
+#: ``"openlibrary"`` to *unreachable* when the ISBN leg times out, so without
+#: this entry an Open Library outage rendered "retraction status not
+#: corroborated: openlibrary could not be reached" against every book in the
+#: file — manufacturing precisely the doubt the DataCite paragraph above forbids,
+#: and manufacturing it about the one registry least able to resolve it.
+#:
 #: Written as an exclusion rather than as the list of registries that *do* carry
 #: the signal, because the two fail in opposite directions: a registry missing
 #: from an inclusion list would be silently dropped from the notice, and
 #: understating ignorance about retraction is the exact failure this check
 #: exists to prevent. Whoever adds the next registry gets counted by default and
-#: has to come here to opt out.
-_NO_RETRACTION_SIGNAL = frozenset({"datacite"})
+#: has to come here to opt out. ``"retraction-watch"`` is deliberately *not*
+#: here: it is the one source in this set that exists only to carry the signal.
+_NO_RETRACTION_SIGNAL = frozenset({"datacite", "openlibrary"})
 
 #: Folded ``retraction_kind`` values that are **not** a retraction: the work has
 #: not been pulled back at all. An expression of concern is an editor recording

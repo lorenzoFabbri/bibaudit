@@ -162,13 +162,13 @@ class TestPublicSurface:
     def test_no_dois_touches_neither_source(self, tmp_path: Path) -> None:
         """An empty request must not download a 66 MB file to answer nothing."""
         stub = _client()
-        result = Retractions(stub, cache_dir=tmp_path).status_for([])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([]).notices
         assert result == {}
         assert stub.urls == []
 
     def test_a_doi_neither_source_has_ever_heard_of_is_simply_absent(self, tmp_path: Path) -> None:
         stub = _client(rw_csv=_rw_sample())
-        result = Retractions(stub, cache_dir=tmp_path).status_for(["10.1000/nothing-to-see-here"])
+        result = Retractions(stub, cache_dir=tmp_path).status_for(["10.1000/nothing-to-see-here"]).notices
         assert result == {}
 
 
@@ -181,7 +181,7 @@ class TestRetractionWatchCsv:
 
     def test_a_retraction_is_reported(self, tmp_path: Path) -> None:
         stub = _client(rw_csv=_rw_sample())
-        result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI]).notices
         notice = result[WAKEFIELD_DOI.lower()]
         assert notice.kind == "retraction"
         assert notice.source == "retraction-watch"
@@ -197,20 +197,20 @@ class TestRetractionWatchCsv:
         paper retracted for fabricated data merely "corrected".
         """
         stub = _client(rw_csv=_rw_sample())
-        result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI]).notices
         assert result[WAKEFIELD_DOI.lower()].kind != "correction"
 
     def test_a_standalone_correction_is_reported_as_a_correction(self, tmp_path: Path) -> None:
         doi = "10.3390/nano14090769"
         stub = _client(rw_csv=_rw_sample())
-        result = Retractions(stub, cache_dir=tmp_path).status_for([doi])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([doi]).notices
         notice = result[doi]
         assert notice.kind == "correction"
         assert notice.notice_doi == "10.3390/nano15181429"
 
     def test_an_expression_of_concern_is_reported(self, tmp_path: Path) -> None:
         stub = _client(rw_csv=_rw_sample())
-        result = Retractions(stub, cache_dir=tmp_path).status_for([NEIRINCKX_DOI])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([NEIRINCKX_DOI]).notices
         notice = result[NEIRINCKX_DOI]
         assert notice.kind == "expression-of-concern"
         assert notice.notice_doi == CONCERN_NOTICE_DOI
@@ -223,7 +223,7 @@ class TestRetractionWatchCsv:
         """
         doi = "10.1016/j.heliyon.2023.e18637"
         stub = _client(rw_csv=_rw_sample())
-        result = Retractions(stub, cache_dir=tmp_path).status_for([doi])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([doi]).notices
         assert doi not in result
 
     def test_a_retraction_reversed_by_a_later_reinstatement_is_not_reported(
@@ -236,7 +236,7 @@ class TestRetractionWatchCsv:
         """
         doi = "10.9999/reinstated-paper"
         stub = _client(rw_csv=_rw_sample())
-        result = Retractions(stub, cache_dir=tmp_path).status_for([doi])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([doi]).notices
         assert doi not in result
 
     def test_a_blank_original_paper_doi_is_skipped(self, tmp_path: Path) -> None:
@@ -246,7 +246,7 @@ class TestRetractionWatchCsv:
         stub = _client(rw_csv=_rw_sample())
         result = Retractions(stub, cache_dir=tmp_path).status_for(
             ["10.9999/blank-orig-notice"]
-        )
+        ).notices
         assert result == {}
 
     def test_the_unavailable_sentinel_is_not_treated_as_a_doi(self, tmp_path: Path) -> None:
@@ -257,7 +257,7 @@ class TestRetractionWatchCsv:
         stub = _client(rw_csv=_rw_sample())
         index_probe = Retractions(stub, cache_dir=tmp_path).status_for(
             ["10.9999/unavailable-orig-notice"]
-        )
+        ).notices
         assert index_probe == {}
 
     def test_an_unrecognised_retraction_nature_is_skipped_not_guessed(
@@ -269,7 +269,7 @@ class TestRetractionWatchCsv:
         """
         doi = "10.9999/unknown-nature-paper"
         stub = _client(rw_csv=_rw_sample())
-        result = Retractions(stub, cache_dir=tmp_path).status_for([doi])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([doi]).notices
         assert doi not in result
 
     def test_a_blank_nature_defaults_to_retraction(self, tmp_path: Path) -> None:
@@ -279,7 +279,7 @@ class TestRetractionWatchCsv:
         """
         doi = "10.9999/blank-nature-paper"
         stub = _client(rw_csv=_rw_sample())
-        result = Retractions(stub, cache_dir=tmp_path).status_for([doi])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([doi]).notices
         assert result[doi].kind == "retraction"
         assert result[doi].notice_doi == "10.9999/blank-nature-notice"
 
@@ -294,7 +294,7 @@ class TestPubMedEci:
             pmid_by_doi={WAKEFIELD_DOI: WAKEFIELD_PMID},
             medline_by_pmid={WAKEFIELD_PMID: _pubmed_fixture("retracted")},
         )
-        result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI]).notices
         notice = result[WAKEFIELD_DOI.lower()]
         assert notice.kind == "retraction"
         assert notice.source == "pubmed"
@@ -308,7 +308,7 @@ class TestPubMedEci:
             pmid_by_doi={RETRACTION_NOTICE_DOI: RETRACTION_NOTICE_PMID},
             medline_by_pmid={RETRACTION_NOTICE_PMID: _pubmed_fixture("retraction_notice")},
         )
-        result = Retractions(stub, cache_dir=tmp_path).status_for([RETRACTION_NOTICE_DOI])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([RETRACTION_NOTICE_DOI]).notices
         assert result == {}
 
     def test_an_expression_of_concern_via_eci_is_reported(self, tmp_path: Path) -> None:
@@ -321,7 +321,7 @@ class TestPubMedEci:
             pmid_by_doi={NEIRINCKX_DOI: NEIRINCKX_PMID},
             medline_by_pmid={NEIRINCKX_PMID: _pubmed_fixture("eci_concern")},
         )
-        result = Retractions(stub, cache_dir=tmp_path).status_for([NEIRINCKX_DOI])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([NEIRINCKX_DOI]).notices
         notice = result[NEIRINCKX_DOI]
         assert notice.kind == "expression-of-concern"
         assert notice.source == "pubmed"
@@ -343,7 +343,7 @@ class TestPubMedEci:
             pmid_by_doi={CONCERN_NOTICE_DOI: CONCERN_NOTICE_PMID},
             medline_by_pmid={CONCERN_NOTICE_PMID: _pubmed_fixture("eci_concern_notice")},
         )
-        result = Retractions(stub, cache_dir=tmp_path).status_for([CONCERN_NOTICE_DOI])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([CONCERN_NOTICE_DOI]).notices
         assert result == {}
 
     def test_a_clean_paper_has_no_signal(self, tmp_path: Path) -> None:
@@ -352,7 +352,7 @@ class TestPubMedEci:
             pmid_by_doi={CLEAN_DOI: CLEAN_PMID},
             medline_by_pmid={CLEAN_PMID: _pubmed_fixture("wrapped_title")},
         )
-        result = Retractions(stub, cache_dir=tmp_path).status_for([CLEAN_DOI])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([CLEAN_DOI]).notices
         assert CLEAN_DOI not in result
 
 
@@ -367,7 +367,7 @@ class TestSourceCombination:
             pmid_by_doi={NEIRINCKX_DOI: NEIRINCKX_PMID},
             medline_by_pmid={NEIRINCKX_PMID: _pubmed_fixture("eci_concern")},
         )
-        result = Retractions(stub, cache_dir=tmp_path).status_for([NEIRINCKX_DOI])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([NEIRINCKX_DOI]).notices
         notice = result[NEIRINCKX_DOI]
         assert notice.kind == "expression-of-concern"
         assert set(notice.source.split(",")) == {"retraction-watch", "pubmed"}
@@ -383,7 +383,7 @@ class TestSourceCombination:
         answer must stand on its own.
         """
         stub = _client(rw_csv=_rw_sample())
-        result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI]).notices
         assert result[WAKEFIELD_DOI.lower()].kind == "retraction"
 
     def test_several_dois_at_once_are_each_answered_independently(self, tmp_path: Path) -> None:
@@ -392,7 +392,7 @@ class TestSourceCombination:
             pmid_by_doi={CLEAN_DOI: CLEAN_PMID},
             medline_by_pmid={CLEAN_PMID: _pubmed_fixture("wrapped_title")},
         )
-        result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI, CLEAN_DOI])
+        result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI, CLEAN_DOI]).notices
         assert result[WAKEFIELD_DOI.lower()].kind == "retraction"
         assert CLEAN_DOI not in result
 
@@ -407,10 +407,49 @@ class TestOutageHandling:
             medline_by_pmid={WAKEFIELD_PMID: _pubmed_fixture("retracted")},
         )
         with pytest.warns(RuntimeWarning, match="Retraction Watch"):
-            result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
-        notice = result[WAKEFIELD_DOI.lower()]
+            status = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        notice = status.notices[WAKEFIELD_DOI.lower()]
         assert notice.kind == "retraction"
         assert notice.source == "pubmed"
+
+    def test_a_retraction_watch_outage_is_named_in_the_returned_status(
+        self, tmp_path: Path
+    ) -> None:
+        """Degrading to PubMed alone is only acceptable if the caller is told.
+
+        Without this, ``audit.py`` has nothing to add to its *unreachable* set,
+        ``compare`` cannot raise ``retraction-unverified``, and a run whose
+        cached export has aged past the seven-day TTL prints a green ``PASS``
+        over a source nobody reached -- while ``consulted`` reports
+        ``retraction-watch: answered``, because ``_asked_registries`` puts it in
+        ``asked`` unconditionally. That is the "clean bill of health from
+        ignorance" CLAUDE.md forbids, and it is what the old ``dict`` return
+        type made unavoidable.
+        """
+        stub = _client(rw_transient=True)
+        with pytest.warns(RuntimeWarning, match="Retraction Watch"):
+            status = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        assert status.unreachable == frozenset({"retraction-watch"})
+
+    def test_a_reachable_retraction_watch_reports_nothing_unreachable(
+        self, tmp_path: Path
+    ) -> None:
+        """The true-negative half: a source that answered must never be named
+        as unreachable, or every ordinary run grows a retraction caveat and the
+        caveat stops meaning anything.
+        """
+        stub = _client(rw_csv=_rw_sample())
+        status = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        assert status.unreachable == frozenset()
+
+    def test_an_empty_request_reports_no_outage(self, tmp_path: Path) -> None:
+        """Nothing was asked, so nothing went unanswered. An empty DOI list
+        short-circuits before either source is touched (see
+        ``test_no_dois_touches_neither_source``); it must not report an outage
+        it never attempted.
+        """
+        status = Retractions(_client(), cache_dir=tmp_path).status_for([])
+        assert status.unreachable == frozenset()
 
     def test_a_pubmed_outage_is_not_swallowed(self, tmp_path: Path) -> None:
         """Unlike the Retraction Watch bulk file, a PubMed outage is a real
@@ -434,8 +473,11 @@ class TestOutageHandling:
         """
         stub = _client(rw_transient=True)
         with pytest.warns(RuntimeWarning):
-            result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
-        assert result == {}
+            status = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        assert status.notices == {}
+        # ...and the absence is explicitly qualified rather than left to read as
+        # a clean answer, which is the whole difference this class encodes.
+        assert status.unreachable == frozenset({"retraction-watch"})
 
 
 class TestCaching:
@@ -469,6 +511,6 @@ class TestCaching:
         second = Retractions(second_stub, cache_dir=tmp_path)
         with warnings.catch_warnings():
             warnings.simplefilter("error")
-            result = second.status_for([WAKEFIELD_DOI])
+            result = second.status_for([WAKEFIELD_DOI]).notices
         assert result[WAKEFIELD_DOI.lower()].kind == "retraction"
         assert second_stub.rw_fetch_count == 0
