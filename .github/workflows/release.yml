@@ -17,10 +17,11 @@ jobs:
       - uses: astral-sh/setup-uv@v9.0.0
         with:
           enable-cache: true
-          # Without a version, setup-uv resolves "latest" by fetching a
-          # manifest from raw.githubusercontent.com on every job — a short
-          # timeout on a network call that an otherwise offline run does not
-          # need. Pinning also keeps the toolchain identical to a laptop's.
+          # Pinned so every job installs the same uv a laptop runs, rather
+          # than whatever is newest that morning. It does not avoid the
+          # version-manifest fetch setup-uv makes on every job regardless —
+          # that fetch has a short timeout and is this workflow's one
+          # unavoidable network dependency before the offline suite starts.
           version: "0.11.7"
       # The tag is the claim; this checks the package agrees with it before
       # anything is uploaded, because a version cannot be re-uploaded to PyPI.
