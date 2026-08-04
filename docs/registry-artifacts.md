@@ -133,12 +133,13 @@ it is a representation difference rather than a defect in anyone's record.
 
 **Observed.** `key2002hormones` in the 438-entry corpus — *The Endogenous
 Hormones and Breast Cancer Collaborative Group*, stored as one creator against a
-registry byline of its members. It is one of the eight author flags that corpus
-recorded as false positives, and it is pinned at
-`tests/test_benign.py::TestAuthorArtifacts`. Neither the entry's DOI nor a
-registry response for it is recorded in this repository, so unlike the
-interleaved case above there is nothing here to read the suppression against —
-the citekey and the test are the whole of the evidence trail.
+registry byline of its members. It is one of the eight author differences that
+run flagged, all of them false positives, and it is pinned at
+`tests/test_benign.py::TestAuthorArtifacts`. The corpus is private; neither the
+entry's DOI, nor a registry response for it, nor the baseline that recorded the
+eight is in this repository, so unlike the interleaved case above there is
+nothing here to read the suppression against — the citekey and the test are the
+whole of the evidence trail.
 
 **Reported as.** `collective author` when the *bibliography* holds the single
 collective, `registry lists a collective author` when the registry does.
@@ -216,6 +217,11 @@ the deposit holds `Cristina-Marianini-Rios` where the bibliography holds
 interchangeable here, because `fold()` turns both into a space, so what remains
 is a genuine difference in how many elements the surname has.
 
+This one is a defect in the registry's data. A compound surname is the name the
+person has, and a deposit holding part of it is holding the name wrong — which
+is why the rule requires the shorter form to *end* the longer one rather than
+treating the two as equally valid filings.
+
 **Reported as.** `compound surname shortened`.
 
 **Detection.** `names.names_agree`. The stored surname must be a **token-level
@@ -236,6 +242,10 @@ shortening this rule recognises. Pinned in `tests/test_names.py`.
 
 **What happens.** Transliteration produces two spellings of one surname:
 *Ivanov* and *Ivanova*, *Papantoniou* and *Papantoniu*.
+
+Nobody's record is wrong. Romanisation from Cyrillic, Greek or Han has no single
+standard, so two sources transliterating the same name honestly reach two
+spellings, and neither is the correction of the other.
 
 **Reported as.** `spelling variant with matching initials`.
 
