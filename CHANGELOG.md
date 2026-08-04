@@ -29,15 +29,17 @@ so `uv sync --all-extras` does not install it into the test environment.
   outage took down rather than only the leg that raised.
 - Per-version `Programming Language :: Python :: 3.11/3.12/3.13` classifiers.
 - `names.Reason`, an enum of every explanation the author comparison can attach
-  to a position, with `ARTIFACT_REASONS` derived from it so the enumeration
-  cannot fall behind the reasons that exist. `AuthorDiff.reasons` is now a
-  read-only mapping written only through `AuthorDiff.note`, which takes a
-  `Reason`; together with `names_agree`'s narrowed return type this makes `mypy`
-  reject a reason that is not in the enum, where the previous source-scanning
-  test could not see one at all.
-- `names.ARTIFACT_REASONS`, the enumerated set of author-comparison escapes that
-  produce a `REGISTRY-ARTIFACT` suppression, and a test failing the build when
-  one of them has no section in `docs/registry-artifacts.md` — the contract
+  to a position, and `names.ARTIFACT_REASONS` derived from it, so the set of
+  author-comparison escapes that produce a `REGISTRY-ARTIFACT` suppression
+  cannot fall behind the reasons that exist. Each member also states whether an
+  agreement ending in it counts as a creator that aligned, which decides what
+  the omitted-first-author and interleaved-consortia rules may treat as
+  evidence. `AuthorDiff.reasons` is a read-only mapping written only through
+  `AuthorDiff.note` and `AuthorDiff.note_collectives`, which take a `Reason`;
+  together with `names_agree`'s narrowed return type this makes `mypy` reject a
+  reason that is not in the enum, where the previous source-scanning test could
+  not see one at all. A test now fails the build when
+  `docs/registry-artifacts.md` does not name one of them — the contract
   `benign.CHECKS` already had. Five sections were written to satisfy it:
   particle filing, compound surnames shortened to their final element,
   one-character spelling variants, author lists in a different order, and the
