@@ -62,4 +62,8 @@ jobs:
         with:
           name: dist
           path: dist
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      # A commit, because this is the step that holds `id-token: write`: the code
+      # that runs here has to be the code that was reviewed, whatever a tag or a
+      # branch points at by the time a release is cut. Dependabot updates a SHA
+      # pin and its comment together; it cannot update a branch reference at all.
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2

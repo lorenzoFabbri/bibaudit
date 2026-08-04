@@ -43,5 +43,9 @@ jobs:
         run: uv run mypy
       # Deliberately excludes the network-marked tests: CI must prove the logic,
       # not the availability of Crossref.
+      #
+      # `--cov` carries no argument: a package name here reaches coverage as
+      # `source=`, which overrides `[tool.coverage.run]` in pyproject.toml. Left
+      # bare, what is measured is decided in the file that looks like it decides.
       - name: Test
-        run: uv run pytest --cov=bibaudit --cov-report=term-missing
+        run: uv run pytest --cov --cov-report=term-missing
