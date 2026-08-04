@@ -17,7 +17,9 @@ deselected by default because a test suite that needs the internet gets
 skipped, and a skipped suite protects nobody.
 
 The documentation site builds with `uv run --group docs mkdocs build --strict`,
-or `mkdocs serve` for a live preview.
+or `uv run --group docs mkdocs serve` for a live preview. The `docs` group is
+a dependency-group, not an extra, so `uv sync --all-extras` above does not
+install it.
 
 ## The three rules, in short
 

@@ -15,7 +15,13 @@ saying which of the registry's own values matched.
 
 The list is deliberately short. A "tolerance" that is really just "this check is
 noisy" belongs in a threshold or in a project's own `.bibaudit.toml`, not here.
-Everything below is a reproducible defect in the registry's own data.
+
+Most of what follows is a reproducible defect in the registry's own data. Some
+is not, and says so: a *filing convention* both sides are entitled to (particle
+filing), an ordering difference, and four comparisons that agree because they had
+nothing to work with. Those are still reported as `REGISTRY-ARTIFACT` and still
+owe the reader an explanation, which is why they are here — but nobody's record
+is wrong in them, and the section says which case it is.
 
 ---
 
@@ -98,9 +104,8 @@ for 27 of 30 `FIELD-MISMATCH` verdicts and all 15 remaining `authors`-only
 with Crossref about a single person**.
 
 **Reported as.** `registry interleaves collective creator(s) the byline omits`,
-followed by the organisations in full. The two whole-byline cases are reported as
-`collective author` (the bibliography stores one collective, the registry lists
-people) and `registry lists a collective author` (the reverse).
+followed by the organisations in full. The whole-byline case is a different rule
+with different evidence — see *A consortium standing for the whole byline* below.
 
 **Detection.** `names._interleaved_collectives`. The collectives are dropped
 from the registry side and what remains must align **exactly**: same length as
@@ -115,6 +120,31 @@ ordinary comparison runs. Which creators count is Crossref's own answer (the
 bibliography also omits, is not reported. Any Crossref-derived export drops that
 creator too, so the omission is the publisher's defect and not one the user can
 act on.
+
+---
+
+## A consortium standing for the whole byline
+
+**What happens.** One side credits the consortium and the other credits its
+members: the bibliography stores `{The Endogenous Hormones and Breast Cancer
+Collaborative Group}` as a single creator while the registry lists the people, or
+the reverse. Neither is wrong. It is the same work described at two levels, and
+it is a representation difference rather than a defect in anyone's record.
+
+**Reported as.** `collective author` when the *bibliography* holds the single
+collective, `registry lists a collective author` when the registry does.
+
+**Detection.** `names.compare_author_lists`, before the positional walk begins.
+The test is only on the side that holds one creator and finds it collective; the
+other side is not inspected, because there is nothing position-against-position
+to compare once the two lists describe the byline at different granularities.
+
+**What it gives up, stated plainly.** Unlike the interleaved case above, no
+alignment is available as evidence, so this escape suppresses the author-count
+difference on the strength of "one side is a single collective creator" alone. It
+therefore cannot tell a consortium byline from a bibliography that replaced a
+real author list with a group name. Both values are printed under
+`REGISTRY-ARTIFACT` so a reader can see which happened; the tool does not decide.
 
 ---
 

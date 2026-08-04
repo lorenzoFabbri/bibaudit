@@ -28,6 +28,13 @@ so `uv sync --all-extras` does not install it into the test environment.
   `RetractionOutage`, a `Transient` naming every retraction source a raised
   outage took down rather than only the leg that raised.
 - Per-version `Programming Language :: Python :: 3.11/3.12/3.13` classifiers.
+- `names.Reason`, an enum of every explanation the author comparison can attach
+  to a position, with `ARTIFACT_REASONS` derived from it so the enumeration
+  cannot fall behind the reasons that exist. `AuthorDiff.reasons` is now a
+  read-only mapping written only through `AuthorDiff.note`, which takes a
+  `Reason`; together with `names_agree`'s narrowed return type this makes `mypy`
+  reject a reason that is not in the enum, where the previous source-scanning
+  test could not see one at all.
 - `names.ARTIFACT_REASONS`, the enumerated set of author-comparison escapes that
   produce a `REGISTRY-ARTIFACT` suppression, and a test failing the build when
   one of them has no section in `docs/registry-artifacts.md` — the contract

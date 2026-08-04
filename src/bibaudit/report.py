@@ -73,7 +73,7 @@ _VERDICT_HELP = {
     # could be reached, and no registry was asked (`--no-isbn` on a book whose
     # only identifier is an ISBN). Naming only the outage would report one as
     # the other. The per-issue note beneath says which.
-    "UNCHECKED": "nothing was verified: no registry answered for these",
+    "UNCHECKED": "nothing was verified: no registry answered, or none was asked",
     "OK": "every checked field agrees",
 }
 

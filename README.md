@@ -340,7 +340,7 @@ confirm a book that has no identifier at all — see
 ## How this was built
 
 bibaudit was written with [Claude Code](https://claude.com/claude-code) — the
-implementation, the 1,194-test suite, and the adversarial review passes that
+implementation, the 1,204-test suite, and the adversarial review passes that
 found most of the defects it now guards against, including the ones described
 above.
 

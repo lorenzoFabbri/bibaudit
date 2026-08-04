@@ -15,12 +15,14 @@ updates:
         patterns: ["*"]
 
   # Two runtime dependencies and a small dev set, so a monthly batch is enough
-  # noise. `bibtexparser` is deliberately capped below 3 in pyproject.toml;
-  # Dependabot will not cross that bound, which is the point of setting it.
+  # noise. `increase` rather than the default: widening a range would let an
+  # update cross the `<3` cap pyproject.toml puts on bibtexparser, which is the
+  # one bound worth keeping.
   - package-ecosystem: uv
     directory: /
     schedule:
       interval: monthly
+    versioning-strategy: increase
     commit-message:
       prefix: ""
     groups:

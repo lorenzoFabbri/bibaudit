@@ -28,9 +28,8 @@ jobs:
           enable-cache: true
           # Pinned so every job installs the same uv a laptop runs, rather
           # than whatever is newest that morning. It does not avoid the
-          # version-manifest fetch setup-uv makes on every job regardless —
-          # that fetch has a short timeout and is this workflow's one
-          # unavoidable network dependency before the offline suite starts.
+          # version-manifest fetch setup-uv makes on every job regardless, and
+          # that fetch has a short timeout that has aborted a job.
           version: "0.11.7"
       # --strict fails the build on a broken internal link, so a page that
       # points at a file somebody renamed is caught here rather than by a
