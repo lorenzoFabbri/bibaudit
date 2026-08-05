@@ -412,6 +412,15 @@ def _container_medline_subtitle(field: str, stored: str, registry: str, ref: Ref
     which for such journals is the plain name — see
     :func:`_container_leading_article`.
 
+    So the *first* spaced colon in ``JT`` is not always NLM's own separator:
+    it writes one **inside** a parenthetical qualifier where the body named
+    there needs a date of its own to be unambiguous — ``ASAIO journal
+    (American Society for Artificial Internal Organs : 1992)``, PMID 42552576.
+    Splitting on that colon leaves a base ending mid-qualifier, and comparing a
+    stored name against half a qualifier is exactly the merge the paragraph
+    above refuses to make. An unclosed parenthesis in the base is what that
+    looks like, and it is refused.
+
     NLM drops a serial's leading article on most titles and keeps it on some,
     so the article has to come off the **registry's** base for the second
     shape: ``JT - The Journal of adolescent health : official publication of
@@ -434,7 +443,7 @@ def _container_medline_subtitle(field: str, stored: str, registry: str, ref: Ref
     if field != "container":
         return None
     base, separator, _ = registry.partition(_MEDLINE_SUBTITLE)
-    if not separator:
+    if not separator or base.count("(") != base.count(")"):
         return None
     folded_base, folded_stored = fold(base), fold(stored)
     if folded_base == folded_stored:

@@ -747,7 +747,12 @@ that distinguishes them.
 Only the colon form is stripped, never the parenthetical one, and the
 difference is not cosmetic. The subtitle is part of the same serial's own
 title; the parenthetical qualifier exists precisely to tell two serials
-sharing a base title apart. A journal whose `JT` carries a qualifier *and*
+sharing a base title apart. NLM writes a spaced colon *inside* one of those
+qualifiers where the body named there needs a date of its own — `ASAIO journal
+(American Society for Artificial Internal Organs : 1992)`, PMID 42552576 — so
+the first spaced colon in `JT` is not always the separator, and a base left
+holding an unclosed parenthesis is refused rather than compared against. A
+journal whose `JT` carries a qualifier *and*
 whose `TA` is a real abbreviation — `Annals of medicine and surgery (2012)`,
 `TA - Ann Med Surg (Lond)` — therefore still reports a `container/mismatch`
 against an entry storing the masthead name. That is a known false alarm, kept

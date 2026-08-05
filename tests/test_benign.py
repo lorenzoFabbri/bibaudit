@@ -579,6 +579,21 @@ class TestContainerMedlineSubtitle:
             "The Journal of Cancer : official journal of the Cancer Society",
         ) is None
 
+    def test_a_colon_inside_a_parenthetical_qualifier_is_not_the_separator(self) -> None:
+        """PMID 42552576: ``ASAIO journal (American Society for Artificial
+        Internal Organs : 1992)``.
+
+        NLM writes its spaced colon inside the qualifier where the body named
+        there needs a date to be unambiguous, so the first one in ``JT`` is not
+        always the separator. Splitting on it leaves a base ending mid-qualifier
+        — and the qualifier is the whole of what tells two serials of the same
+        name apart.
+        """
+        jt = "ASAIO journal (American Society for Artificial Internal Organs : 1992)"
+
+        assert classify("container", "ASAIO Journal", jt) is None
+        assert classify("container", jt.partition(" : ")[0], jt) is None
+
     def test_a_journal_sharing_the_opening_words_still_fires(self) -> None:
         """The pairing. *Cancer Epidemiology* is Elsevier's, a different journal.
 
