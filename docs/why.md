@@ -65,9 +65,10 @@ answering, beside the right DOI, would fail a build on an inference. Such a
 number cannot be seen from this side at all — what comes back is the citation
 the DOI resolves to, which says nothing about a number nobody asked about.
 `--fail-on INCOMPLETE` is there for a
-project that wants the finding to bite, and
-[registry artifacts](registry-artifacts.md) records what it would take to earn
-`error` back.
+project that wants the finding to bite; naming a verdict there prints its group
+too, so the entry is in the report that exits 1 rather than only under
+`--verbose`. [Registry artifacts](registry-artifacts.md) records what it would
+take to earn `error` back.
 
 It is checked only when there is something to check
 it against — an entry with no DOI is *resolved* by its PMID, and that PMID

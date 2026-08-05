@@ -525,9 +525,11 @@ and it says nothing about a number nobody put to PubMed.
 verdict is `INCOMPLETE` and the run's exit code is 0. Two costs, both real. The
 group heading `INCOMPLETE` prints under reads "the registry holds fields the
 entry omits", which this is not; the issue line beside it names both numbers and
-says the stored one was not looked up. And the default report prints only the
-failing groups plus `DISPUTED`, so the finding needs `--verbose` to be seen, or
-`--fail-on INCOMPLETE` for a project that wants it to bite.
+says the stored one was not looked up. And the default report prints the failing
+groups plus `DISPUTED` and nothing else, so on a default run the finding needs
+`--verbose` to be seen. `--fail-on INCOMPLETE` is the other way to reach it, for
+a project that wants it to bite: naming a verdict there prints its group as well
+as failing on it, so the run that exits 1 is the run that names the entry.
 
 **What would earn `error` back.** Looking the stored PMID up — `PubMed.by_pmids`
 already answers for a batch of numbers, so it is a second efetch per fifty

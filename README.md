@@ -174,7 +174,9 @@ under a different number the two identifiers name two citations, and the entry
 is reported `INCOMPLETE` — a warning, not a failure, because only one side of
 that comparison was looked up. Nothing asks PubMed what the *stored* number
 names, and a number that has since stopped answering is invisible from this
-side. Use `--fail-on INCOMPLETE` to make it bite.
+side. `--fail-on INCOMPLETE` makes it bite, and prints it with the citekey and
+the locator: naming a verdict there brings its references into the report as
+well as into the exit code.
 
 An entry's `isbn` field (BibTeX's `isbn`, Zotero's own field, CSL-JSON's
 `ISBN`) is read as an identifier in its own right, checked against its ISO 2108

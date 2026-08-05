@@ -68,6 +68,12 @@ the set in force underneath the banner. References that need attention but sit
 outside the configured set are counted on their own line rather than passed over
 in silence.
 
+The groups printed follow the same policy. Adding a verdict to `--fail-on`
+brings its references into the report — a run cannot exit 1 over a group whose
+citekeys it never printed — and removing one takes nothing away, because the
+verdicts a reader has to act on are printed whether or not this run fails on
+them.
+
 ## What fails a build
 
 `FAILING_VERDICTS` is exactly five: `RETRACTED`, `BAD-ID`, `WRONG-WORK`,

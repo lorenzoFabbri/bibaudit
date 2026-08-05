@@ -31,9 +31,14 @@ lives under a dot-directory is not silently emptied of every file.
 
 `--fail-on` is split on commas, stripped and upper-cased; it is not validated
 against the known verdicts, so a misspelled name quietly fails nothing. Whatever
-it resolves to governs the exit code, the closing `PASS`/`FAIL` banner, and the
-`summary.failing_verdicts` and `summary.exit_code` fields of the JSON report —
-one policy, stated in every place the reader might read it from. See
+it resolves to governs the exit code, the closing `PASS`/`FAIL` banner, the
+`summary.failing_verdicts` and `summary.exit_code` fields of the JSON report, and
+which verdict groups the terminal report prints — one policy, stated in every
+place the reader might read it from. A verdict named here brings its references
+into the report with their citekeys, locators and issue lines, so nothing can
+fail the run without saying which entry did it; a verdict left out of it keeps
+printing if it was going to print anyway, so `--fail-on ''` still shows a
+retracted citation. See
 [verdicts](verdicts.md) for what each name means and [in CI](ci.md) for the exit
 codes. One thing it cannot switch off: a `[@citekey]` used in a document with no
 matching bibliography entry exits `1` on its own, whatever `--fail-on` says and

@@ -156,9 +156,12 @@ nothing fails. [Verdicts](verdicts.md) describes what each one asserts, and
 The value replaces the default outright rather than adding to it, so widening
 means listing the default set *and* the addition: `--fail-on
 BAD-ID,FIELD-MISMATCH,RETRACTED,UNCONFIRMED,WRONG-WORK,INCOMPLETE` is how you
-enforce the house rule that no entry may omit a field the registry holds.
-Narrowing it is how you adopt the tool on an existing bibliography without a red
-build on day one.
+enforce the house rule that no entry may omit a field the registry holds. A
+verdict added this way is printed as well as failed on, so the log that exits 1
+names the entries: `INCOMPLETE` sits outside the default print set, and a build
+failing over a group it never printed gives nobody anything to fix. Narrowing is
+how you adopt the tool on an existing bibliography without a red build on day
+one.
 
 !!! warning "A narrowed `--fail-on` does not make the findings go away"
 

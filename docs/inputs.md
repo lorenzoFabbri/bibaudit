@@ -317,7 +317,9 @@ about which work is being cited, and it is compared against the PMID PubMed
 returns for the DOI. Two identifiers on one entry that name two different
 citations is reported as a warning, so the verdict is `INCOMPLETE` and the run
 still exits 0 — only one side of that comparison was looked up, and nothing here
-asks PubMed what the stored number names. `--fail-on INCOMPLETE` makes it bite.
+asks PubMed what the stored number names. `--fail-on INCOMPLETE` makes it bite,
+and prints it: a verdict named there is printed as well as failed, so the entry
+and its two numbers appear in the report that exits 1.
 [Why field-level](why.md) sets all of that against the DOI, which is the lookup
 key and can never be a failure.
 
