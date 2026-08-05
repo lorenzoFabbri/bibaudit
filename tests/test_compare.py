@@ -1663,7 +1663,7 @@ class TestMedlineSocietyExpansionOnThePmidPath:
         assert not result.fails
         assert not [i for i in result.issues if i.field == "container"]
         assert [i.note for i in result.suppressed if i.field == "container"] == [
-            "registry appends the sponsoring society to the journal name"
+            "registry appends its own subtitle to the journal name"
         ]
 
     def test_the_abbreviation_is_still_matched_against_the_registrys_own_alternate(

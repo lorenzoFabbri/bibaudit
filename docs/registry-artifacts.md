@@ -664,8 +664,8 @@ passes.
 
 **What happens.** NLM does not record a journal under the name on its masthead.
 It drops the leading article; it appends a place-of-publication qualifier in
-parentheses wherever the bare title would be ambiguous; and it spells out the
-society whose journal it is after a spaced colon. MEDLINE's `JT` is therefore
+parentheses wherever the bare title would be ambiguous; and it writes a subtitle
+after a spaced colon. MEDLINE's `JT` is therefore
 `Lancet (London, England)`, `BMJ (Clinical research ed.)`, `Science (New York,
 N.Y.)`, `Cancer epidemiology, biomarkers & prevention : a publication of the
 American Association for Cancer Research, cosponsored by the American Society
@@ -673,11 +673,19 @@ of Preventive Oncology`, while `TA` holds the abbreviation — which for the
 first three is the journal's plain name and for the fourth is `Cancer Epidemiol
 Biomarkers Prev`. A bibliography stores none of these: it stores `The Lancet`.
 
+The subtitle is the sponsoring society on many journals, and it is not always
+one. `Archives of medical science : AMS` (PMID 42540560) and `The Malaysian
+journal of medical sciences : MJMS` (PMID 42534732) carry the title's own
+acronym; `The British journal of psychiatry : the journal of mental science`
+(PMID 42552687) carries a descriptive phrase naming no organisation. The rule
+below reads NLM's separator, not what follows it, so it suppresses all three
+and says *subtitle* rather than *society* in the reason it prints.
+
 **Observed.** PMID 9500320, Wakefield et al. 1998, recorded verbatim in
 `tests/data/compare_pubmed_wakefield_retracted.txt` (`TA - Lancet`, `JT -
 Lancet (London, England)`), and PMID 32430337, Michaud et al.,
 `10.1158/1055-9965.EPI-20-0378`, in `tests/data/pubmed_society_expansion.txt`.
-The society expansion is on 26 of the 173 journals in a 300-record sample of
+The subtitle is on 26 of the 173 journals in a 300-record sample of
 live `efetch` output — *J Clin Oncol*, *Clin Cancer Res*, *Ann Oncol*, *Toxicol
 Sci* and *Am J Transplant* among them. It matters most on the PMID path, where
 PubMed is the only registry consulted and its `JT` is the only container value
@@ -714,7 +722,7 @@ rule's business at all, because it matches `TA` outright and gets the
 `container/alternate-title` note the paragraph above describes, at `info`, with
 the entry reported `OK`. Neither is a mismatch, and neither should be.
 
-`benign._container_society_subtitle` covers the third shape. It compares the
+`benign._container_medline_subtitle` covers the third shape. It compares the
 stored name against the part of the registry's value **before NLM's own spaced
 colon**, and accepts only an exact match there: `Cancer Epidemiology,
 Biomarkers & Prevention` against the `JT` above is suppressed, while `Cancer
@@ -722,11 +730,11 @@ Epidemiology` — a different journal, published by Elsevier — differs from th
 base title by a word and still fires. Nothing else reaches this case: `TA` is a
 real abbreviation for these journals rather than the plain name, and
 `_container_abbreviation` requires the stored tokens to reach the *end* of the
-registry's name, which is the society and not the journal.
+registry's name, which is the subtitle and not the journal.
 
 Only the colon form is stripped, never the parenthetical one, and the
-difference is not cosmetic. The society expansion is the same serial's own
-subtitle; the parenthetical qualifier exists precisely to tell two serials
+difference is not cosmetic. The subtitle is part of the same serial's own
+title; the parenthetical qualifier exists precisely to tell two serials
 sharing a base title apart. A journal whose `JT` carries a qualifier *and*
 whose `TA` is a real abbreviation — `Annals of medicine and surgery (2012)`,
 `TA - Ann Med Surg (Lond)` — therefore still reports a `container/mismatch`

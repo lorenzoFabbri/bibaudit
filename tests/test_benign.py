@@ -436,8 +436,9 @@ class TestContainerLeadingArticle:
         This rule reads the titles the registry supplies and strips one opening
         article from the *stored* value; it never edits the registry's. What a
         rule may take off the registry side is decided next door, in
-        :class:`TestContainerSocietySubtitle`, which cuts the society expansion
-        and deliberately leaves ``(London, England)`` alone — the qualifier is
+        :class:`TestContainerMedlineSubtitle`, which cuts the subtitle NLM
+        writes after its own spaced colon and deliberately leaves ``(London,
+        England)`` alone — the qualifier is
         exactly what tells two serials sharing a base title apart.
         """
         assert classify(
@@ -493,8 +494,8 @@ class TestContainerLeadingArticle:
         ) is None
 
 
-class TestContainerSocietySubtitle:
-    """MEDLINE's ``JT`` also spells out the society, after a spaced colon.
+class TestContainerMedlineSubtitle:
+    """MEDLINE's ``JT`` also carries a subtitle, after a spaced colon.
 
     PMID 32430337's own block, in ``tests/data/pubmed_society_expansion.txt``:
     ``TA - Cancer Epidemiol Biomarkers Prev`` beside the ``JT`` below. Where
@@ -511,11 +512,42 @@ class TestContainerSocietySubtitle:
     )
     TA = ("Cancer Epidemiol Biomarkers Prev",)
 
-    def test_the_masthead_name_against_the_society_expansion_is_an_artifact(self) -> None:
+    def test_the_masthead_name_against_the_medline_subtitle_is_an_artifact(self) -> None:
         assert classify(
             "container", "Cancer Epidemiology, Biomarkers & Prevention", self.JT,
             container_alternates=list(self.TA),
-        ) == "registry appends the sponsoring society to the journal name"
+        ) == "registry appends its own subtitle to the journal name"
+
+    @pytest.mark.parametrize(
+        ("stored", "jt"),
+        [
+            # The title's own acronym, not a society.
+            ("Archives of Medical Science", "Archives of medical science : AMS"),
+            (
+                "The Malaysian Journal of Medical Sciences",
+                "The Malaysian journal of medical sciences : MJMS",
+            ),
+            # A descriptive phrase naming no organisation at all.
+            (
+                "The British Journal of Psychiatry",
+                "The British journal of psychiatry : the journal of mental science",
+            ),
+        ],
+    )
+    def test_a_subtitle_naming_no_society_is_the_same_defect(
+        self, stored: str, jt: str
+    ) -> None:
+        """PMIDs 42540560, 42534732 and 42552687, all live ``efetch`` output.
+
+        The rule reads NLM's separator, never what follows it, so all three are
+        suppressed under the one reason — which is why that reason says
+        *subtitle* and not *society*. A reader challenging one of these
+        suppressions is owed a sentence that is true of the entry it is printed
+        beside.
+        """
+        assert classify("container", stored, jt) == (
+            "registry appends its own subtitle to the journal name"
+        )
 
     def test_a_journal_sharing_the_opening_words_still_fires(self) -> None:
         """The pairing. *Cancer Epidemiology* is Elsevier's, a different journal.
@@ -533,7 +565,7 @@ class TestContainerSocietySubtitle:
             "container", "Clinical Cancer Research", self.JT, container_alternates=list(self.TA)
         ) is None
 
-    def test_a_place_qualifier_is_not_a_society_expansion(self) -> None:
+    def test_a_place_qualifier_is_not_a_medline_subtitle(self) -> None:
         """The shape the rule refuses to touch, and the cost of refusing it.
 
         ``Annals of medicine and surgery (2012)`` (``TA - Ann Med Surg

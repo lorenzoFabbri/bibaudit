@@ -36,17 +36,19 @@ so `uv sync --all-extras` does not install it into the test environment.
   notice instead of the work it cites.
 - **A MEDLINE citation is compared on MEDLINE's own terms.** NLM files a serial
   under a title of its own making: the leading article dropped, a place
-  qualifier appended, the sponsoring society spelled out after a spaced colon.
+  qualifier appended, a subtitle written after a spaced colon — the sponsoring
+  society on many journals, the title's acronym or a descriptive phrase on
+  others.
   So `JT` is `Lancet (London, England)` where a bibliography stores *The
   Lancet*, and `Cancer epidemiology, biomarkers & prevention : a publication of
   the American Association for Cancer Research, cosponsored by …` where it
   stores the journal's own name — 26 of the 173 journals in a 300-record sample
-  carry that expansion, *J Clin Oncol*, *Clin Cancer Res* and *Ann Oncol* among
+  carry a subtitle, *J Clin Oncol*, *Clin Cancer Res* and *Ann Oncol* among
   them. `TA` is carried as an alternate title, so an entry storing `Lancet` gets
   an `info` note naming PubMed as the registry that holds it; a stored value
   whose opening `The`/`A`/`An` is the whole of the difference is a
-  `REGISTRY-ARTIFACT`, and so is one matching everything before the society
-  expansion. Neither is a prefix test — `Cancer Epidemiology` is a different
+  `REGISTRY-ARTIFACT`, and so is one matching everything before the
+  subtitle. Neither is a prefix test — `Cancer Epidemiology` is a different
   journal and still fires — and the parenthetical qualifier is never stripped,
   because `(London, England)` is what tells two serials sharing a base title
   apart. Dates the same way: `DP` is the issue a citation is filed under and
