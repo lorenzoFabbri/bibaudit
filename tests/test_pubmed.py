@@ -112,6 +112,12 @@ class _StubClient:
         PubMed returns for a citation that was never assigned one.
     medline:
         The ``efetch`` body. ``None`` stands for a confirmed HTTP 404.
+    efetch_bodies:
+        One body per ``efetch`` request, in request order, for the tests where
+        the point is that batches answer *differently* — one holding a
+        citation, the next 404ing, a third coming back with a record nobody in
+        it asked for. ``medline`` answers every request when this is not given,
+        which cannot express any of those.
     summary_uid_order:
         ``result.uids`` order in the esummary payload, when it should differ
         from the order the PMIDs were requested in.
@@ -131,6 +137,7 @@ class _StubClient:
         pmid_by_doi: Mapping[str, str] | None = None,
         doi_by_pmid: Mapping[str, str] | None = None,
         medline: str | None = "",
+        efetch_bodies: Sequence[str | None] | None = None,
         summary_uid_order: Sequence[str] | None = None,
         clock: _FakeClock | None = None,
         unreachable: str | None = None,
@@ -142,6 +149,8 @@ class _StubClient:
             doi_by_pmid = {pmid: doi for doi, pmid in pmid_by_doi.items()}
         self.doi_by_pmid = dict(doi_by_pmid or {})
         self.medline = medline
+        self.efetch_bodies = None if efetch_bodies is None else list(efetch_bodies)
+        self.efetch_calls = 0
         self.summary_uid_order = None if summary_uid_order is None else list(summary_uid_order)
         self.clock = clock
         self.unreachable = unreachable
@@ -209,7 +218,14 @@ class _StubClient:
     ) -> str | None:
         self._note(url)
         assert "efetch.fcgi" in url, f"unexpected text request: {url}"
-        return self.medline
+        if self.efetch_bodies is None:
+            return self.medline
+        assert self.efetch_calls < len(self.efetch_bodies), (
+            "more efetch requests than this stub was given bodies for"
+        )
+        body = self.efetch_bodies[self.efetch_calls]
+        self.efetch_calls += 1
+        return body
 
 
 @pytest.fixture(autouse=True)
@@ -900,6 +916,56 @@ class TestByPmids:
 
         assert answers.records == {}
         assert answers.inconclusive == {WAKEFIELD_PMID: ()}
+
+    def _three_batches(self, monkeypatch: pytest.MonkeyPatch) -> PmidAnswers:
+        """One PMID per request, and three requests answering three ways.
+
+        ``efetch`` takes fifty numbers at a time, so a bibliography's PMIDs are
+        split across several requests and each one settles only its own. Here
+        the first batch answers for the number it was asked about, the second
+        404s, and the third comes back holding the *first* batch's record —
+        a stray, because nobody in that batch asked for it.
+        """
+        monkeypatch.setattr(pubmed, "_EFETCH_BATCH", 1)
+        client = _StubClient(
+            efetch_bodies=[_fixture("retracted"), None, _fixture("retracted")]
+        )
+        return PubMed(client).by_pmids(
+            [WAKEFIELD_PMID, "99999999", RETRACTION_NOTICE_PMID]
+        )
+
+    def test_an_answered_number_is_not_dragged_into_another_batchs_ignorance(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A batch that answered is settled, whatever the later ones do.
+
+        Widening either ``inconclusive`` write to the whole request puts the
+        answered number back into doubt and throws away the one thing the run
+        did establish; widening the stray test lets a record another batch
+        asked for be adopted by the batch that received it, which is the
+        misattribution the whole method refuses.
+        """
+        answers = self._three_batches(monkeypatch)
+
+        assert set(answers.records) == {WAKEFIELD_PMID}
+        assert WAKEFIELD_PMID not in answers.inconclusive
+
+    def test_each_unanswered_number_carries_only_its_own_batchs_answer(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The 404's ignorance names nothing; the stray batch's names the stray.
+
+        Two different states, one dict, and the reader's next move differs:
+        "nothing came back" may be a rerun away from an answer, "it came back
+        about 9500320 instead" is something to look up. Scoping either write to
+        the request rather than the batch overwrites one with the other.
+        """
+        answers = self._three_batches(monkeypatch)
+
+        assert answers.inconclusive == {
+            "99999999": (),
+            RETRACTION_NOTICE_PMID: (WAKEFIELD_PMID,),
+        }
 
 
 class TestEsearchBatching:
