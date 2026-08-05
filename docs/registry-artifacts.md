@@ -595,6 +595,17 @@ is what citing a preprint's year, or mistyping the last digit, looks like, and
 both of those are reported. A registry year *earlier* than the stored year is
 not covered either: that is a real discrepancy worth a human's attention.
 
+**Crossref records only.** "No print date" is a fact about the work where the
+registry has a print date to report and did not, and Crossref is the only one
+of them that does: `crossref._years` writes `print`, `online` and `issued`,
+while MEDLINE has no print field at all — `DP` is the issue a citation is filed
+under, and it reaches `Record.years` as `issued` — and DataCite, Open Library
+and the search clients write `issued` alone. Read as an absent print date, the
+guard could never fire off Crossref, and every entry resolved by its PMID whose
+year was three or more years early was filed here instead of reported. A
+missing key meaning "this registry does not record that" is ignorance, not a
+fact.
+
 ---
 
 ## Online-first versus print year

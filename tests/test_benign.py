@@ -339,6 +339,24 @@ class TestYearArtifacts:
         result = compare(make_ref(year=2020), {"crossref": make_record(years={"print": 2026})})
         assert errors(result, "year") == ["mismatch"]
 
+    def test_a_registry_with_no_print_slot_at_all_still_fires(self) -> None:
+        """MEDLINE has no print field, so its silence corroborates nothing.
+
+        `DP` is the issue a citation is filed under and reaches `years` as
+        `issued`; `DEP` reaches it as `online`. Neither is a `print` key, so
+        the guard above could never fire on a PubMed record and every
+        PMID-resolved entry three or more years early was excused. The record
+        here is `tests/data/pubmed_epub_ahead_of_issue.txt`'s shape — `DP -
+        2026 May 1`, `DEP - 20251231` — against which a stored 2019 is a wrong
+        year, not a deposit stamp.
+        """
+        years = {"issued": 2026, "online": 2025}
+        assert classify("year", "2019", "2026", source="pubmed", years=years) is None
+        result = compare(
+            make_ref(year=2019), {"pubmed": make_record(source="pubmed", years=years)}
+        )
+        assert errors(result, "year") == ["mismatch"]
+
 
 class TestPages:
     def test_a_zero_padded_article_number_is_not_a_difference_at_all(self) -> None:

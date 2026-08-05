@@ -77,6 +77,16 @@ _LEADING_ARTICLE = re.compile(r"^(?:the|a|an) ")
 #: :func:`_container_medline_subtitle`.
 _MEDLINE_SUBTITLE = " : "
 
+#: Registries whose :attr:`~bibaudit.model.Record.years` vocabulary has a
+#: ``"print"`` slot at all, so one of their records carrying none is a fact
+#: about the work rather than about the registry's schema. Crossref is the only
+#: one: ``crossref._years`` reads ``published-print`` beside
+#: ``published-online`` and ``issued``, while MEDLINE has no print field for
+#: ``pubmed._record_from_medline`` to read — ``DP`` *is* the issue the citation
+#: is filed under — and DataCite, Open Library and the search clients write
+#: ``issued`` alone. See :func:`_year_deposit_artifact`, whose guard this is.
+_PRINT_DATE_REGISTRIES = frozenset({"crossref"})
+
 #: Smallest gap, in years, between an entry's year and a registry ``issued``
 #: date that :func:`_year_deposit_artifact` will read as a deposit timestamp
 #: rather than as a wrong year. A re-deposited working paper lands many years
@@ -251,8 +261,21 @@ def _year_deposit_artifact(field: str, stored: str, registry: str, ref: Referenc
     described scenario (a series re-depositing an old item, which lands many
     years out — the 2020 paper carrying 2026) and reports the near misses,
     which is the direction that costs a reader nothing to check.
+
+    And only for a registry that *has* a print date to be missing. The guard
+    reads an absent ``"print"`` key as evidence there was no print issue, which
+    holds only where the registry models one — see
+    :data:`_PRINT_DATE_REGISTRIES`. On a MEDLINE record it could never fire, so
+    every PMID-resolved entry three or more years early was excused instead:
+    ``tests/data/pubmed_epub_ahead_of_issue.txt`` is ``DP - 2026 May 1``, and a
+    stored 2019 against it was filed as a deposit stamp and dropped out of the
+    default report. A missing key that means "this registry does not record
+    that" is ignorance, not a fact, which is the distinction the rest of this
+    tool is built on.
     """
-    if field != "year" or "print" in rec.years:
+    if field != "year" or rec.source not in _PRINT_DATE_REGISTRIES:
+        return None
+    if "print" in rec.years:
         return None
     try:
         stored_year, registry_year = int(stored), int(registry)
