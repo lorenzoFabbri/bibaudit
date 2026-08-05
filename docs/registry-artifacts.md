@@ -611,6 +611,14 @@ online-first is the norm.
 `info` is filtered out of the default terminal report, so this reaches a reader
 through `--verbose` or the JSON report's `issues` list.
 
+**Both registries carry both years.** Crossref deposits `published-print` beside
+`published-online`; MEDLINE files `DP`, the issue the citation belongs to,
+beside `DEP`, the day the work went online. Both pairs reach `Record.years`, so
+a reference resolved by its PMID gets the same latitude as one resolved by its
+DOI — which matters more there, because PubMed is then the only registry
+consulted and no second source is present to supply the other date. `Record.year`,
+the single value a report prints when it needs one, still prefers the issue.
+
 ---
 
 ## Container titles: a chapter has two
@@ -686,17 +694,25 @@ route, not a suppression: an entry storing `Lancet` gets the same
 registry that carries it.
 
 `benign._container_leading_article` covers the entry that stores the masthead
-name. It accepts a stored value that differs from `JT`, or from any title on
-`container_alternates`, by a leading `The`/`A`/`An` and by nothing else. The
-article comes off the **stored** side only — that is what the printed reason
-claims happened, so `A Journal of Cancer` against `The Journal of Cancer` is a
+name. It accepts a stored value whose opening `The`/`A`/`An`, taken off, leaves
+exactly `JT` or exactly one of the titles on `container_alternates`. The article
+comes off the **stored** side only — that is what the printed reason claims
+happened, so `A Journal of Cancer` against `The Journal of Cancer` is a
 difference and not an artifact — and it has to be the opening word: `Journal of
 the National Cancer Institute` against `Journal of National Cancer Institute`
 still fires. The qualifier is not stripped either, and deliberately: `(London,
 England)` is exactly what tells two serials sharing a base title apart, so a
 rule that dropped it would merge them. `The Lancet Oncology` against `Lancet
-(London, England)` therefore still fires, and so does `BMJ` against that same
-record.
+(London, England)` therefore still fires — strip its article and what is left
+matches neither title that record carries.
+
+The `BMJ` record is worth spelling out, because the two spellings a bibliography
+uses reach the same destination by different routes. Against `JT` `BMJ (Clinical
+research ed.)` with `TA` `BMJ`: a stored `The BMJ`, the masthead, is suppressed
+here, its article coming off to leave `TA` exactly; a stored `BMJ` is not this
+rule's business at all, because it matches `TA` outright and gets the
+`container/alternate-title` note the paragraph above describes, at `info`, with
+the entry reported `OK`. Neither is a mismatch, and neither should be.
 
 `benign._container_society_subtitle` covers the third shape. It compares the
 stored name against the part of the registry's value **before NLM's own spaced

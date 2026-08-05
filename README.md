@@ -158,10 +158,12 @@ An entry's PMID is read as an identifier in its own right, out of the fields a
 PMID is actually kept in: BibTeX's `pmid`, or an `eprint` whose `eprinttype`
 says `pubmed`; CSL's own `PMID` variable; and a line a `PMID:` label opens in a
 Zotero `Extra` block or a CSL `note`, which is how a PMID gets recorded in a
-schema that has no field for one. The label has to open the line: the same box
-holds free notes and pasted MEDLINE back-matter, and `Comment in: JAMA.
-2003;289:2560. PMID: 12759325` names a correction rather than the work being
-cited. An entry carrying a PMID and no DOI is fetched from PubMed by that
+schema that has no field for one. The label has to open the line at column zero:
+the same box holds free notes and pasted MEDLINE back-matter, where `Comment in:
+JAMA. 2003;289:2560. PMID: 12759325` names a correction rather than the work
+being cited, and where `efetch`'s 80-column wrapping puts a bare `PMID:` at the
+start of an indented continuation. An entry carrying a PMID and no DOI is
+fetched from PubMed by that
 number — a single `efetch`, where resolving a DOI
 costs an `esearch` and an `esummary` first — instead of being searched for by
 title and author, which is a guess standing in for the exact answer the entry

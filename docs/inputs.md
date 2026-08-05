@@ -187,14 +187,21 @@ several.
 
 `Extra` is one of the fields read, because Zotero's item schema has no PMID
 field and `Extra` is where its own users, its translators and its PubMed import
-all put one, a labelled line at a time. A line the label `PMID` **opens** is a
-declaration and is read; nothing else in the box is. That rules out the
-`PMCID: PMC5860629` line which usually sits directly beneath it — a different
-identifier for a different index, and one whose label does not begin with
-`PMID` — and it rules out the free notes, call numbers and reading reminders
-the same box holds. The first declaration settles it: where that line's value
-is not PMID-shaped, the entry records no PMID rather than falling through to
-whatever number a later line names.
+all put one, a labelled line at a time. A line the label `PMID` **opens at
+column zero** is a declaration and is read; nothing else in the box is. That
+rules out the `PMCID: PMC5860629` line which usually sits directly beneath it —
+a different identifier for a different index, and one whose label does not begin
+with `PMID` — and it rules out the free notes, call numbers and reading
+reminders the same box holds. The first declaration settles it: where that
+line's value is not PMID-shaped, the entry records no PMID rather than falling
+through to whatever number a later line names.
+
+The indent is part of the rule and not pedantry. `efetch` wraps at 80 columns
+and continues a field six spaces in, so MEDLINE back-matter pasted into this box
+puts a bare `PMID:` at the start of a continuation line — and the number there
+belongs to the correction, the comment or the retraction notice being cited *at*
+the work, never to the work itself. Zotero writes its own declaration at column
+zero.
 
 Only the personal library — "My Library" — is read. Item keys and collection
 names are unique only *within* a library, so merging a group library into the
@@ -241,15 +248,19 @@ has checked. The dedicated variable wins where both are present, because a
 `note` is free text that may also be quoting the PMID of a correction or a
 companion paper.
 
-The label has to open its line, in a `note` and in an `Extra` block alike. A
-note is also where MEDLINE back-matter gets pasted — `Comment in: JAMA.
-2003;289:2560. PMID: 12759325`, `Erratum in PMID: 12237289` — and where somebody
-writes `no PMID: 2017 reanalysis has one`. Every one of those names a document
-other than the one being cited, or no identifier at all, and with no DOI to
-outrank it the number would become the key the entry is resolved by. Where the
-first labelled line holds something that is not PMID-shaped, the entry is read
-as recording no PMID rather than as declaring whichever number a later line
-mentions.
+The label has to open its line at column zero, in a `note` and in an `Extra`
+block alike. A note is also where MEDLINE back-matter gets pasted — `Comment in:
+JAMA. 2003;289:2560. PMID: 12759325`, `Erratum in PMID: 12237289`, and the
+indented continuation `efetch` wraps a `RIN` or `CIN` block onto — and where
+somebody writes `no PMID: 2017 reanalysis has one`. Every one of those names a
+document other than the one being cited, or no identifier at all, and with no
+DOI to outrank it the number would become the key the entry is resolved by. The
+retraction case is the sharpest: mining the wrapped number resolves a correct
+citation of a retracted paper to the *notice*, which is not itself retracted, so
+the entry is accused of naming the wrong work and nothing says the work it does
+name was pulled. Where the first labelled line holds something that is not
+PMID-shaped, the entry is read as recording no PMID rather than as declaring
+whichever number a later line mentions.
 
 `author` is used when present and `editor`
 substituted when it is not, the same rule the other two Zotero paths apply, and
