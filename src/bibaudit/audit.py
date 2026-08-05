@@ -210,6 +210,8 @@ def _pmid_key(ref: Reference) -> str | None:
     answers about it, and treating it as one would turn a mistyped number into
     an authoritative absence. Such a reference falls through to whatever
     identifier it has left, and to ``_audit_unidentified`` when it has none.
+    :attr:`~bibaudit.model.Reference.identifier` applies that same refusal, so
+    the number a report names is always one some registry was asked about.
     """
     if ref.doi or not ref.pmid:
         return None

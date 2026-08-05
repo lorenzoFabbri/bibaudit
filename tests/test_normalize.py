@@ -17,6 +17,7 @@ import bibaudit.normalize as normalize_module
 from bibaudit.normalize import (
     clean,
     extract_dois,
+    extract_pmid,
     first_page,
     fold,
     is_article_number,
@@ -171,6 +172,76 @@ class TestPages:
     def test_a_letter_prefixed_number_needs_no_digit_floor(self) -> None:
         """No journal paginates ``A102``; the prefix alone identifies it."""
         assert is_article_number("A102")
+
+
+class TestPmidExtraction:
+    """What a note may and may not be read as declaring a PMID.
+
+    A note field is prose. It carries the entry's own identifier on a line
+    Zotero wrote, and it carries sentences about other documents — errata,
+    comments, retraction notices, companion papers — several of which quote a
+    PMID of their own. Reading one of those is not a cosmetic error: with no
+    DOI to outrank it, the number becomes the lookup key, and the entry is
+    resolved as and compared against a paper it merely mentions.
+    """
+
+    @pytest.mark.parametrize(
+        "note",
+        [
+            "PMID: 28520842",
+            "  PMID: 28520842",
+            "PMID:28520842",
+            "PMID 28520842",
+            "pmid = 28520842",
+            "Citation Key: kim2017alcohol\nPMID: 28520842",
+        ],
+    )
+    def test_a_line_that_opens_with_the_label_declares_the_identifier(self, note: str) -> None:
+        """Zotero's own convention, and the hand-typed variants beside it."""
+        assert extract_pmid(note) == "28520842"
+
+    def test_the_pmcid_line_below_it_is_not_read(self) -> None:
+        """The pair Zotero's PubMed translator writes into ``Extra``.
+
+        ``PMCID`` is a different registry's number for a different object, and
+        an entry filed under it resolves nowhere.
+        """
+        assert extract_pmid("PMID: 28520842\nPMCID: PMC5860629") == "28520842"
+
+    @pytest.mark.parametrize(
+        "note",
+        [
+            # MEDLINE back-matter, pasted into Extra as it comes: both name the
+            # correction, never the work being cited.
+            "Erratum in PMID: 12237289\nre-analysis of nine cohorts",
+            "Comment in: JAMA. 2003;289:2560. PMID: 12759325",
+            # A sentence recording the *absence* of one. The number after it is
+            # a year.
+            "no PMID: 2017 reanalysis has one",
+            # The same absence with the label ending the line, so nothing may
+            # be claimed across the break either.
+            "superseded, see PMID\n2017 reanalysis in the same journal",
+        ],
+    )
+    def test_a_label_inside_a_sentence_declares_nothing(self, note: str) -> None:
+        assert extract_pmid(note) is None
+
+    def test_a_malformed_declaration_stops_the_read(self) -> None:
+        """The first labelled line settles it, and this one is unusable.
+
+        Reading on would hand back 20137807 — the PMID of the retraction
+        notice the note goes on to name — as this work's identifier. A miss
+        costs a lookup; that hit reports a sound entry against a document
+        published twelve years after the one it cites.
+        """
+        assert extract_pmid("PMID: 285208421234\nPMID: 20137807") is None
+
+    def test_a_number_alone_is_not_an_identifier(self) -> None:
+        """An unlabelled run of digits in a note is a grant number, an
+        accession or a sample size far more often than it is a PMID.
+        """
+        assert extract_pmid("28520842") is None
+        assert extract_pmid("cohort of 28520842 person-years") is None
 
 
 class TestYear:

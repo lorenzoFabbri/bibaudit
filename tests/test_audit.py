@@ -1141,20 +1141,38 @@ class TestPmidOnlyReferences:
     ) -> None:
         """No request is built from it, so no registry can have answered about it.
 
-        Reporting ``BAD-ID`` would state that PubMed does not hold a number
-        PubMed was never asked for. The entry has no usable identifier left, so
-        it is checked the way any other entry without one is — and a PMCID in a
+        The search finding nothing is the case that decides this: it is the
+        only one that reaches the branch where an entry *with* an identifier is
+        told it "resolves in no consulted registry", and PubMed was never asked
+        about this number at all. What the entry has is no usable identifier
+        left, so it is reported as an entry without one — and a PMCID in a
         ``pmid`` field is the commonest way that happens, the two sitting on
         adjacent lines of a Zotero ``Extra``.
         """
-        stubs = _install(
-            monkeypatch, search=_StubSearch(candidates=[make_pmid_only_record()])
-        )
+        stubs = _install(monkeypatch, search=_StubSearch(candidates=[]))
 
         result = audit([make_pmid_ref(pmid="PMC5860629")], _options(tmp_path))[0]
 
         assert stubs.pubmed.by_pmids_calls == []
         assert stubs.search.candidate_calls == [make_pmid_ref(pmid="PMC5860629")]
+        assert result.verdict == "UNCONFIRMED"
+        issue = result.issues[-1]
+        assert (issue.field, issue.kind) == ("identifier", "absent")
+        assert "PMC5860629" not in (issue.stored, issue.note)
+
+    def test_a_refused_pmid_is_confirmable_by_search_like_any_other_entry(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The other half: falling through is a real check, not a shrug.
+
+        The entry keeps every field a search is judged on, so a candidate that
+        clears ``confirm_without_id`` confirms it exactly as it would confirm
+        an entry that never carried a ``pmid`` field at all.
+        """
+        _install(monkeypatch, search=_StubSearch(candidates=[make_pmid_only_record()]))
+
+        result = audit([make_pmid_ref(pmid="PMC5860629")], _options(tmp_path))[0]
+
         assert result.verdict == "OK"
 
 

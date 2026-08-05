@@ -15,6 +15,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from .normalize import normalize_pmid
+
 Severity = Literal["error", "warning", "info"]
 
 #: Every registry this tool can consult, in the order it consults them and in
@@ -150,8 +152,20 @@ class Reference:
 
     @property
     def identifier(self) -> str | None:
-        """The strongest identifier present, for cache keys and dedup."""
-        for value in (self.doi, self.pmid, self.arxiv, self.isbn):
+        """The strongest identifier present, for cache keys and dedup.
+
+        The stored ``pmid`` counts only when :func:`~bibaudit.normalize.
+        normalize_pmid` accepts it, because nothing downstream ever builds a
+        request from one it refuses (``audit._pmid_key``) and this property is
+        what :mod:`~bibaudit.compare` reads to decide an entry has an
+        identifier at all. A ``PMC5860629`` copied into the ``pmid`` field from
+        the line under it in a Zotero ``Extra`` was reported as resolving "in
+        no consulted registry" — an authoritative absence about a number no
+        registry was asked for. Refused here, the entry falls through to the
+        identifier-less path and is checked the way any other entry without one
+        is.
+        """
+        for value in (self.doi, normalize_pmid(self.pmid), self.arxiv, self.isbn):
             if value:
                 return value
         return None

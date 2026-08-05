@@ -164,20 +164,30 @@ def extract_dois(text: str) -> list[str]:
 #: and no check digit, so every all-digit string under the ceiling is accepted.
 _MAX_PMID_DIGITS = 8
 
-#: A PMID sitting in free text is read only in its labelled form. Zotero's
-#: convention for an identifier its own schema has no field for is a line of
-#: the item's ``Extra`` reading ``PMID: 28520842``, usually with
+#: A PMID sitting in free text is declared on a line of its own or not at all.
+#: Zotero's convention for an identifier its own schema has no field for is a
+#: line of the item's ``Extra`` reading ``PMID: 28520842``, usually with
 #: ``PMCID: PMC5860629`` under it; BibTeX notes copy the same shape. An
 #: unlabelled run of digits in a note is a grant number, an accession or a
 #: sample size far more often than it is a PMID.
 #:
-#: The separator class is horizontal whitespace, never ``\s``: a note ending
-#: "...superseded, see PMID" whose next line opens "2017 reanalysis..." would
-#: otherwise hand back 2017 as this work's PMID. The neighbouring ``PMCID``
-#: line is safe from both directions: the label ``PMID`` does not occur inside
-#: ``PMCID``, and its ``PMC``-prefixed value would fail
-#: :func:`normalize_pmid` even if it did.
-_LABELLED_PMID_RE = re.compile(r"\bPMID\b[ \t]*[:=]?[ \t]*(\d+)", re.IGNORECASE)
+#: The label must open its line, because the same box is where people keep
+#: prose about *other* documents and MEDLINE's own back-matter is pasted into
+#: it verbatim. "Comment in: JAMA. 2003;289:2560. PMID: 12759325" and "Erratum
+#: in PMID: 12237289" both name a correction rather than the work being cited,
+#: and "no PMID: 2017 reanalysis has one" names no identifier whatsoever. Read
+#: mid-line, each mints an identifier the entry never claimed — which becomes
+#: the lookup key when no DOI outranks it, so the entry is then resolved as,
+#: and compared against, a different document.
+#:
+#: The separator class is horizontal whitespace, never ``\s``, so a line ending
+#: "...superseded, see PMID" cannot reach across the break and claim the number
+#: opening the line below. The neighbouring ``PMCID`` line is safe from both
+#: directions: the label ``PMID`` does not open it, and its ``PMC``-prefixed
+#: value would fail :func:`normalize_pmid` even if it did.
+_LABELLED_PMID_RE = re.compile(
+    r"^[ \t]*PMID\b[ \t]*[:=]?[ \t]*(\d+)", re.IGNORECASE | re.MULTILINE
+)
 
 
 def normalize_pmid(value: object) -> str | None:
@@ -211,22 +221,24 @@ def normalize_pmid(value: object) -> str | None:
 
 
 def extract_pmid(text: str) -> str | None:
-    """The first labelled PMID in *text*, or ``None``.
+    """The PMID *text* declares on a line of its own, or ``None``.
 
     *text* is taken raw, not through :func:`clean`, because ``clean`` collapses
-    newlines into spaces and the line boundary is exactly what keeps a bare
-    ``PMID`` mention from claiming the number that opens the following line.
+    newlines into spaces, and the line boundary is the whole of what separates
+    the entry's own declaration from a sentence about a correction, an erratum
+    or a companion paper.
 
-    A labelled number that :func:`normalize_pmid` refuses does not stop the
-    scan and is never repaired: ``PMID: 285208421234`` yields ``None`` from
-    this call rather than the first eight of its digits, because a truncated
-    identifier resolves to some other paper entirely.
+    The first line labelling a number settles it. When that number is one
+    :func:`normalize_pmid` refuses — ``PMID: 285208421234`` — the answer is
+    ``None`` rather than the next labelled line's, and it is never repaired to
+    the first eight of its digits: a truncated identifier names some other
+    paper entirely, and so does the PMID of the retraction notice a note goes
+    on to cite. Reading no identifier out of a note whose first declaration is
+    malformed costs a lookup; reading the wrong one reports a sound entry
+    against a document it never cited.
     """
-    for match in _LABELLED_PMID_RE.finditer(text):
-        pmid = normalize_pmid(match.group(1))
-        if pmid:
-            return pmid
-    return None
+    match = _LABELLED_PMID_RE.search(text)
+    return normalize_pmid(match.group(1)) if match else None
 
 
 def parse_year(value: object) -> int | None:

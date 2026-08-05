@@ -237,6 +237,16 @@ has checked. The dedicated variable wins where both are present, because a
 `note` is free text that may also be quoting the PMID of a correction or a
 companion paper.
 
+The label has to open its line, in a `note` and in an `Extra` block alike. A
+note is also where MEDLINE back-matter gets pasted — `Comment in: JAMA.
+2003;289:2560. PMID: 12759325`, `Erratum in PMID: 12237289` — and where somebody
+writes `no PMID: 2017 reanalysis has one`. Every one of those names a document
+other than the one being cited, or no identifier at all, and with no DOI to
+outrank it the number would become the key the entry is resolved by. Where the
+first labelled line holds something that is not PMID-shaped, the entry is read
+as recording no PMID rather than as declaring whichever number a later line
+mentions.
+
 `author` is used when present and `editor`
 substituted when it is not, the same rule the other two Zotero paths apply, and
 a creator written as a CSL `literal` stays one collective author rather than
