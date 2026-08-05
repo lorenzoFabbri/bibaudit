@@ -235,25 +235,26 @@ publisher chose to deposit and the second two independently of it:
   but no publisher deposit ever linked is caught here, and would not be by
   the first bullet alone;
 - **PubMed's `ECI` cross-reference** ("Expression of Concern In:"), which
-  MEDLINE records on the *concerning* paper's own entry but never as the
-  `PT` value the second bullet reads — closing a gap where NLM knows about a
-  concern and the tool, until this was added, did not.
+  MEDLINE records on the *concerning* paper's own entry and never as the
+  `PT` value the second bullet reads, so a concern NLM knows about reaches the
+  report only from here.
 
 All four are checked for every reference that resolves to a DOI — one stored in
 the entry, or one carried by a candidate a title/author search confirmed, which
-is new to the run and gets checked on the spot. Each of the four is keyed on a
-DOI, so an entry resolved by some other identifier reaches fewer of them, and
-not by anybody's discretion.
+is new to the run and gets checked on the spot. Two of them are keyed on a DOI;
+the other two are lines on the MEDLINE record itself. So an entry resolved by
+some other identifier reaches fewer of them, and not by anybody's discretion.
 
-A reference resolved by its **PMID** keeps the second bullet and loses the other
-three: NLM's `PT - Retracted Publication` is on the MEDLINE record the lookup
-already returned, so a retraction NLM indexed still reports `RETRACTED`, while
-Retraction Watch's export, Crossref's `updated-by` and PubMed's own `ECI`
-cross-reference are all asked by DOI and are not asked at all. A book resolved
-through its **ISBN** alone loses all four, because Open Library mints no DOI for
-them to be keyed on. Neither entry reports a clean retraction result: both carry
-a `status/not-asked` finding naming the sources nobody consulted, and the run
-states it beside the banner.
+A reference resolved by its **PMID** keeps both of PubMed's, because both arrive
+on the citation the lookup already returned: a retraction NLM indexed reports
+`RETRACTED`, and a concern NLM recorded reports as a concern. What it loses is
+Crossref's `updated-by` and Retraction Watch's export, each of which takes a DOI
+it does not carry. A book resolved through its **ISBN** alone loses all four,
+because Open Library mints no DOI for them to be keyed on. Neither entry reports
+a clean retraction result: both carry a `status/not-asked` finding naming the
+retraction sources the run did not ask — `crossref, retraction-watch` on the
+first, `crossref, pubmed, retraction-watch` on the second — and the run states
+it beside the banner.
 
 A retraction **either one source records alone is still reported**, and the
 finding names which one

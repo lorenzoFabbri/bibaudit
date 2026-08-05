@@ -129,18 +129,19 @@ Less than the absence of a `RETRACTED` line suggests, and the shortfall is
 worth stating item by item. [Retraction](retraction.md) describes the sources
 and how they are combined; these are their edges.
 
-- **Every source is keyed on a DOI.** Retraction status is looked up by DOI —
-  the one stored in the entry, or one a title/author search confirmed. An entry
-  resolved by another identifier gets less, and how much less differs. A
-  reference resolved by its **PMID** keeps NLM's `PT - Retracted Publication`,
-  which is a field of the MEDLINE record the lookup already returned, and loses
-  Retraction Watch's export, Crossref's `updated-by` and PubMed's own `ECI`
-  cross-reference — so an expression of concern about it is not reported at all.
-  A book resolved through its **ISBN** alone is not checked for retraction in
-  any way: Open Library mints no DOI, so there is nothing to ask any of them
-  about. Neither case is silence: both raise `status/not-asked`, which names the
-  sources nobody consulted and prints beside the banner exactly as an outage
-  does.
+- **Two of the four sources are keyed on a DOI.** Crossref's `updated-by` and
+  Retraction Watch's export are looked up by DOI — the one stored in the entry,
+  or one a title/author search confirmed. An entry resolved by another
+  identifier loses those two, and what it keeps differs. A reference resolved by
+  its **PMID** keeps both of PubMed's, NLM's `PT - Retracted Publication` and
+  the `ECI` cross-reference, because both are fields of the MEDLINE record the
+  lookup already returned — so a concern NLM recorded is reported, and what goes
+  unreported is a retraction only Retraction Watch or only a publisher's Crossref
+  deposit knows about. A book resolved through its **ISBN** alone is not checked
+  for retraction in any way: Open Library mints no DOI to ask the first two
+  about, and holds no MEDLINE record to read the other two off. Neither case is
+  silence: both raise `status/not-asked`, which names the retraction sources the
+  run did not ask and prints beside the banner exactly as an outage does.
 - **Crossref's and PubMed's own flags depend on somebody having recorded the
   linkage** — a publisher deposit, or NLM's curation. A retraction nobody
   deposited and nobody indexed is invisible to them.
@@ -160,9 +161,13 @@ and how they are combined; these are their edges.
   saying it was would put a manufactured doubt on every dataset and every book
   in the file. A reference *no* registry answered for is `UNCHECKED`, and that
   gap is stated by the verdict rather than by this line.
-- **`--no-retraction-check` turns the independent pair off.** A Crossref or
-  PubMed record that itself carries a retraction linkage still fails, and every
-  reference records `retraction-watch` as `not-asked` and carries the gap.
+- **`--no-retraction-check` turns the independent pair off**, which is Retraction
+  Watch's export and PubMed's `ECI`. A Crossref or PubMed record that itself
+  carries a retraction linkage still fails, and every reference records
+  `retraction-watch` as `not-asked` and carries the gap. The `ECI` half is the
+  one the run cannot state: PubMed answered for the citation, so `consulted`
+  says `answered` and no `not-asked` line names it. [Retraction](retraction.md)
+  says why there is no fourth consultation state for it.
 
 ## Registries are sometimes wrong
 

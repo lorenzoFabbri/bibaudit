@@ -101,15 +101,23 @@ off retraction reporting. A retraction the publisher deposited in Crossref's
 `updated-by` linkage, or that MEDLINE flags with `PT  - Retracted Publication`,
 is read off the record itself and still fails as `RETRACTED`. What goes unnoticed
 is a retraction that was never deposited in either place — the gap the
-independent check exists for. The narrower coverage is stated rather than left
-to be noticed: every reference nothing was found against carries a
-`status/not-asked` finding naming `retraction-watch`, the run prints it beside
-the banner, and `consulted` records `retraction-watch` as `not-asked` on every
-reference in the run. A reference some source *did* report a retraction for
-carries the retraction instead — there is no gap left to state once the answer
-arrived. `status/retraction-unverified` stays what it always was, a source that
-could not be *reached*.
-[Retraction](retraction.md) covers the four sources in full.
+independent check exists for — and an expression of concern, which NLM records
+as `ECI` rather than as a `PT` and which this flag stops being read on the DOI
+path and the PMID path alike.
+
+Most of that narrower coverage is stated rather than left to be noticed: every
+reference nothing was found against carries a `status/not-asked` finding naming
+`retraction-watch`, the run prints it beside the banner, and `consulted` records
+`retraction-watch` as `not-asked` on every reference in the run. A reference some
+source *did* report a retraction for carries the retraction instead — there is no
+gap left to state once the answer arrived. `status/retraction-unverified` is a
+different finding and stays what it is: a source that could not be *reached*.
+
+The `ECI` half is the part no line states. PubMed answered — it returned the
+citation every other field was compared against — so `consulted` says `answered`
+and nothing names the field that went unread. That is the one gap this flag
+opens silently, and [retraction](retraction.md) says why there is no fourth
+consultation state for it. It covers the four sources in full as well.
 
 **`--no-isbn`** means Open Library is never constructed, so no book is resolved
 through it — neither by ISBN nor by the title/author search used for books with

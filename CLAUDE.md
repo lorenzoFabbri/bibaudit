@@ -90,9 +90,11 @@ without a network.
   see `crossref._reciprocal_updates` — and the tie-break there breaks *towards*
   the finding. Never widen it without the three recorded payloads in front of
   you.
-- **A retraction is the union over every registry that answered**, and an
-  unreachable registry that carries the signal leaves a stated gap. Ignorance
-  about retraction must never render as a clean bill of health.
+- **A retraction is the union over every registry that answered**, and a
+  registry that carries the signal leaves a stated gap when it was unreachable
+  *or* never asked — the second is routine, since two of the four sources take a
+  DOI and an entry may carry a PMID or an ISBN instead. Ignorance about
+  retraction must never render as a clean bill of health.
 
 ## Adding a check
 

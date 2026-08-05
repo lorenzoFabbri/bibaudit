@@ -7,12 +7,12 @@ and the finding names which one, because "both curated sources agree" and "only
 PubMed knows about this; the publisher never deposited the linkage" are different
 things to hand a reader. The second is also a bug report for the publisher.
 
-All four sources are keyed on DOIs, so how much of the union a reference gets
-depends on which identifier resolved it. A reference resolved by its PMID gets
-one of the four — MEDLINE's own flag, which is on the record the lookup already
-returned. A book resolved through its ISBN alone gets none. Neither is an
-oversight; both are stated below, under [what a clean result does not
-establish](#what-a-clean-result-does-not-establish).
+Two of the four sources are keyed on a DOI and two are fields of the MEDLINE
+citation itself, so how much of the union a reference gets depends on which
+identifier resolved it. A reference resolved by its PMID gets both of PubMed's
+and neither of the DOI-keyed pair. A book resolved through its ISBN alone gets
+none. Neither is an oversight; both are stated below, under [what a clean result
+does not establish](#what-a-clean-result-does-not-establish).
 
 ## The four sources
 
@@ -20,12 +20,12 @@ Two are read off the bibliographic record a registry already returned. Two are
 contributed by `registries/retractions.py`, and exist because a bibliographic
 record carrying nothing is not evidence that there is nothing to carry.
 
-| Source | What is read | What it depends on |
-|---|---|---|
-| **Crossref** | the `updated-by` relation on the work's own record | a publisher having deposited the notice, and Crossref's pipeline having linked it to the work |
-| **PubMed/MEDLINE** | `PT - Retracted Publication`, curated by NLM independently of the publisher's Crossref deposit | NLM having indexed the work and applied the type |
-| **Retraction Watch** | its own bulk export, read directly — not the subset Crossref surfaced | the database having logged the retraction |
-| **PubMed `ECI`** | the "Expression of Concern In:" cross-reference, which MEDLINE records on the concerned paper's own entry | NLM having recorded the concern |
+| Source | What is read | What it depends on | What it is asked with |
+|---|---|---|---|
+| **Crossref** | the `updated-by` relation on the work's own record | a publisher having deposited the notice, and Crossref's pipeline having linked it to the work | a DOI |
+| **PubMed/MEDLINE** | `PT - Retracted Publication`, curated by NLM independently of the publisher's Crossref deposit | NLM having indexed the work and applied the type | nothing: a field of the record already in hand |
+| **Retraction Watch** | its own bulk export, read directly — not the subset Crossref surfaced | the database having logged the retraction | a DOI |
+| **PubMed `ECI`** | the "Expression of Concern In:" cross-reference, which MEDLINE records on the concerned paper's own entry | NLM having recorded the concern | nothing: a field of the record already in hand |
 
 The last two were added because each closed a gap found by running the tool
 against real DOIs. Crossref's `updated-by` does carry Retraction Watch's
@@ -39,6 +39,14 @@ records a concern — it records one as an `ECI` cross-reference on the concerne
 paper's own entry. PMID 23741377 carries `PT - Journal Article` and `PT -
 Research Support, Non-U.S. Gov't`, nothing retraction-shaped, and separately an
 `ECI` line naming the actual notice.
+
+The fourth column is what a reference with no DOI keeps. `ECI` sits in
+`registries/retractions.py` beside the other independent source because that is
+where the direction rule and the concern vocabulary live, not because it needs a
+key: `retractions.concern_in` takes a record and reads one field of it, and
+`audit._with_pubmed_concern` calls it for an entry resolved by its PMID. Sitting
+in that module does mean `--no-retraction-check` switches it off, on the PMID
+path and the DOI path alike.
 
 DataCite is deliberately not a fifth source. Its schema does carry an
 `IsObsoletedBy` relation, which looked like a candidate until it was queried: it
@@ -137,25 +145,23 @@ work, both findings are printed and the verdict is `RETRACTED`.
 
 ## What a clean result does not establish
 
-**All four sources are keyed on DOIs.** A DOI carried by a candidate that a
-title/author search confirmed *is* checked, on the spot, because it is new to
+**Two of the four sources are keyed on DOIs.** A DOI carried by a candidate that
+a title/author search confirmed *is* checked, on the spot, because it is new to
 the run. An entry resolved by some other identifier is a different matter, and
 the shortfall is not the same for the two of them.
 
-A reference resolved by its **PMID** keeps `PT - Retracted Publication` and
-loses the other three sources. NLM's flag arrives free: it is a field of the
-MEDLINE record the PMID lookup already returned, so a retraction NLM has indexed
-still reports `RETRACTED` and still fails. What is not asked is Retraction
-Watch's export, Crossref's `updated-by` and PubMed's own `ECI` cross-reference,
-each of which takes a DOI. The `ECI` gap is the sharper of the three, because it
-is the same registry: PubMed knows about the concern, this run holds a PubMed
-record, and the field that would state it is reached by a query the entry has no
-key for. So on such an entry an expression of concern goes unreported, and a
-retraction Retraction Watch logged but NLM never indexed goes unreported too.
+A reference resolved by its **PMID** keeps `PT - Retracted Publication` and the
+`ECI` cross-reference, and loses Crossref's `updated-by` and Retraction Watch's
+export. Both of PubMed's arrive free: they are fields of the MEDLINE record the
+PMID lookup already returned, so a retraction NLM has indexed reports
+`RETRACTED` and fails, and a concern NLM has recorded reports as a concern. What
+goes unreported is a retraction Retraction Watch logged that NLM never indexed,
+and one a publisher deposited that NLM never indexed either.
 
 A book resolved through its **ISBN** alone loses all four, because Open Library
-mints no DOI to ask them about. Its retraction status is not checked at all, and
-a clean report does not claim otherwise.
+mints no DOI to ask the first two about and holds no MEDLINE record to read the
+other two off. Its retraction status is not checked at all, and a clean report
+does not claim otherwise.
 
 **A notice never promotes a DOI to "resolved".** Retraction status is looked up
 for every stored DOI, resolved or not, but a notice is only attached where some
@@ -174,9 +180,21 @@ retraction logged there in the last few days may not yet be reflected. The
 seven-day window belongs to that index's own cache; `--refresh` does not shorten
 it.
 
-**`--no-retraction-check` turns the independent pair off.** A Crossref or PubMed
-record that itself carries a retraction linkage still fails regardless — the flag
-removes corroboration, not reporting. See [the command line](cli.md).
+**`--no-retraction-check` turns the independent pair off.** The pair is
+Retraction Watch's export and PubMed's `ECI`, so the flag costs a concern NLM
+recorded as well as a retraction only Retraction Watch logged — on the PMID path
+and the DOI path alike. A Crossref or PubMed record that itself carries a
+retraction linkage still fails regardless: `updated-by` and `PT` are read off
+the bibliographic record and the flag does not reach them. What the flag removes
+is corroboration, not reporting.
+
+`consulted` states half of that and cannot state the other half. Retraction
+Watch appears as `not-asked` and the reference carries the gap; PubMed appears as
+`answered`, because PubMed did answer — it returned the citation every other
+field was compared against. `Consultation` records what happened to a *source*,
+and there is no state in it for a source that answered one question and was not
+asked a second one off the same reply. So a run given this flag has one unstated
+gap, and it is stated here instead. See [the command line](cli.md).
 
 ## When a source could not be reached
 
@@ -216,22 +234,33 @@ source that exists only to carry this signal.
 ## When a source was never asked
 
 The same rule from the other direction. A reference resolved by its **PMID** is
-asked of PubMed and of nobody else: the other three sources are keyed on a DOI
-it does not carry. Left to speak for itself such an entry renders `verdict: OK,
-issues: []` — a clean bill of health from a run that consulted one source out of
-four, which is the output this tool exists to prevent. `--no-retraction-check`
-and a book resolved by its ISBN have the same shape.
+asked of PubMed and of nobody else: the two DOI-keyed sources have no key to be
+asked with. Left to speak for itself such an entry renders `verdict: OK, issues:
+[]` — a clean bill of health from a run that reached two of the four sources and
+had no way to reach the other two, which is the output this tool exists to
+prevent. A book resolved by its ISBN, and any run given
+`--no-retraction-check`, have the same shape.
 
 So where no source that answered records a retraction, `compare` raises
-`status/not-asked` on the reference, at `info` severity and naming the sources:
-"retraction status not corroborated: crossref, retraction-watch were never asked
-about this reference". It reaches the reader by the three routes above, the
-banner line ending in `not asked` rather than `unreachable`. An entry a source
-*did* report a retraction for gets the retraction instead: an answer arrived,
-and there is no gap left to state. `consulted` states the gap too — `crossref`,
-`datacite`, `pubmed` and `retraction-watch` are named on every reference in
-every run, so a source that was not asked reads as `not-asked` rather than as a
-key that is not there.
+`status/not-asked` on the reference, at `info` severity, naming every source
+that carries the signal and was not asked:
+
+| The reference | What the finding names |
+|---|---|
+| resolved by its PMID | `crossref, retraction-watch` |
+| a book resolved by its ISBN | `crossref, pubmed, retraction-watch` |
+| any reference under `--no-retraction-check` | `retraction-watch` |
+
+It reaches the reader by the three routes above, the banner line ending in `not
+asked` rather than `unreachable`. An entry a source *did* report a retraction for
+gets the retraction instead: an answer arrived, and there is no gap left to
+state. `consulted` states the gap too — `crossref`, `datacite`, `pubmed` and
+`retraction-watch` are named on every reference in every run, so a source that
+was not asked reads as `not-asked` rather than as a key that is not there.
+
+The third row is the narrower of the three, and the difference is the one this
+page states above: `--no-retraction-check` also stops PubMed's `ECI` being read,
+and no `not-asked` line says so, because PubMed answered.
 
 Two kinds rather than one, because the reader's next move differs: a rerun may
 settle an outage, and no rerun asks Retraction Watch about a reference with no
@@ -243,7 +272,7 @@ unchanged, so DataCite going unasked is never named.
 ### Reading the DOI off MEDLINE instead
 
 MEDLINE's `AID` list carries the work's own DOI on most modern records, and
-using it as a second lookup key would restore all three missing sources for a
+using it as a second lookup key would restore both missing sources for a
 PMID-resolved reference. It is not done, and the reasons are worth keeping
 because the option stays open:
 
