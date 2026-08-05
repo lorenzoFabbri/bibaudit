@@ -549,6 +549,36 @@ class TestContainerMedlineSubtitle:
             "registry appends its own subtitle to the journal name"
         )
 
+    def test_a_leading_article_on_the_registrys_side_is_the_same_defect(self) -> None:
+        """PMID 42547188, live ``efetch``: NLM keeps *The*, the masthead has none.
+
+        ``JT - The Journal of adolescent health : official publication of the
+        Society for Adolescent Medicine`` against ``TA - J Adolesc Health``.
+        Crossref and the masthead both say *Journal of Adolescent Health*, so
+        neither the whole-``JT`` leading-article rule nor the abbreviation rule
+        reaches the entry and a correct citation reported `container/mismatch`.
+        """
+        assert classify(
+            "container",
+            "Journal of Adolescent Health",
+            "The Journal of adolescent health : official publication of the Society "
+            "for Adolescent Medicine",
+            container_alternates=["J Adolesc Health"],
+        ) == "registry files the journal under a leading article and a subtitle"
+
+    def test_a_different_article_on_the_stored_side_still_fires(self) -> None:
+        """The pairing: only one side is ever stripped, so *A* is not *The*.
+
+        Taking the article off both would suppress two journals whose names
+        differ by exactly the word that distinguishes them, under a sentence
+        blaming the registry for a difference it did not make.
+        """
+        assert classify(
+            "container",
+            "A Journal of Cancer",
+            "The Journal of Cancer : official journal of the Cancer Society",
+        ) is None
+
     def test_a_journal_sharing_the_opening_words_still_fires(self) -> None:
         """The pairing. *Cancer Epidemiology* is Elsevier's, a different journal.
 

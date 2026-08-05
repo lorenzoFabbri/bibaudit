@@ -732,6 +732,18 @@ real abbreviation for these journals rather than the plain name, and
 `_container_abbreviation` requires the stored tokens to reach the *end* of the
 registry's name, which is the subtitle and not the journal.
 
+NLM drops a serial's leading article on most titles and keeps it on some, so
+that rule also takes one opening `The`/`A`/`An` off the **registry's** base
+before comparing. `The Journal of adolescent health : official publication of
+the Society for Adolescent Medicine`, `TA - J Adolesc Health` (PMID 42547188)
+is the case: the masthead and Crossref both say *Journal of Adolescent Health*
+with no article, and until the base was stripped that correct entry reported
+`container/mismatch`. The reason printed names which of the two happened. The
+stored side is never stripped, so at most one article is dropped in any
+comparison and `A Journal of Cancer` against `The Journal of Cancer : …`
+remains a `container/mismatch` — two journals differing by exactly the word
+that distinguishes them.
+
 Only the colon form is stripped, never the parenthetical one, and the
 difference is not cosmetic. The subtitle is part of the same serial's own
 title; the parenthetical qualifier exists precisely to tell two serials

@@ -411,13 +411,37 @@ def _container_medline_subtitle(field: str, stored: str, registry: str, ref: Ref
     dropping one would merge them. Those are reached instead through ``TA``,
     which for such journals is the plain name — see
     :func:`_container_leading_article`.
+
+    NLM drops a serial's leading article on most titles and keeps it on some,
+    so the article has to come off the **registry's** base for the second
+    shape: ``JT - The Journal of adolescent health : official publication of
+    the Society for Adolescent Medicine`` beside ``TA - J Adolesc Health``
+    (PMID 42547188), where the masthead and Crossref both say *Journal of
+    Adolescent Health* with no article at all. Nothing else reaches that one
+    either — :func:`_container_leading_article` compares against the whole of
+    ``JT``, :func:`_container_abbreviation` needs the stored tokens to reach
+    ``JT``'s last one, and ``TA`` is a real abbreviation — so a correct entry
+    failed the build. Which of the two happened is what the returned reason
+    says, because a suppression whose stated cause is not the actual one
+    cannot be argued with.
+
+    The **stored** side is never stripped, so at most one article is dropped
+    in any comparison and ``A Journal of Cancer`` against ``The Journal of
+    Cancer : ...`` stays a difference — two journals, and nothing the registry
+    did produced it. The opposite pairing, an entry storing ``The X`` against a
+    ``JT`` of ``X : subtitle``, has no witnessed instance and is not accepted.
     """
     if field != "container":
         return None
     base, separator, _ = registry.partition(_MEDLINE_SUBTITLE)
-    if not separator or fold(base) != fold(stored):
+    if not separator:
         return None
-    return "registry appends its own subtitle to the journal name"
+    folded_base, folded_stored = fold(base), fold(stored)
+    if folded_base == folded_stored:
+        return "registry appends its own subtitle to the journal name"
+    if _LEADING_ARTICLE.sub("", folded_base) == folded_stored:
+        return "registry files the journal under a leading article and a subtitle"
+    return None
 
 
 def _doi_redirecting_prefix(field: str, stored: str, registry: str, ref: Reference, rec: Record) -> str | None:
