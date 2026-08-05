@@ -588,9 +588,12 @@ bibliography.
 `issued` date becomes the deposit date — a 2020 paper carrying 2026.
 
 **Detection.** `benign._year_deposit_artifact` applies only when there is no
-print date to corroborate the registry's year *and* the registry year is later
-than the stored one. A registry year *earlier* than the stored year is not
-covered: that is a real discrepancy worth a human's attention.
+print date to corroborate the registry's year *and* the registry year is at
+least three years later than the stored one — `benign._MIN_DEPOSIT_STAMP_GAP`.
+A series re-depositing an old item lands many years out; a one- or two-year gap
+is what citing a preprint's year, or mistyping the last digit, looks like, and
+both of those are reported. A registry year *earlier* than the stored year is
+not covered either: that is a real discrepancy worth a human's attention.
 
 ---
 
