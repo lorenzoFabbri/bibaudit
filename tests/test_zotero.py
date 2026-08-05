@@ -534,6 +534,28 @@ def _build_library(
             },
         )
 
+        # -- item 14: a byline its producer truncated ----------------------
+        # The rest of the authors arrive as one creator reading "et al.",
+        # written into fieldMode 1 — the same slot item 2's corporate byline
+        # uses, because it is the only one this schema has for a creator with
+        # no first/last split. Counted as an author it makes a two-name list
+        # out of a one-name one, and every correct entry from such a producer
+        # then reports an author-count difference against any registry byline.
+        add_item(
+            14,
+            "TRUNCATED1",
+            "journalArticle",
+            {
+                "title": "Risk of pancreatic cancer associated with family history",
+                "publicationTitle": "International Journal of Epidemiology",
+                "date": "2018-00-00 2018",
+            },
+        )
+        add_creator(80, "Molina-Montes", "Esther")
+        add_creator(81, "et al.", "", 1)
+        link_creator(14, 80, "author", 0)
+        link_creator(14, 81, "author", 1)
+
         # -- library 2: a synced group library ------------------------------
         # Item 100 reuses key "ARTICLE01": Zotero keys are unique per library,
         # so this is legal and is exactly the collision an unscoped read hits.
@@ -939,6 +961,7 @@ class TestItemSelection:
             "OTHERCOLL",
             "BOOKSECT1",
             "GRANDKID1",
+            "TRUNCATED1",
         }
 
 
@@ -1764,6 +1787,32 @@ class TestTruncatedByline:
         diff = compare_author_lists(authors, registry)
         assert not diff.clean
         assert diff.mismatches[0][0] == 1
+
+    def test_a_database_marker_is_truncation_too(self, by_key: dict[str, Reference]) -> None:
+        """The live ``zotero.sqlite`` route, which is the one users actually run.
+
+        Zotero stores such a creator as fieldMode 1 with the whole string in
+        ``lastName`` — the same column a corporate byline uses, and read as one
+        until the marker is recognised. Of the three routes into a library this
+        is the only one whose reading is not exercised anywhere else, so a
+        regression here comes back unnoticed while CSL and item JSON stay green.
+        """
+        authors = by_key["TRUNCATED1"].authors
+
+        assert [(a.family, a.given) for a in authors] == [("Molina-Montes", "Esther"), ("", "")]
+        assert authors[1].et_al
+        assert not authors[1].collective
+
+    def test_the_database_marker_voids_the_author_count(
+        self, by_key: dict[str, Reference]
+    ) -> None:
+        """What recognising it is for: a shorter byline is not a wrong one."""
+        registry = [Name(family=f) for f in ("Molina-Montes", "Bravo", "Charlie", "Delta")]
+        diff = compare_author_lists(by_key["TRUNCATED1"].authors, registry)
+
+        assert diff.truncated
+        assert not diff.count_differs
+        assert diff.clean
 
     def test_a_native_json_marker_is_truncation_too(self, tmp_path: pathlib.Path) -> None:
         """Zotero's own item JSON keeps such a creator in ``name``, the field
