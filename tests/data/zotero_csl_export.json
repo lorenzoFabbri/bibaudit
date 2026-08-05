@@ -29,6 +29,15 @@
     "issued": { "date-parts": [[2002, 4, 17]] }
   },
   {
+    "id": "molinamontes2018",
+    "type": "article-journal",
+    "title": "Risk of pancreatic cancer associated with family history of cancer and other medical conditions by accounting for smoking among relatives",
+    "container-title": "International Journal of Epidemiology",
+    "DOI": "10.1093/ije/dyx269",
+    "author": [{ "family": "Molina-Montes", "given": "E" }, { "literal": "et al." }],
+    "issued": { "date-parts": [[2018]] }
+  },
+  {
     "id": "hidalgo2015",
     "type": "book",
     "title": "Cancer Epidemiology and Prevention",

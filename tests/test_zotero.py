@@ -41,7 +41,8 @@ import pytest
 
 from bibaudit.adapters import zotero
 from bibaudit.adapters.zotero import default_zotero_paths, read_csl_json, read_zotero
-from bibaudit.model import Reference
+from bibaudit.model import Name, Reference
+from bibaudit.names import compare_author_lists
 
 _DATA = pathlib.Path(__file__).parent / "data"
 
@@ -1616,10 +1617,16 @@ class TestCslJson:
     ) -> None:
         """CSL's ``literal`` is the collective-author escape hatch; splitting
         it on " and " invents two authors out of one working group.
+
+        ``literal`` is also where a truncation marker arrives (see
+        :class:`TestTruncatedByline`), and the rule that recognises one must
+        not widen into the organisations sharing the field: this is one
+        author, present in the byline, and its length counts.
         """
         authors = csl["ehbccg2002"].authors
         assert len(authors) == 1
         assert authors[0].collective
+        assert not authors[0].et_al
         assert authors[0].literal == (
             "The Endogenous Hormones and Breast Cancer Collaborative Group"
         )
@@ -1681,6 +1688,105 @@ class TestCslJson:
             read_csl_json(_DATA / "zotero_native_items.json")
 
 
+class TestTruncatedByline:
+    """A producer that stores only the first author, and says so.
+
+    The rest of the byline arrives as a creator of its own, written into the
+    single field that also carries corporate authors — CSL's ``literal``,
+    Zotero's ``name``. Counted as an author it makes a two-name list out of a
+    one-name one, so every correct entry from such a producer reports an
+    author-count difference against a registry byline of any other length, and
+    ``compare._check_authors`` hands that to the verdict as evidence the
+    identifier resolved to a different work.
+
+    Read as truncation the marker voids the length comparison and nothing
+    else. The positional comparison is untouched, which is what keeps this
+    from being a way to hide a wrong entry.
+    """
+
+    @staticmethod
+    def _authors_of(tmp_path: pathlib.Path, creators: list[dict[str, str]]) -> list[Name]:
+        path = tmp_path / "truncated.json"
+        path.write_text(
+            json.dumps([{"id": "item2018", "type": "article-journal", "author": creators}]),
+            encoding="utf-8",
+        )
+        return read_csl_json(path)[0].authors
+
+    def test_a_csl_marker_is_truncation_rather_than_an_organisation(
+        self, csl: dict[str, Reference]
+    ) -> None:
+        """``Molina-Montes et al.`` is how the PanGenEU corpus cites
+        10.1093/ije/dyx269, and a CSL producer writes the marker as a
+        ``literal`` because CSL has no other creator field to put it in.
+        """
+        authors = csl["molinamontes2018"].authors
+        assert [a.family for a in authors] == ["Molina-Montes", ""]
+        assert authors[1].et_al
+        assert not authors[1].collective
+
+    @pytest.mark.parametrize("marker", ["et al.", "et al", "Et Al.", "and others", "others"])
+    def test_every_spelling_of_the_marker_is_read_as_one(
+        self, tmp_path: pathlib.Path, marker: str
+    ) -> None:
+        """The same set BibTeX's ``and others`` is recognised against. A CSL
+        file is written by whatever exported it, and the marker survives the
+        exporter in whichever form the source bibliography used.
+        """
+        authors = self._authors_of(tmp_path, [{"family": "Molina-Montes"}, {"literal": marker}])
+        assert authors[1].et_al
+
+    def test_the_marker_voids_the_author_count(self, csl: dict[str, Reference]) -> None:
+        registry = [Name(family=f) for f in ("Molina-Montes", "Bravo", "Charlie", "Delta")]
+        diff = compare_author_lists(csl["molinamontes2018"].authors, registry)
+        assert diff.truncated
+        assert not diff.count_differs
+        assert diff.clean
+
+    def test_a_wrong_first_author_beside_the_marker_still_fires(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """Truncation voids the length comparison only. A byline naming
+        somebody the registry does not is still reported, at its position and
+        with both names, which is what keeps a wrong entry from being cleared
+        by how its byline was stored.
+        """
+        authors = self._authors_of(tmp_path, [{"family": "Krieger"}, {"literal": "et al."}])
+        registry = [Name(family=f) for f in ("Molina-Montes", "Bravo", "Charlie", "Delta")]
+        diff = compare_author_lists(authors, registry)
+        assert not diff.clean
+        assert diff.mismatches[0][0] == 1
+
+    def test_a_native_json_marker_is_truncation_too(self, tmp_path: pathlib.Path) -> None:
+        """Zotero's own item JSON keeps such a creator in ``name``, the field
+        it keeps a corporate byline in. The same library exported either way
+        has to audit the same.
+        """
+        path = tmp_path / "native.json"
+        path.write_text(
+            json.dumps(
+                [
+                    {
+                        "key": "TRUNC001",
+                        "data": {
+                            "key": "TRUNC001",
+                            "itemType": "journalArticle",
+                            "title": "Risk of pancreatic cancer associated with family history",
+                            "creators": [
+                                {"creatorType": "author", "lastName": "Molina-Montes"},
+                                {"creatorType": "author", "name": "et al."},
+                            ],
+                        },
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
+        authors = read_zotero(path)[0].authors
+        assert authors[1].et_al
+        assert not authors[1].collective
+
+
 class TestJsonDispatch:
     def test_native_item_json_is_detected_and_read(self) -> None:
         refs = read_zotero(_DATA / "zotero_native_items.json")
@@ -1708,7 +1814,12 @@ class TestJsonDispatch:
 
     def test_csl_json_is_detected_and_read(self) -> None:
         refs = read_zotero(_DATA / "zotero_csl_export.json")
-        assert {ref.key for ref in refs} == {"papantoniou2017", "ehbccg2002", "hidalgo2015"}
+        assert {ref.key for ref in refs} == {
+            "papantoniou2017",
+            "ehbccg2002",
+            "molinamontes2018",
+            "hidalgo2015",
+        }
 
     def test_collection_filtering_on_a_json_export_is_refused(self) -> None:
         """A CSL export carries no collection-name table, so a name cannot be

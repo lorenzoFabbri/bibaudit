@@ -250,8 +250,15 @@ mentions.
 `author` is used when present and `editor`
 substituted when it is not, the same rule the other two Zotero paths apply, and
 a creator written as a CSL `literal` stays one collective author rather than
-being torn into a given and a family name. A bare top-level array is the usual
-shape; `{"items": [...]}`, as some export tools write, is accepted too.
+being torn into a given and a family name. `literal` is also the only creator
+field a truncated byline can be written into, so a `literal` reading `et al.`
+or `and others` — the same set BibTeX's `and others` is recognised against —
+is read as the marker it is rather than as an organisation. That marker says
+the stored list is short on purpose: its length is not compared against the
+registry's, while every name actually written down still is, so a byline
+naming the wrong first author is reported exactly as it would be without one.
+A bare top-level array is the usual shape; `{"items": [...]}`, as some export
+tools write, is accepted too.
 
 Two things only a live source can do, because an export does not carry what they
 need. Filtering to a named collection: an export stores collections as opaque

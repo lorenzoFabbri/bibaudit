@@ -43,6 +43,7 @@ from collections import defaultdict
 from typing import Any
 
 from ..model import Name, Reference
+from ..names import is_et_al_marker
 from ..normalize import (
     clean,
     extract_pmid,
@@ -238,17 +239,37 @@ def _select_creator_role(
     return [], ""
 
 
+def _single_field_creator(raw: object) -> Name:
+    """A creator written whole, rather than as a given and a family name.
+
+    All three Zotero routes have such a field — ``fieldMode`` 1 in the
+    database, ``name`` in its item JSON, ``literal`` in CSL — and it carries
+    two different things. One is a corporate byline ("The Endogenous Hormones
+    and Breast Cancer Collaborative Group"), which is one author and is
+    compared as one. The other is what a producer that stores only the first
+    author writes for the rest of the byline: ``et al.``. Counted as an author
+    it makes a two-name list out of a one-name one, so every correct entry
+    from such a producer reports an author-count difference against a registry
+    byline of any length, and ``compare._check_authors`` hands that on to the
+    verdict as evidence the identifier resolved to a different work. Read as
+    truncation it voids the length comparison and nothing else: the positional
+    comparison is untouched, so a wrong first author still fires.
+    """
+    text = clean(raw)
+    if is_et_al_marker(text):
+        return Name(literal=text, et_al=True)
+    return Name(literal=text, collective=True)
+
+
 def _json_creator_to_name(creator: dict[str, Any]) -> Name:
     """Zotero's own creator JSON: ``{firstName, lastName}`` or single-field ``name``.
 
     A creator with ``fieldMode`` 1 in the database is exported as
-    ``{"creatorType": ..., "name": "..."}`` instead of first/last name
-    fields — that is how a corporate byline ("World Health Organization")
-    survives the round trip without being torn into a given and family name.
+    ``{"creatorType": ..., "name": "..."}`` instead of first/last name fields.
     """
     name = creator.get("name")
     if name:
-        return Name(literal=clean(name), collective=True)
+        return _single_field_creator(name)
     return Name(family=clean(creator.get("lastName", "")), given=clean(creator.get("firstName", "")))
 
 
@@ -308,8 +329,9 @@ def _zotero_json_item_to_reference(data: dict[str, Any]) -> Reference:
 
 
 def _csl_creator_to_name(creator: dict[str, Any]) -> Name:
+    """CSL's ``literal`` is its single-field creator; see :func:`_single_field_creator`."""
     if creator.get("literal"):
-        return Name(literal=clean(creator["literal"]), collective=True)
+        return _single_field_creator(creator["literal"])
     return Name(family=clean(creator.get("family", "")), given=clean(creator.get("given", "")))
 
 
@@ -628,7 +650,7 @@ def _resolve_collection_ids(cursor: sqlite3.Cursor, name: str, library_id: int |
 
 def _sqlite_creator_to_name(row: sqlite3.Row) -> Name:
     if row["fieldMode"] == 1:
-        return Name(literal=clean(row["lastName"] or ""), collective=True)
+        return _single_field_creator(row["lastName"])
     return Name(family=clean(row["lastName"] or ""), given=clean(row["firstName"] or ""))
 
 

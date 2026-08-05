@@ -63,6 +63,7 @@ __all__ = [
     "compare_author_lists",
     "demojibake",
     "family_key",
+    "is_et_al_marker",
     "names_agree",
     "parse_name",
     "parse_name_list",
@@ -95,6 +96,10 @@ _PARTICLES = frozenset(
 
 #: BibTeX's truncation marker.
 _ET_AL_TOKENS = frozenset({"others", "et al", "et al.", "and others"})
+
+#: Derived, never retyped, so no reader can come to recognise a different set of
+#: markers from the one written above.
+_FOLDED_ET_AL_TOKENS = frozenset(fold(token) for token in _ET_AL_TOKENS)
 
 #: Creator separators. ``and`` is BibTeX's; ``&`` is what a human-written table
 #: cell uses, and this parser reads both because :mod:`bibaudit.adapters.markdown`
@@ -244,6 +249,18 @@ def demojibake(text: str) -> tuple[str, bool]:
     return text, False
 
 
+def is_et_al_marker(value: object) -> bool:
+    """True if *value* is a truncation marker standing in for the rest of a byline.
+
+    BibTeX's ``and others`` and a CSL ``"literal": "et al."`` are the same
+    statement, so every reader that takes a creator whole out of a single
+    field asks this rather than deciding for itself what a marker looks like —
+    a second list would let the same bibliography be truncated through one
+    route and complete through another.
+    """
+    return fold(value) in _FOLDED_ET_AL_TOKENS
+
+
 def _is_collective(text: str) -> bool:
     """True if *text* reads as an organisation rather than a person."""
     tokens = set(fold(text).split())
@@ -264,7 +281,7 @@ def parse_name(raw: str) -> Name:
     if not text:
         return Name()
 
-    if fold(text) in {fold(t) for t in _ET_AL_TOKENS}:
+    if is_et_al_marker(text):
         return Name(literal=text, et_al=True)
 
     # Brace protection in the source is an explicit "this is one unit" marker;
