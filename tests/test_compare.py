@@ -1583,6 +1583,62 @@ class TestMedlineJournalTitleOnThePmidPath:
         assert [i.kind for i in result.issues if i.field == "container"] == ["mismatch"]
 
 
+class TestMedlineSocietyExpansionOnThePmidPath:
+    """``JT`` also spells out the society, and ``TA`` does not always rescue it.
+
+    Replayed against ``tests/data/pubmed_society_expansion.txt``, NCBI's own
+    bytes for PMID 32430337 (Michaud et al., 10.1158/1055-9965.EPI-20-0378).
+    Its ``TA`` is a genuine abbreviation, ``Cancer Epidemiol Biomarkers Prev``,
+    so the entry that stores the journal's own name has only the expanded
+    ``JT`` to be compared against — and was failed against it.
+    """
+
+    def _entry(self, container: str) -> Result:
+        ref = Reference(
+            key="michaud2020methylation",
+            locator="references.bib:44",
+            kind="article",
+            pmid="32430337",
+            title=(
+                "DNA Methylation-Derived Immune Cell Profiles, CpG Markers of "
+                "Inflammation, and Pancreatic Cancer Risk"
+            ),
+            authors=[Name(family="Michaud", given="Dominique S"), Name(et_al=True)],
+            year=2020,
+            container=container,
+            volume="29",
+            issue="8",
+            pages="1577-1585",
+        )
+        return compare(ref, {"pubmed": pubmed_record("pubmed_society_expansion.txt")})
+
+    def test_the_journals_own_name_does_not_fail_the_build(self) -> None:
+        result = self._entry("Cancer Epidemiology, Biomarkers & Prevention")
+
+        assert not result.fails
+        assert not [i for i in result.issues if i.field == "container"]
+        assert [i.note for i in result.suppressed if i.field == "container"] == [
+            "registry appends the sponsoring society to the journal name"
+        ]
+
+    def test_the_abbreviation_is_still_matched_against_the_registrys_own_alternate(
+        self,
+    ) -> None:
+        """``TA`` reaches the entry exported from PubMed or EndNote, as before."""
+        result = self._entry("Cancer Epidemiol Biomarkers Prev")
+
+        assert not result.fails
+        note = next(i for i in result.issues if i.field == "container")
+        assert (note.kind, note.severity) == ("alternate-title", "info")
+
+    def test_a_different_journal_still_fails(self) -> None:
+        """*Cancer Epidemiology* is another journal, and citing it is an error."""
+        result = self._entry("Cancer Epidemiology")
+
+        assert result.verdict == "FIELD-MISMATCH"
+        assert [i.kind for i in result.issues if i.field == "container"] == ["mismatch"]
+
+
 class TestMedlineDatesOnThePmidPath:
     """A work published ahead of its issue has two years, and MEDLINE has both.
 

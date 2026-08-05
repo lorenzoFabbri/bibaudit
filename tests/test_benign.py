@@ -433,10 +433,12 @@ class TestContainerLeadingArticle:
     def test_the_qualifier_alone_is_not_enough_to_explain_a_difference(self) -> None:
         """With no ``TA`` on the record there is no title to match, and none is invented.
 
-        The rule reads the titles the registry supplies. Stripping ``(London,
-        England)`` instead would be a different rule and a dangerous one: the
-        qualifier is exactly what tells two serials sharing a base title apart,
-        so dropping it merges them.
+        This rule reads the titles the registry supplies and strips one opening
+        article from the *stored* value; it never edits the registry's. What a
+        rule may take off the registry side is decided next door, in
+        :class:`TestContainerSocietySubtitle`, which cuts the society expansion
+        and deliberately leaves ``(London, England)`` alone — the qualifier is
+        exactly what tells two serials sharing a base title apart.
         """
         assert classify(
             "container", "The Lancet", "Lancet (London, England)", container_alternates=[]
@@ -462,6 +464,63 @@ class TestContainerLeadingArticle:
     def test_an_unrelated_journal_is_not_a_dropped_article(self) -> None:
         assert classify(
             "container", "BMJ", "Lancet (London, England)", container_alternates=["Lancet"]
+        ) is None
+
+
+class TestContainerSocietySubtitle:
+    """MEDLINE's ``JT`` also spells out the society, after a spaced colon.
+
+    PMID 32430337's own block, in ``tests/data/pubmed_society_expansion.txt``:
+    ``TA - Cancer Epidemiol Biomarkers Prev`` beside the ``JT`` below. Where
+    ``TA`` is a real abbreviation rather than the journal's plain name, neither
+    the alternate-title route nor the leading-article rule reaches the entry
+    that stores the masthead name, and 26 of 173 journals in a 300-record
+    sample are filed this way.
+    """
+
+    JT = (
+        "Cancer epidemiology, biomarkers & prevention : a publication of the American "
+        "Association for Cancer Research, cosponsored by the American Society of "
+        "Preventive Oncology"
+    )
+    TA = ("Cancer Epidemiol Biomarkers Prev",)
+
+    def test_the_masthead_name_against_the_society_expansion_is_an_artifact(self) -> None:
+        assert classify(
+            "container", "Cancer Epidemiology, Biomarkers & Prevention", self.JT,
+            container_alternates=list(self.TA),
+        ) == "registry appends the sponsoring society to the journal name"
+
+    def test_a_journal_sharing_the_opening_words_still_fires(self) -> None:
+        """The pairing. *Cancer Epidemiology* is Elsevier's, a different journal.
+
+        The stored name has to equal the whole of the base title, not open it:
+        a prefix test would explain away exactly the sibling-journal error the
+        container check exists to report.
+        """
+        assert classify(
+            "container", "Cancer Epidemiology", self.JT, container_alternates=list(self.TA)
+        ) is None
+
+    def test_an_unrelated_journal_still_fires(self) -> None:
+        assert classify(
+            "container", "Clinical Cancer Research", self.JT, container_alternates=list(self.TA)
+        ) is None
+
+    def test_a_place_qualifier_is_not_a_society_expansion(self) -> None:
+        """The shape the rule refuses to touch, and the cost of refusing it.
+
+        ``Annals of medicine and surgery (2012)`` (``TA - Ann Med Surg
+        (Lond)``) is a correct entry reported as a `container/mismatch`,
+        because the qualifier is what tells that serial from the earlier one of
+        the same name and a rule that dropped it would merge the two. The false
+        alarm is the deliberately chosen half of that trade — see
+        ``docs/registry-artifacts.md``.
+        """
+        assert classify(
+            "container", "Annals of Medicine and Surgery",
+            "Annals of medicine and surgery (2012)",
+            container_alternates=["Ann Med Surg (Lond)"],
         ) is None
 
 

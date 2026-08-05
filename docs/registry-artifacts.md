@@ -653,20 +653,28 @@ passes.
 ## Journal names as MEDLINE files them
 
 **What happens.** NLM does not record a journal under the name on its masthead.
-It drops the leading article, and it appends a place-of-publication qualifier
-wherever the bare title would be ambiguous. MEDLINE's `JT` is therefore `Lancet
-(London, England)`, `BMJ (Clinical research ed.)`, `Science (New York, N.Y.)`,
-while `TA` holds the abbreviation — which for those three is the journal's plain
-name. A bibliography stores neither: it stores `The Lancet`.
+It drops the leading article; it appends a place-of-publication qualifier in
+parentheses wherever the bare title would be ambiguous; and it spells out the
+society whose journal it is after a spaced colon. MEDLINE's `JT` is therefore
+`Lancet (London, England)`, `BMJ (Clinical research ed.)`, `Science (New York,
+N.Y.)`, `Cancer epidemiology, biomarkers & prevention : a publication of the
+American Association for Cancer Research, cosponsored by the American Society
+of Preventive Oncology`, while `TA` holds the abbreviation — which for the
+first three is the journal's plain name and for the fourth is `Cancer Epidemiol
+Biomarkers Prev`. A bibliography stores none of these: it stores `The Lancet`.
 
 **Observed.** PMID 9500320, Wakefield et al. 1998, recorded verbatim in
 `tests/data/compare_pubmed_wakefield_retracted.txt` (`TA - Lancet`, `JT -
-Lancet (London, England)`). It matters most on the PMID path, where PubMed is
-the only registry consulted and its `JT` is the only container value there is:
-every correct Lancet, BMJ or Science entry resolved by PMID was a
-`FIELD-MISMATCH`, and the run exited 1.
+Lancet (London, England)`), and PMID 32430337, Michaud et al.,
+`10.1158/1055-9965.EPI-20-0378`, in `tests/data/pubmed_society_expansion.txt`.
+The society expansion is on 26 of the 173 journals in a 300-record sample of
+live `efetch` output — *J Clin Oncol*, *Clin Cancer Res*, *Ann Oncol*, *Toxicol
+Sci* and *Am J Transplant* among them. It matters most on the PMID path, where
+PubMed is the only registry consulted and its `JT` is the only container value
+there is: every correct Lancet, BMJ, Science or Cancer Epidemiology, Biomarkers
+& Prevention entry resolved by PMID was a `FIELD-MISMATCH`, and the run exited 1.
 
-**Handling, in two places.**
+**Handling, in three places.**
 
 `registries/pubmed._record_from_medline` puts `TA` on the record's
 `container_alternates` as well as its `container_short`. Both are titles PubMed
@@ -682,6 +690,25 @@ qualifier is not stripped, and deliberately: `(London, England)` is exactly
 what tells two serials sharing a base title apart, so a rule that dropped it
 would merge them. `The Lancet Oncology` against `Lancet (London, England)`
 therefore still fires, as does `BMJ`.
+
+`benign._container_society_subtitle` covers the third shape. It compares the
+stored name against the part of the registry's value **before NLM's own spaced
+colon**, and accepts only an exact match there: `Cancer Epidemiology,
+Biomarkers & Prevention` against the `JT` above is suppressed, while `Cancer
+Epidemiology` — a different journal, published by Elsevier — differs from that
+base title by a word and still fires. Nothing else reaches this case: `TA` is a
+real abbreviation for these journals rather than the plain name, and
+`_container_abbreviation` requires the stored tokens to reach the *end* of the
+registry's name, which is the society and not the journal.
+
+Only the colon form is stripped, never the parenthetical one, and the
+difference is not cosmetic. The society expansion is the same serial's own
+subtitle; the parenthetical qualifier exists precisely to tell two serials
+sharing a base title apart. A journal whose `JT` carries a qualifier *and*
+whose `TA` is a real abbreviation — `Annals of medicine and surgery (2012)`,
+`TA - Ann Med Surg (Lond)` — therefore still reports a `container/mismatch`
+against an entry storing the masthead name. That is a known false alarm, kept
+deliberately in preference to a rule that would merge two journals.
 
 ---
 

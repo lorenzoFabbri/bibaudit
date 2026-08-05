@@ -63,6 +63,14 @@ _REDIRECTING_PREFIXES = ("10.2307/",)
 #: value, where punctuation is already gone and the separator is one space.
 _LEADING_ARTICLE = re.compile(r"^(?:the|a|an) ")
 
+#: How NLM separates a serial's title from the society whose journal it is, in
+#: ``JT``: ``Journal of clinical oncology : official journal of the American
+#: Society of Clinical Oncology``. Spaced on both sides, which is NLM's own
+#: convention and not a title's ordinary "Title: subtitle" colon. Matched
+#: before :func:`~bibaudit.normalize.fold`, which deletes the punctuation this
+#: depends on — see :func:`_container_society_subtitle`.
+_MEDLINE_SOCIETY_SUBTITLE = " : "
+
 #: Smallest gap, in years, between an entry's year and a registry ``issued``
 #: date that :func:`_year_deposit_artifact` will read as a deposit timestamp
 #: rather than as a wrong year. A re-deposited working paper lands many years
@@ -353,6 +361,46 @@ def _container_leading_article(field: str, stored: str, registry: str, ref: Refe
     return None
 
 
+def _container_society_subtitle(field: str, stored: str, registry: str, ref: Reference, rec: Record) -> str | None:
+    """Stored name is the journal's; the registry adds the society it belongs to.
+
+    Instance: PMID 32430337 — Michaud et al., 10.1158/1055-9965.EPI-20-0378,
+    recorded verbatim in ``tests/data/pubmed_society_expansion.txt``. MEDLINE's
+    ``JT`` is ``Cancer epidemiology, biomarkers & prevention : a publication of
+    the American Association for Cancer Research, cosponsored by the American
+    Society of Preventive Oncology``; the masthead, the bibliography and
+    Crossref all say *Cancer Epidemiology, Biomarkers & Prevention*. NLM writes
+    that expansion on 26 of the 173 journals in a 300-record sample of live
+    ``efetch`` output — *J Clin Oncol*, *Clin Cancer Res*, *Ann Oncol*,
+    *Toxicol Sci* and *Am J Transplant* among them.
+
+    Nothing else covers it. ``TA`` reaches
+    :attr:`~bibaudit.model.Record.container_alternates`, but where it is a real
+    abbreviation (``Cancer Epidemiol Biomarkers Prev``) it equals neither the
+    stored value nor anything :func:`_container_abbreviation` will accept: that
+    rule requires the stored tokens to reach the *end* of the registry's name,
+    and the society expansion is what they cannot reach. On the PMID path
+    PubMed is the only registry there is and ``JT`` the only container, so
+    every correct entry citing one of those journals was a ``FIELD-MISMATCH``.
+
+    Only the text before NLM's own :data:`_MEDLINE_SOCIETY_SUBTITLE` separator
+    is compared, and it has to equal the stored name outright: *Cancer
+    Epidemiology* — a different journal — differs from the base title by a
+    word, so it still fires. A **parenthetical** qualifier is deliberately not
+    treated this way: ``(London, England)``, ``(Clinical research ed.)``,
+    ``(2012)`` are what tell two serials sharing a base title apart, and
+    dropping one would merge them. Those are reached instead through ``TA``,
+    which for such journals is the plain name — see
+    :func:`_container_leading_article`.
+    """
+    if field != "container":
+        return None
+    base, separator, _ = registry.partition(_MEDLINE_SOCIETY_SUBTITLE)
+    if not separator or fold(base) != fold(stored):
+        return None
+    return "registry appends the sponsoring society to the journal name"
+
+
 def _doi_redirecting_prefix(field: str, stored: str, registry: str, ref: Reference, rec: Record) -> str | None:
     """Stored DOI belongs to an aggregator that redirects to the publisher's.
 
@@ -406,6 +454,7 @@ CHECKS: tuple[ArtifactCheck, ...] = (
     _pages_article_number,
     _container_abbreviation,
     _container_leading_article,
+    _container_society_subtitle,
     _doi_redirecting_prefix,
     _pmid_pmc_accession,
 )

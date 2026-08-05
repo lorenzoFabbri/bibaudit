@@ -1,0 +1,134 @@
+
+PMID- 32430337
+OWN - NLM
+STAT- MEDLINE
+DCOM- 20211124
+LR  - 20211124
+IS  - 1538-7755 (Electronic)
+IS  - 1055-9965 (Print)
+IS  - 1055-9965 (Linking)
+VI  - 29
+IP  - 8
+DP  - 2020 Aug
+TI  - DNA Methylation-Derived Immune Cell Profiles, CpG Markers of Inflammation, and 
+      Pancreatic Cancer Risk.
+PG  - 1577-1585
+LID - 10.1158/1055-9965.EPI-20-0378 [doi]
+AB  - BACKGROUND: Pancreatic cancer is projected to become the second most common cause 
+      of cancer-related death over the next 5 years. Because inflammation is thought to 
+      be a common trajectory for disease initiation, we sought to prospectively 
+      characterize immune profiles using DNA methylation markers and examine DNA 
+      methylation levels previously linked to inflammation biomarkers to evaluate 
+      whether these immune markers play a key role in pancreatic cancer. METHODS: In a 
+      nested case-control study pooling three U.S. prospective cohort studies, DNA 
+      methylation was measured in prediagnostic leukocytes of incident pancreatic 
+      cancer cases and matched controls using the Illumina MethylationEPIC array. 
+      Differentially methylated regions were used to predict immune cell types, and 
+      CpGs previously associated with inflammatory biomarkers were selected for the 
+      analysis. DNA methylation data from a retrospective case-control study conducted 
+      in Spain (PanGenEU) was used for independent replication. RESULTS: Immune cell 
+      proportions and ratio of cell proportions were not associated with pancreatic 
+      cancer risk in the nested case-control study. Methylation extent of CpGs residing 
+      in or near gene MNDA was significantly associated with pancreatic cancer risk in 
+      the nested case-control study and replicated in PanGenEU. Methylation level of a 
+      promoter CpG of gene PIM-1 was associated with survival in both studies. 
+      CONCLUSIONS: Using a targeted approach, we identified several CpGs that may play 
+      a role in pancreatic carcinogenesis in two large, independent studies with 
+      distinct study designs. IMPACT: These findings could provide insight into 
+      critical pathways that may help identify new markers of early disease and 
+      survival.
+CI  - (c)2020 American Association for Cancer Research.
+FAU - Michaud, Dominique S
+AU  - Michaud DS
+AD  - Department of Public Health & Community Medicine, Tufts University School of 
+      Medicine, Tufts University, Boston, Massachusetts. Dominique.Michaud@tufts.edu.
+AD  - Department of Epidemiology, Brown University, Providence, Rhode Island.
+FAU - Ruan, Mengyuan
+AU  - Ruan M
+AUID- ORCID: 0000-0001-7555-8963
+AD  - Department of Public Health & Community Medicine, Tufts University School of 
+      Medicine, Tufts University, Boston, Massachusetts.
+FAU - Koestler, Devin C
+AU  - Koestler DC
+AD  - Department of Biostatistics & Data Science, University of Kansas Medical Center, 
+      Kansas City, Kansas.
+AD  - University of Kansas Cancer Center, University of Kansas Medical Center, Kansas 
+      City, Kansas.
+FAU - Alonso, Lola
+AU  - Alonso L
+AUID- ORCID: 0000-0002-3493-718X
+AD  - Genetic and Molecular Epidemiology Group, Spanish National Cancer Research Centre 
+      (CNIO) and CIBERONC, Madrid, Spain.
+FAU - Molina-Montes, Esther
+AU  - Molina-Montes E
+AD  - Genetic and Molecular Epidemiology Group, Spanish National Cancer Research Centre 
+      (CNIO) and CIBERONC, Madrid, Spain.
+FAU - Pei, Dong
+AU  - Pei D
+AD  - Department of Biostatistics & Data Science, University of Kansas Medical Center, 
+      Kansas City, Kansas.
+AD  - University of Kansas Cancer Center, University of Kansas Medical Center, Kansas 
+      City, Kansas.
+FAU - Marsit, Carmen J
+AU  - Marsit CJ
+AUID- ORCID: 0000-0003-4566-150X
+AD  - Department of Environmental Health and Department of Epidemiology, Rollins School 
+      of Public Health, Emory University, Atlanta, Georgia.
+FAU - De Vivo, Immaculata
+AU  - De Vivo I
+AD  - Channing Division of Network Medicine, Department of Medicine, Brigham and 
+      Women's Hospital and Harvard Medical School, Boston, Massachusetts.
+FAU - Malats, Nuria
+AU  - Malats N
+AD  - Genetic and Molecular Epidemiology Group, Spanish National Cancer Research Centre 
+      (CNIO) and CIBERONC, Madrid, Spain.
+FAU - Kelsey, Karl T
+AU  - Kelsey KT
+AD  - Department of Epidemiology, Brown University, Providence, Rhode Island.
+AD  - Department of Pathology and Laboratory Medicine, Brown University, Providence, 
+      Rhode Island.
+LA  - eng
+GR  - P20 GM103418/GM/NIGMS NIH HHS/United States
+GR  - P20 GM130423/GM/NIGMS NIH HHS/United States
+GR  - R01 CA207110/CA/NCI NIH HHS/United States
+PT  - Journal Article
+PT  - Research Support, N.I.H., Extramural
+PT  - Research Support, Non-U.S. Gov't
+DEP - 20200519
+PL  - United States
+TA  - Cancer Epidemiol Biomarkers Prev
+JT  - Cancer epidemiology, biomarkers & prevention : a publication of the American 
+      Association for Cancer Research, cosponsored by the American Society of 
+      Preventive Oncology
+JID - 9200608
+RN  - 0 (Biomarkers)
+SB  - IM
+MH  - Biomarkers/*metabolism
+MH  - Case-Control Studies
+MH  - DNA Methylation/*genetics
+MH  - Female
+MH  - Humans
+MH  - Male
+MH  - Middle Aged
+MH  - Pancreatic Neoplasms/*genetics/mortality
+MH  - Risk Factors
+MH  - Survival Analysis
+PMC - PMC7415654
+MID - NIHMS1596759
+COIS- Conflict of Interest The authors have no conflicts of interests.
+EDAT- 2020/05/21 06:00
+MHDA- 2021/11/25 06:00
+PMCR- 2021/02/01
+CRDT- 2020/05/21 06:00
+PHST- 2020/03/10 00:00 [received]
+PHST- 2020/04/09 00:00 [revised]
+PHST- 2020/05/13 00:00 [accepted]
+PHST- 2020/05/21 06:00 [pubmed]
+PHST- 2021/11/25 06:00 [medline]
+PHST- 2020/05/21 06:00 [entrez]
+PHST- 2021/02/01 00:00 [pmc-release]
+AID - 1055-9965.EPI-20-0378 [pii]
+AID - 10.1158/1055-9965.EPI-20-0378 [doi]
+PST - ppublish
+SO  - Cancer Epidemiol Biomarkers Prev. 2020 Aug;29(8):1577-1585. doi: 
+      10.1158/1055-9965.EPI-20-0378. Epub 2020 May 19.
