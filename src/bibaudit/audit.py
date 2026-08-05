@@ -179,11 +179,16 @@ class _Registries:
     openlibrary: OpenLibrary | None = None
     #: Independent retraction corroboration (Retraction Watch, PubMed's
     #: ``ECI``). ``None`` for the same two reasons as ``openlibrary`` above —
-    #: a hand-built test, or ``--no-retraction-check``. Guarded the same way,
-    #: in :func:`_resolve_retractions` and nowhere else: this is the *only*
-    #: place :class:`~bibaudit.registries.retractions.Retractions` is ever
-    #: consulted, so there is exactly one call site to keep in sync with the
-    #: flag.
+    #: a hand-built test, or ``--no-retraction-check``. Three functions guard
+    #: on it, one per way a reference resolves, and all three have to agree
+    #: about what the flag means or a run turns the corroboration off for some
+    #: entries and not others: :func:`_resolve_retractions` for a stored DOI,
+    #: :func:`_audit_unidentified` for a DOI a title/author search confirmed,
+    #: and :func:`_with_pubmed_concern` for an entry carrying a PMID and no
+    #: DOI — that last one calls no method here at all, because ``ECI`` is a
+    #: line on a citation already fetched rather than a lookup. A route left
+    #: out of the set is not a reference reported as unchecked; it is one
+    #: reported clean.
     retractions: Retractions | None = None
 
 
