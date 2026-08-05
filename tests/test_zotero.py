@@ -1584,7 +1584,15 @@ def csl() -> dict[str, Reference]:
 
 
 class TestCslJson:
-    """``File > Export Library > CSL JSON``."""
+    """``File > Export Library > CSL JSON``.
+
+    ``papantoniou2017`` is the real citation throughout: Papantoniou et al.,
+    *Scand J Work Environ Health* 2017;43(3):250-259, 10.5271/sjweh.3626, PMID
+    28251241. It carried 10.1093/aje/kwx137 and PMID 28520842 beside that
+    title, which are the real pair for a *different* paper (Kim et al., alcohol
+    and breast cancer, *Am J Epidemiol*) — so the fixture that shows what the
+    PMID check compares showed an identifier naming another work.
+    """
 
     def test_scalar_fields_map_onto_the_reference(
         self, csl: dict[str, Reference]
@@ -1598,12 +1606,12 @@ class TestCslJson:
         assert ref.title == (
             "Shift work and colorectal cancer risk in the MCC-Spain case-control study"
         )
-        assert ref.container == "American Journal of Epidemiology"
-        assert ref.volume == "186"
-        assert ref.issue == "5"
-        assert ref.pages == "533-540"
-        assert ref.doi == "10.1093/aje/kwx137"
-        assert ref.url == "https://doi.org/10.1093/aje/kwx137"
+        assert ref.container == "Scandinavian Journal of Work, Environment & Health"
+        assert ref.volume == "43"
+        assert ref.issue == "3"
+        assert ref.pages == "250-259"
+        assert ref.doi == "10.5271/sjweh.3626"
+        assert ref.url == "https://doi.org/10.5271/sjweh.3626"
         assert ref.locator == "zotero:papantoniou2017"
 
     def test_authors_keep_their_order_and_split(self, csl: dict[str, Reference]) -> None:
@@ -1650,7 +1658,7 @@ class TestCslJson:
         """CSL carries ``PMID`` as a variable of its own, and an exporter that
         recognised the value writes it there rather than into ``note``.
         """
-        assert csl["papantoniou2017"].pmid == "28520842"
+        assert csl["papantoniou2017"].pmid == "28251241"
 
     def test_a_pmid_written_into_the_note_is_read(self, csl: dict[str, Reference]) -> None:
         """Everything else in a Zotero item's Extra box lands in CSL's ``note``,

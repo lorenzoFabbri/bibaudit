@@ -3,18 +3,18 @@
     "id": "papantoniou2017",
     "type": "article-journal",
     "title": "Shift work and colorectal cancer risk in the MCC-Spain case-control study",
-    "container-title": "American Journal of Epidemiology",
-    "page": "533-540",
-    "volume": "186",
-    "issue": "5",
-    "DOI": "10.1093/aje/kwx137",
-    "PMID": "28520842",
-    "URL": "https://doi.org/10.1093/aje/kwx137",
+    "container-title": "Scandinavian Journal of Work, Environment & Health",
+    "page": "250-259",
+    "volume": "43",
+    "issue": "3",
+    "DOI": "10.5271/sjweh.3626",
+    "PMID": "28251241",
+    "URL": "https://doi.org/10.5271/sjweh.3626",
     "author": [
       { "family": "Papantoniou", "given": "Kyriaki" },
       { "family": "Castano-Vinyals", "given": "Gemma" }
     ],
-    "issued": { "date-parts": [["2017", 8, 15]] }
+    "issued": { "date-parts": [["2017", 3, 2]] }
   },
   {
     "id": "ehbccg2002",
