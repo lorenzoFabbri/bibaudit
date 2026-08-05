@@ -67,8 +67,14 @@ _LEADING_ARTICLE = re.compile(r"^(?:the|a|an) ")
 #: serial under, in ``JT``: ``Journal of clinical oncology : official journal
 #: of the American Society of Clinical Oncology``. Spaced on both sides, which
 #: is NLM's own convention and not a title's ordinary "Title: subtitle" colon.
-#: Matched before :func:`~bibaudit.normalize.fold`, which deletes the
-#: punctuation this depends on — see :func:`_container_medline_subtitle`.
+#: The spacing is the whole of the separator's safety: Crossref's literal
+#: ``container-title`` for 10.1161/circoutcomes.5.suppl_1.a180 is ``Circulation:
+#: Cardiovascular Quality and Outcomes``, a different AHA journal from
+#: *Circulation*, and a bare colon would suppress the difference between the
+#: two — the sibling-journal merge :func:`_container_abbreviation`'s final-token
+#: rule exists to prevent. Matched before :func:`~bibaudit.normalize.fold`,
+#: which deletes the punctuation this depends on — see
+#: :func:`_container_medline_subtitle`.
 _MEDLINE_SUBTITLE = " : "
 
 #: Smallest gap, in years, between an entry's year and a registry ``issued``

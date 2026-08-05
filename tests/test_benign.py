@@ -579,6 +579,21 @@ class TestContainerMedlineSubtitle:
             "The Journal of Cancer : official journal of the Cancer Society",
         ) is None
 
+    def test_a_titles_own_unspaced_colon_is_not_the_separator(self) -> None:
+        """`Circulation: Cardiovascular Quality and Outcomes` is another journal.
+
+        Crossref's literal `container-title` for
+        10.1161/circoutcomes.5.suppl_1.a180, and an AHA title distinct from
+        *Circulation*. NLM spaces its own separator on both sides; a masthead
+        writes `Title: Subtitle` closed up. Matching on a bare colon merges two
+        journals in one family — the error `_container_abbreviation`'s
+        final-token rule exists to prevent, arriving through the rule written
+        beside it.
+        """
+        assert classify(
+            "container", "Circulation", "Circulation: Cardiovascular Quality and Outcomes"
+        ) is None
+
     def test_a_colon_inside_a_parenthetical_qualifier_is_not_the_separator(self) -> None:
         """PMID 42552576: ``ASAIO journal (American Society for Artificial
         Internal Organs : 1992)``.
@@ -719,6 +734,15 @@ class TestRuleScoping:
             (
                 "title", "The Lancet", "Lancet",
                 {"container_alternates": []}, "_container_leading_article",
+            ),
+            # _container_medline_subtitle accepts a stored value equal to
+            # everything before NLM's spaced colon. Unscoped, an entry titled
+            # "Vitamin D" is explained against a registry title of "Vitamin D :
+            # a review of the evidence" — a different document, reached through
+            # the one field that says which work is cited.
+            (
+                "title", "Vitamin D", "Vitamin D : a review of the evidence",
+                {}, "_container_medline_subtitle",
             ),
             # _pmid_pmc_accession compares a stored number against the record's
             # own PMC line. Unscoped, any field whose value happens to equal
