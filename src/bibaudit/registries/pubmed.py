@@ -274,6 +274,22 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
     year = parse_year(_first(fields.get("DP")))
     if year is not None:
         years["issued"] = year
+    # ``DP`` is the issue the citation is filed under; ``DEP`` is the day the
+    # work actually went online, and for anything published ahead of its issue
+    # the two carry different years. PMID 41474069 (*Int J Cancer*, recorded in
+    # ``tests/data/pubmed_epub_ahead_of_issue.txt``) is ``DP - 2026 May 1``
+    # against ``DEP - 20251231``: a bibliography populated at e-pub time stores
+    # 2025, which is a year this very record carries, and reading ``DP`` alone
+    # reported it as wrong. On the PMID path PubMed is the only registry there
+    # is, so nothing else supplies the second date the way Crossref's
+    # ``published-online`` does on the DOI path. ``PHST`` is not read instead:
+    # that record's history stamps are ``[received]``, ``[accepted]``,
+    # ``[revised]``, ``[pubmed]``, ``[entrez]``, ``[medline]``, ``[pmc-release]``
+    # and no ``[epublish]`` at all, so the stamps that exist are dates the work
+    # was *not* published on.
+    online = parse_year(_first(fields.get("DEP")))
+    if online is not None:
+        years["online"] = online
 
     raw: dict[str, Any] = dict(fields)
     if translated:

@@ -701,6 +701,33 @@ class TestByDois:
         assert PubMed(client).by_dois([WAKEFIELD_DOI]) == {}
 
 
+class TestPublicationDates:
+    """A work published ahead of its issue has two dates, and MEDLINE has both.
+
+    ``tests/data/pubmed_epub_ahead_of_issue.txt`` is PMID 41474069 (*Int J
+    Cancer*, 10.1002/ijc.70265) verbatim: ``DP - 2026 May 1`` beside ``DEP -
+    20251231``. A bibliography populated when the paper went online stores
+    2025 — a year this record itself carries — and on the PMID path PubMed is
+    the only registry there is, so a reader of ``DP`` alone has no second date
+    to accept it against.
+    """
+
+    def _record(self) -> Record:
+        return _resolve_one("epub_ahead_of_issue", pmid="41474069", doi="10.1002/ijc.70265")
+
+    def test_the_electronic_publication_date_is_kept_beside_the_issue_date(self) -> None:
+        assert self._record().years == {"issued": 2026, "online": 2025}
+
+    def test_the_issue_date_is_still_the_one_the_record_prefers(self) -> None:
+        """Which year the *report* names is unchanged: ``DP`` is the citation.
+
+        ``Record.year`` is what a mismatch line prints and what
+        ``benign._year_online_first`` calls the registry's preference, so
+        carrying the second date must not quietly reorder the first.
+        """
+        assert self._record().year == 2026
+
+
 class TestByPmids:
     """A reference that stores its own PMID needs ``efetch`` and nothing else.
 

@@ -1,0 +1,225 @@
+
+PMID- 41474069
+OWN - NLM
+STAT- MEDLINE
+DCOM- 20260307
+LR  - 20260308
+IS  - 1097-0215 (Electronic)
+IS  - 0020-7136 (Print)
+IS  - 0020-7136 (Linking)
+VI  - 158
+IP  - 9
+DP  - 2026 May 1
+TI  - Five-year outcomes of pembrolizumab versus chemotherapy in Chinese patients with 
+      non-small-cell lung cancer and programmed cell death ligand 1 tumor proportion 
+      score >/=1%: KEYNOTE-042 China study.
+PG  - 2429-2439
+LID - 10.1002/ijc.70265 [doi]
+AB  - In the phase 3 KEYNOTE-042 China study of participants enrolled in China in the 
+      global KEYNOTE-042 (NCT02220894) and China extension (NCT03850444) studies, 
+      pembrolizumab improved overall survival (OS) versus chemotherapy in locally 
+      advanced or metastatic non-small-cell lung cancer (NSCLC) with programmed cell 
+      death ligand 1 (PD-L1) tumor proportion score (TPS) >/=50% (hazard ratio [HR], 
+      0.63; 95% CI, 0.43-0.94), >/=20% (0.66; 0.47-0.92), and >/=1% (0.67; 0.50-0.89). We 
+      present outcomes from this study after 5 years of follow-up. Chinese participants 
+      with previously untreated locally advanced or metastatic NSCLC with PD-L1 TPS >/=1% 
+      without EGFR or ALK alterations were eligible. Participants were randomized 1:1 
+      to pembrolizumab 200 mg every 3 weeks for up to 35 cycles or carboplatin plus 
+      paclitaxel or pemetrexed with optional pemetrexed maintenance (nonsquamous only). 
+      Primary endpoints were OS in the PD-L1 TPS >/=50%, >/=20%, and >/=1% subgroups. Median 
+      follow-up was 63.7 (range, 56.3-72.6) months among 262 participants 
+      (pembrolizumab, n = 128; chemotherapy, n = 134) included in this study. 
+      Pembrolizumab prolonged OS versus chemotherapy in participants with PD-L1 TPS 
+      >/=50% (HR, 0.65; 95% CI, 0.45-0.93), >/=20% (0.67; 0.49-0.91), and >/=1% (0.66; 
+      0.51-0.87). Grade 3 to 5 treatment-related AEs occurred in 19.5% and 68.8% of 
+      participants in the pembrolizumab and chemotherapy groups, respectively. In 
+      conclusion, after 5 years of follow-up, pembrolizumab continued to demonstrate 
+      improved OS versus chemotherapy with manageable safety in Chinese participants 
+      with previously untreated locally advanced or metastatic NSCLC that expressed 
+      PD-L1. These data further support pembrolizumab monotherapy as a standard of care 
+      for these patients.
+CI  - (c) 2025 Merck & Co., Inc and The Author(s). International Journal of Cancer 
+      published by John Wiley & Sons Ltd on behalf of UICC.
+FAU - Wu, Yi-Long
+AU  - Wu YL
+AUID- ORCID: 0000-0002-3611-0258
+AD  - Guangdong Lung Cancer Institute, Guangdong Provincial People's Hospital 
+      (Guangdong Academy of Medical Sciences), Southern Medical University, Guangzhou, 
+      China.
+FAU - Zhang, Li
+AU  - Zhang L
+AD  - Respiratory Medicine Department, Peking Union Medical College Hospital, Beijing, 
+      China.
+FAU - Fan, Yun
+AU  - Fan Y
+AUID- ORCID: 0000-0003-1755-0175
+AD  - Department of Thoracic Medical Oncology, The Cancer Hospital of the University of 
+      Chinese Academy of Sciences (Zhejiang Cancer Hospital), Hangzhou, China.
+FAU - Zhou, JianYing
+AU  - Zhou J
+AD  - Department of Respiratory Medicine, The First Affiliated Hospital of Zhejiang 
+      University, Hangzhou, China.
+FAU - Zhang, Li
+AU  - Zhang L
+AD  - Department of Medical Oncology, Sun Yat-Sen University Cancer Center, Guangzhou, 
+      China.
+FAU - Zhou, Qing
+AU  - Zhou Q
+AD  - Guangdong Lung Cancer Institute, Guangdong Provincial People's Hospital 
+      (Guangdong Academy of Medical Sciences), Southern Medical University, Guangzhou, 
+      China.
+FAU - Li, Wei
+AU  - Li W
+AD  - Oncology Department, The First Hospital of Jilin University, Changchun, China.
+FAU - Hu, ChengPing
+AU  - Hu C
+AD  - Department of Respiratory Medicine, Xiangya Hospital-Central South University, 
+      Changsha, China.
+FAU - Chen, GongYan
+AU  - Chen G
+AD  - Department of Respiratory Medicine, The Third Affiliated Hospital of Harbin 
+      Medical University, Harbin, China.
+FAU - Zhang, Xin
+AU  - Zhang X
+AD  - Respiratory Diseases Department, Zhongshan Hospital, Fudan University, Shanghai, 
+      China.
+FAU - Zhou, CaiCun
+AU  - Zhou C
+AD  - School of Medicine, Tongji University and Shanghai Pulmonary Hospital, Shanghai, 
+      China.
+FAU - Arenas, Carmen Gonzalez
+AU  - Arenas CG
+AD  - Oncology European Clinical Development, Merck Research Laboratories, GCD, MSD 
+      Spain, Madrid, Spain.
+FAU - Chen, Zhenghong
+AU  - Chen Z
+AD  - Medical Oncology, MSD China, Beijing, China.
+FAU - Yu, Wen Cheng
+AU  - Yu WC
+AD  - Medical Oncology, MSD China, Beijing, China.
+FAU - Mok, Tony S K
+AU  - Mok TSK
+AD  - State Key Laboratory of Translational Oncology, Chinese University of Hong Kong, 
+      Hong Kong, China.
+LA  - eng
+GR  - Merck Sharp & Dohme LLC, a subsidiary of Merck & Co., Inc., Rahway, NJ, USA/
+PT  - Clinical Trial, Phase III
+PT  - Journal Article
+PT  - Multicenter Study
+PT  - Randomized Controlled Trial
+DEP - 20251231
+PL  - United States
+TA  - Int J Cancer
+JT  - International journal of cancer
+JID - 0042124
+RN  - DPT0O3T46P (pembrolizumab)
+RN  - 0 (Antibodies, Monoclonal, Humanized)
+RN  - 0 (B7-H1 Antigen)
+RN  - 0 (CD274 protein, human)
+RN  - Chinese people
+SB  - IM
+MH  - Humans
+MH  - *Carcinoma, Non-Small-Cell Lung/drug therapy/pathology/mortality
+MH  - *Antibodies, Monoclonal, Humanized/therapeutic use/administration & 
+      dosage/adverse effects
+MH  - *Lung Neoplasms/drug therapy/pathology/mortality
+MH  - *B7-H1 Antigen/metabolism/antagonists & inhibitors
+MH  - Male
+MH  - Female
+MH  - Middle Aged
+MH  - China
+MH  - Aged
+MH  - *Antineoplastic Combined Chemotherapy Protocols/therapeutic use/adverse effects
+MH  - Adult
+MH  - Follow-Up Studies
+MH  - Treatment Outcome
+MH  - East Asian People
+PMC - PMC12963706
+OTO - NOTNLM
+OT  - chemotherapy
+OT  - non-small-cell lung cancer
+OT  - pembrolizumab
+OT  - programmed cell death ligand 1
+COIS- Yi-Long Wu: Grants and research support from AstraZeneca, Boehringer Ingelheim, 
+      BMS, Hengrui, and Roche; Advisor/Board member for AstraZeneca, Boehringer 
+      Ingelheim, Novartis, Takeda, and MSD; and Honorarium from AstraZeneca, Beigen, 
+      Boehringer Ingelheim, BMS, Eli Lilly, MSD, Novartis, Pfizer, Roche, and Sanofi 
+      (none were promotional activities). Li Zhang, Yun Fan, JianYing Zhou, Wei Li, 
+      ChengPing Hu, GongYan Chen, and Xin Zhang: Merck Sharp & Dohme LLC, a subsidiary 
+      of Merck & Co., Inc., Rahway, NJ, USA provided funding support for study conduct 
+      and medical writing. Li Zhang: Research grants from Hengrui, BMS, and Innovent 
+      Biologics. Qing Zhou: Honoraria from AstraZeneca, Lilly, Roche, Pfizer, 
+      Boehringer Ingelheim, MSD Oncology, Bristol-Myers Squibb, Hengrui, and BeOne 
+      Medicines Ltd outside the submitted work. CaiCun Zhou: Honoraria from Boehringer 
+      Ingelheim, Eli Lilly, Hengrui, MSD, Sanofi, F. Hoffmann-La Roche Ltd., and Qilu. 
+      Carmen Gonzalez Arenas: Employee of MSD Spain and owns stock in Merck & Co., 
+      Inc., Rahway, NJ, USA. Zhenghong Chen and Wen Cheng Yu: Employees of MSD China. 
+      Tony S.K. Mok: Received grants or research support from AstraZeneca, Bristol 
+      Myers Squibb, G1 Therapeutics, MSD, Merck Serono, Novartis, Pfizer, Roche, SFJ 
+      Pharmaceuticals, and XCovery; speaker fees from AbbVie Inc., ACEA Pharma, 
+      Adagene, Alentis Therapeutics AG, Alpha Biopharma Co., Ltd., Amgen, Amoy 
+      Diagnostics Co., Ltd., AnHeart Therapeutics, AstraZeneca (before January 1, 
+      2019), AVEO Pharmaceuticals, Inc., Bayer Healthcare Pharmaceuticals Ltd., 
+      BeiGene, BerGenBio ASA, Berry Oncology, Boehringer Ingelheim, Blueprint Medicines 
+      Corporation, BMS, Bowtie Life Insurance Company Limited, Bridge Biotherapeutics 
+      Inc., Covidien LP, C4 Therapeutics Inc., Cirina Ltd., CStone Pharmaceuticals, 
+      Curio Science, D3 Bio Ltd., Da Volterra, Daiichi Sankyo, Eisai, Elevation 
+      Oncology, F. Hoffmann-La Roche Ltd., Genentech, GLG's Healthcare, Fishawack 
+      Facilitate Ltd., G1 Therapeutics Inc., geneDecode Co., Ltd, Gilead Sciences, Inc. 
+      Gritstone Oncology, Inc., Guardant Health, Hengrui Therapeutics Inc., HutchMed, 
+      Ignyta, Inc., Illumina, Inc., Incyte Corporation, Inivata, InxMed (Hong Kong) 
+      Limited, IQVIA, Janssen, Lakeshore Biotech Ltd, Lilly, Lunit USA, Inc., 
+      Loxo-Oncology, Lucence Health Inc., Medscape LLC/WebMD, Medtronic, Merck Serono, 
+      MSD, Mirati Therapeutics Inc., MiRXES, MoreHealth, Ningbo NewBay Technology 
+      Development Co., Ltd, Novartis, Novocure GmbH, Omega Therapeutics Inc., OrigiMed, 
+      OSE Immunotherapeutics, Phanes Therapeutics, Inc., PeerVoice, Pfizer, PrIME 
+      Oncology, Prenetics, Puma Biotechnology Inc., Qiming Development (HK) Ltd., 
+      Regeneron Pharmaceuticals Inc., Roche Pharmaceuticals/Diagnostics/Foundation One, 
+      Sanofi-Aventis, Schrodinger, Inc., SFJ Pharmaceutical Ltd., Simcere of America 
+      Inc., Summit Therapeutics Sub, Inc., Synergy Research, Takeda Pharmaceuticals HK 
+      Ltd., Tigermed, Vertex Pharmaceuticals, Virtus Medical Group, XENCOR, Inc., and 
+      Yuhan Corporation; is a stockholder in Alentis Therapeutics AG, AstraZeneca, 
+      Aurora Tele-Oncology Ltd., Biolidics Ltd., HutchMed, Prenetics, D3 Bio, and Lunit 
+      Inc.; holds stock options in, Bowtie Life Insurance Co. Ltd., D3 Bio, Lakeshore 
+      Biotech Ltd, Loxo-oncology, Lunit USA, Inc., Virtus Medical Group, Phanes 
+      Therapeutics, Inc., and Insighta; served as an advisory board member forAbbVie 
+      Inc., ACEA Pharma, Alentis Therapeutics AG, Amgen, AstraZeneca, BerGenBio ASA, 
+      Berry Oncology, Blueprint Medicines Corporation, Boehringer Ingelheim, Bowtie 
+      Life Insurance Co Ltd, Bristol Myers Squibb, C4 Therapeutics Inc, Covidien LP, 
+      CStone Pharmaceuticals, Curio Science, D3 Bio Ltd., Daiichi Sankyo Inc., Eisai, 
+      Fishawack Facilitate Ltd., G1 Therapeutics Inc., Gilead Sciences Inc., Gritstone 
+      Oncology, Inc., Guardant Health, geneDecode Co. Ltd. (uncompensated), Hengrui 
+      Therapeutics Inc., HutchMed, Ignyta Inc., Incyte Corporation, Imagene AI Ltd., 
+      Inivata, IQVIA, Janssen, Lakeshore Biotech, Lily, Loxo-Oncology Inc., Lunit, 
+      Inc., Merck Serono, MSD, Mirati Therapeutics Inc., MiRXES Group, Novartis, 
+      OrigiMed, Pfizer, Prenetics, Puma Biotechnology Inc., Roche/Genentech, Regeneron 
+      Pharmaceuticals Inc., Sanofi-Aventis R&D, SFJ Pharmaceutical, Simcere of America 
+      Inc., Simcere Zaiming, Inc., Summit Therapeutics, Inc., Takeda, Vertex 
+      Pharmaceuticals, Virtus Medical Group, and Yuhan Corporation; served on the board 
+      of directors or in a leadership role (renumerated) for AstraZeneca PLC (from 
+      January 2019 to present), HutchMed, Aurora, Insighta (from July 2023 to present), 
+      and Epoch (from April 2023 to present); and served on the board of directors or 
+      in a leadership role (non-renumerated) for American Society of Clinical Oncology 
+      (ASCO) (2018-2022), Asian Thoracic Oncology Research Group (ATORG) (2016 to 
+      Present), Chinese Lung Cancer Research Foundation Limited (CLCRF) (2005-2012), 
+      Chinese Society of Clinical Oncology (CSCO) (2009-2020), Hong Kong Cancer Fund 
+      (HKCF) (2011 to Present), Hong Kong Cancer Therapy Society (HKCTS) (2004 to 
+      Present), International Association for the Study of Lung Cancer (IASLC) 
+      (2007-2019), St. Stephen's College & Prep. School (2017 to Present), and Hong 
+      Kong Academy of Sciences (ASHK) (2022 to Present).
+EDAT- 2025/12/31 12:55
+MHDA- 2026/03/07 16:14
+PMCR- 2026/03/06
+CRDT- 2025/12/31 06:23
+PHST- 2025/08/19 00:00 [revised]
+PHST- 2024/11/12 00:00 [received]
+PHST- 2025/11/12 00:00 [accepted]
+PHST- 2026/03/07 16:14 [medline]
+PHST- 2025/12/31 12:55 [pubmed]
+PHST- 2025/12/31 06:23 [entrez]
+PHST- 2026/03/06 00:00 [pmc-release]
+AID - IJC70265 [pii]
+AID - 10.1002/ijc.70265 [doi]
+PST - ppublish
+SO  - Int J Cancer. 2026 May 1;158(9):2429-2439. doi: 10.1002/ijc.70265. Epub 2025 Dec 
+      31.

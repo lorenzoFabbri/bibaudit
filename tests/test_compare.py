@@ -1583,6 +1583,60 @@ class TestMedlineJournalTitleOnThePmidPath:
         assert [i.kind for i in result.issues if i.field == "container"] == ["mismatch"]
 
 
+class TestMedlineDatesOnThePmidPath:
+    """A work published ahead of its issue has two years, and MEDLINE has both.
+
+    Replayed against ``tests/data/pubmed_epub_ahead_of_issue.txt``, NCBI's own
+    bytes for PMID 41474069 (*Int J Cancer*, 10.1002/ijc.70265): ``DP - 2026
+    May 1``, ``DEP - 20251231``. On the DOI path Crossref supplies the same
+    pair as ``published-print``/``published-online`` and either is accepted; a
+    PMID-resolved entry has PubMed and nothing else, so a bibliography
+    populated when the paper went online was failed against the issue year of
+    the very record that carries both.
+    """
+
+    def _entry(self, year: int) -> Result:
+        ref = Reference(
+            key="keynote042china",
+            locator="references.bib:31",
+            kind="article",
+            pmid="41474069",
+            title=(
+                "Five-year outcomes of pembrolizumab versus chemotherapy in Chinese "
+                "patients with non-small-cell lung cancer and programmed cell death "
+                "ligand 1 tumor proportion score >/=1%: KEYNOTE-042 China study"
+            ),
+            authors=[Name(family="Wu", given="Yi-Long"), Name(et_al=True)],
+            year=year,
+            container="International Journal of Cancer",
+            volume="158",
+            issue="9",
+            pages="2429-2439",
+        )
+        return compare(ref, {"pubmed": pubmed_record("pubmed_epub_ahead_of_issue.txt")})
+
+    def test_the_year_the_work_went_online_is_accepted_and_named(self) -> None:
+        result = self._entry(2025)
+
+        assert not result.fails
+        [issue] = [i for i in result.issues if i.field == "year"]
+        assert (issue.kind, issue.severity) == ("alternate-date", "info")
+        assert issue.note == "cites the online date; registry prefers 2026"
+
+    def test_the_issue_year_is_accepted_with_nothing_to_explain(self) -> None:
+        result = self._entry(2026)
+
+        assert not result.fails
+        assert not [i for i in result.issues if i.field == "year"]
+
+    def test_a_year_neither_date_carries_still_fails(self) -> None:
+        """The pairing. Accepting a second date is not accepting any date."""
+        result = self._entry(2024)
+
+        assert result.verdict == "FIELD-MISMATCH"
+        assert [i.kind for i in result.issues if i.field == "year"] == ["mismatch"]
+
+
 class TestYearTolerance:
     def test_online_first_year_is_accepted(self) -> None:
         """A work online in 2020 and printed in 2021 has two correct years."""
