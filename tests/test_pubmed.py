@@ -628,6 +628,31 @@ class TestByDois:
         assert record.container == "American journal of epidemiology"
         assert record.container_short == "Am J Epidemiol"
 
+    def test_the_abbreviation_is_offered_as_an_alternate_container_too(self) -> None:
+        """``TA`` is another title PubMed names for the same journal.
+
+        NLM files a serial under a title of its own making — no leading
+        article, and a place qualifier wherever the bare title would be
+        ambiguous — so ``JT`` here is ``Lancet (London, England)``, which no
+        bibliography stores. On the PMID path PubMed is the only registry
+        consulted, leaving ``JT`` as the only container an entry could be
+        compared against.
+        """
+        record = _resolve_one("retracted", pmid=WAKEFIELD_PMID, doi=WAKEFIELD_DOI)
+        assert record.container == "Lancet (London, England)"
+        assert record.container_alternates == ["Lancet"]
+
+    def test_an_abbreviation_that_is_the_journal_title_is_not_repeated(self) -> None:
+        """``PLoS One`` against ``PloS one`` is one title in two casings.
+
+        Offering it as an alternate would put a line in the report saying the
+        registry also carries a value the container check already folds to the
+        one it holds.
+        """
+        record = _resolve_one("eci_concern", pmid="23741377", doi="10.1371/journal.pone.0064723")
+        assert record.container_short == "PLoS One"
+        assert record.container_alternates == []
+
     def test_volume_issue_pages_and_year_are_read_from_their_own_tags(self) -> None:
         record = _resolve_one("wrapped_title", pmid="28338828", doi="10.1093/aje/kwx137")
         assert (record.volume, record.issue, record.pages) == ("185", "12", "1265-1274")

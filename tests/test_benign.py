@@ -415,6 +415,56 @@ class TestContainerAbbreviation:
         ) is None
 
 
+class TestContainerLeadingArticle:
+    """MEDLINE's ``JT`` is NLM's filing title, not the journal's own name.
+
+    ``Lancet (London, England)``, ``BMJ (Clinical research ed.)``, ``Science
+    (New York, N.Y.)``: the leading article dropped, a place qualifier appended
+    wherever the bare title would be ambiguous. PMID 9500320's block, in
+    ``tests/data/compare_pubmed_wakefield_retracted.txt``, is the instance.
+    """
+
+    def test_the_masthead_name_against_medlines_filing_title_is_an_artifact(self) -> None:
+        assert classify(
+            "container", "The Lancet", "Lancet (London, England)",
+            container_alternates=["Lancet"],
+        ) == "registry files the journal without its leading article"
+
+    def test_the_qualifier_alone_is_not_enough_to_explain_a_difference(self) -> None:
+        """With no ``TA`` on the record there is no title to match, and none is invented.
+
+        The rule reads the titles the registry supplies. Stripping ``(London,
+        England)`` instead would be a different rule and a dangerous one: the
+        qualifier is exactly what tells two serials sharing a base title apart,
+        so dropping it merges them.
+        """
+        assert classify(
+            "container", "The Lancet", "Lancet (London, England)", container_alternates=[]
+        ) is None
+
+    def test_a_journal_filed_without_a_qualifier_is_covered_too(self) -> None:
+        assert classify("container", "The BMJ", "BMJ", container_alternates=[]) == (
+            "registry files the journal without its leading article"
+        )
+
+    def test_a_sibling_journal_is_not_a_dropped_article(self) -> None:
+        """The pairing, and the reason the rule compares whole titles.
+
+        *The Lancet Oncology* is where a Lancet-family citation actually goes
+        wrong, and it differs from every title the record carries by a word
+        that is not an article.
+        """
+        assert classify(
+            "container", "The Lancet Oncology", "Lancet (London, England)",
+            container_alternates=["Lancet"],
+        ) is None
+
+    def test_an_unrelated_journal_is_not_a_dropped_article(self) -> None:
+        assert classify(
+            "container", "BMJ", "Lancet (London, England)", container_alternates=["Lancet"]
+        ) is None
+
+
 class TestRedirectingAggregatorDoi:
     def test_a_jstor_doi_redirecting_to_the_publisher_is_not_a_defect(self) -> None:
         assert classify("doi", "10.2307/2669548", "10.1111/j.1540-5907.2000.tb00000.x") == (
@@ -462,6 +512,15 @@ class TestRuleScoping:
             (
                 "title", "Am J Epidemiol", "American Journal of Epidemiology",
                 {}, "_container_abbreviation",
+            ),
+            # _container_leading_article accepts a difference of one opening
+            # article. Unscoped, "The Lancet" as a *title* is explained against
+            # a paper called "Lancet", and a publisher whose article titles
+            # begin with "The" gets a free pass on the field that identifies
+            # the work.
+            (
+                "title", "The Lancet", "Lancet",
+                {"container_alternates": []}, "_container_leading_article",
             ),
         ],
     )

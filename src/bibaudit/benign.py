@@ -59,6 +59,10 @@ _BRACKETED_PARENT = re.compile(r"^\[[^\]]{10,}\]\s*[:.]?\s*")
 #: identifier, not an error. One ``curl -I`` reproduces it.
 _REDIRECTING_PREFIXES = ("10.2307/",)
 
+#: Opening word a catalogue may file a serial without. Applied to a folded
+#: value, where punctuation is already gone and the separator is one space.
+_LEADING_ARTICLE = re.compile(r"^(?:the|a|an) ")
+
 #: Smallest gap, in years, between an entry's year and a registry ``issued``
 #: date that :func:`_year_deposit_artifact` will read as a deposit timestamp
 #: rather than as a wrong year. A re-deposited working paper lands many years
@@ -317,6 +321,38 @@ def _container_abbreviation(field: str, stored: str, registry: str, ref: Referen
     return None
 
 
+def _container_leading_article(field: str, stored: str, registry: str, ref: Reference, rec: Record) -> str | None:
+    """Stored name differs from a title the registry carries only by a leading article.
+
+    Instance: PMID 9500320 — Wakefield et al., *The Lancet* 1998, the retracted
+    MMR paper, recorded verbatim in
+    ``tests/data/compare_pubmed_wakefield_retracted.txt``. MEDLINE files it
+    under ``JT`` ``Lancet (London, England)`` with ``TA`` ``Lancet``; the
+    bibliography, and Crossref, call the journal *The Lancet*. NLM drops the
+    leading article from every serial title and appends a place qualifier
+    wherever the bare title would be ambiguous — ``BMJ (Clinical research
+    ed.)``, ``Science (New York, N.Y.)`` are the same shape. A reference
+    resolved by its PMID has PubMed as its only registry and no corroborator to
+    supply another spelling, so without this every correct Lancet, BMJ or
+    Science entry is a ``FIELD-MISMATCH``.
+
+    Only an opening ``The``/``A``/``An`` may differ, and only against a title
+    **the record itself carries** — ``TA`` reaches
+    :attr:`~bibaudit.model.Record.container_alternates` for this. Stripping
+    the qualifier instead would be the wrong rule: ``(London, England)`` is
+    precisely what tells two serials sharing a base title apart, and a rule
+    that dropped it would merge them.
+    """
+    if field != "container":
+        return None
+    stored_bare = _LEADING_ARTICLE.sub("", fold(stored))
+    for candidate in (registry, *rec.container_alternates):
+        folded = fold(candidate)
+        if folded and _LEADING_ARTICLE.sub("", folded) == stored_bare:
+            return "registry files the journal without its leading article"
+    return None
+
+
 def _doi_redirecting_prefix(field: str, stored: str, registry: str, ref: Reference, rec: Record) -> str | None:
     """Stored DOI belongs to an aggregator that redirects to the publisher's.
 
@@ -342,6 +378,7 @@ CHECKS: tuple[ArtifactCheck, ...] = (
     _year_deposit_artifact,
     _pages_article_number,
     _container_abbreviation,
+    _container_leading_article,
     _doi_redirecting_prefix,
 )
 

@@ -531,6 +531,41 @@ passes.
 
 ---
 
+## Journal names as MEDLINE files them
+
+**What happens.** NLM does not record a journal under the name on its masthead.
+It drops the leading article, and it appends a place-of-publication qualifier
+wherever the bare title would be ambiguous. MEDLINE's `JT` is therefore `Lancet
+(London, England)`, `BMJ (Clinical research ed.)`, `Science (New York, N.Y.)`,
+while `TA` holds the abbreviation — which for those three is the journal's plain
+name. A bibliography stores neither: it stores `The Lancet`.
+
+**Observed.** PMID 9500320, Wakefield et al. 1998, recorded verbatim in
+`tests/data/compare_pubmed_wakefield_retracted.txt` (`TA - Lancet`, `JT -
+Lancet (London, England)`). It matters most on the PMID path, where PubMed is
+the only registry consulted and its `JT` is the only container value there is:
+every correct Lancet, BMJ or Science entry resolved by PMID was a
+`FIELD-MISMATCH`, and the run exited 1.
+
+**Handling, in two places.**
+
+`registries/pubmed._record_from_medline` puts `TA` on the record's
+`container_alternates` as well as its `container_short`. Both are titles PubMed
+itself names for the same journal, so this is the chapter case above by another
+route, not a suppression: an entry storing `Lancet` gets the same
+`container/alternate-title` note at `info` severity, naming PubMed as the
+registry that carries it.
+
+`benign._container_leading_article` covers the entry that stores the masthead
+name. It accepts a stored value that differs from `JT`, or from any title on
+`container_alternates`, by a leading `The`/`A`/`An` and by nothing else. The
+qualifier is not stripped, and deliberately: `(London, England)` is exactly
+what tells two serials sharing a base title apart, so a rule that dropped it
+would merge them. `The Lancet Oncology` against `Lancet (London, England)`
+therefore still fires, as does `BMJ`.
+
+---
+
 ## Retraction relations deposited in both directions
 
 **What happens.** Crossref's model makes `update-to` and `updated-by` opposites:

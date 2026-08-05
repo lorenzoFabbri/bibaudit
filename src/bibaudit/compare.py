@@ -199,8 +199,8 @@ def _registry_value(ctx: _Context, attr: str) -> tuple[str, str]:
     return "", ""
 
 
-def _alternate_containers(ctx: _Context) -> list[str]:
-    """Every *other* container title the registries carry for this work.
+def _alternate_containers(ctx: _Context) -> list[tuple[str, str]]:
+    """Every *other* container title the registries carry, each with its source.
 
     Kept beside the primary value rather than folded into it because the
     principle is CLAUDE.md's own, one field over: *any year the registry itself
@@ -209,11 +209,19 @@ def _alternate_containers(ctx: _Context) -> list[str]:
     "Methods in Biobanking"]`` for 10.1007/978-1-59745-423-0_7 — the series and
     the volume — and a chapter citing either is citing a container Crossref
     named. See :attr:`~bibaudit.model.Record.container_alternates`.
+
+    Each value carries the registry that holds it because the two do not supply
+    the same alternates: PubMed's is MEDLINE's ``TA``, and a report telling the
+    reader that *Crossref* also carries ``Int J Cancer`` names the wrong witness
+    for a claim it is inviting them to check.
     """
-    values = list(ctx.primary.container_alternates)
-    if ctx.corroborator:
-        values.extend(ctx.corroborator.container_alternates)
-    return [clean(value) for value in values if clean(value)]
+    records = [ctx.primary] + ([ctx.corroborator] if ctx.corroborator else [])
+    return [
+        (text, record.source)
+        for record in records
+        for value in record.container_alternates
+        if (text := clean(value))
+    ]
 
 
 def _check_scalar(
@@ -222,7 +230,7 @@ def _check_scalar(
     attr: str,
     stored: object,
     *,
-    also_accepted: Sequence[str] = (),
+    also_accepted: Sequence[tuple[str, str]] = (),
     optional_for_kinds: Collection[str] = (),
 ) -> None:
     """Compare one plain string field.
@@ -235,9 +243,9 @@ def _check_scalar(
        artifact rather than a defect.
     4. Otherwise it is a mismatch.
 
-    *also_accepted* are further values the registry itself carries for the same
-    field, and matching one of them is step 2 by another route — not a
-    tolerance. Only the container check passes any; see
+    *also_accepted* pairs further values a registry itself carries for the same
+    field with the registry that carries them; matching one is step 2 by another
+    route — not a tolerance. Only the container check passes any; see
     :func:`_alternate_containers`.
 
     *optional_for_kinds* names entry kinds for which a registry value the
@@ -268,7 +276,7 @@ def _check_scalar(
             ctx.add(field, "cosmetic", "info", stored_text, registry_text, source=source)
         return
 
-    for accepted in also_accepted:
+    for accepted, holder in also_accepted:
         if fold(stored_text) != fold(accepted):
             continue
         # Stated rather than passed over in silence. The registry's *first*
@@ -281,7 +289,7 @@ def _check_scalar(
         ctx.add(
             field, "alternate-title", "info", stored_text, registry_text,
             source=source,
-            note=f"{source} also carries {accepted!r} for this work",
+            note=f"{holder} also carries {accepted!r} for this work",
         )
         return
 

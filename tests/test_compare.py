@@ -23,7 +23,7 @@ from typing import Any
 import pytest
 
 from bibaudit.compare import Thresholds, compare, confirm_without_id, verdict_for
-from bibaudit.model import ARTIFACT_KIND, Issue, Name, Record, Reference
+from bibaudit.model import ARTIFACT_KIND, Issue, Name, Record, Reference, Result
 from bibaudit.registries import pubmed as pubmed_client
 from bibaudit.registries.crossref import Crossref
 
@@ -1296,6 +1296,71 @@ class TestPmidCheck:
 
         assert (issue.stored, issue.registry) == ("20137807", "9500320")
         assert result.verdict == "FIELD-MISMATCH"
+
+
+class TestMedlineJournalTitleOnThePmidPath:
+    """The journal name a PMID-resolved entry is compared against is MEDLINE's.
+
+    A reference whose only identifier is a PMID is resolved by PubMed alone, so
+    ``compare`` promotes PubMed to primary and there is no corroborator to
+    supply a second spelling of anything. The container it compares is
+    therefore ``JT``, and ``JT`` is NLM's own filing title: the leading article
+    dropped, a place-of-publication qualifier appended wherever the bare title
+    would be ambiguous. ``Lancet (London, England)`` is what a correct Lancet
+    entry was being failed against, and *The Lancet*, *BMJ* and *Science* are
+    not obscure journals.
+
+    Replayed against ``tests/data/compare_pubmed_wakefield_notice.txt``, NCBI's
+    own bytes. The notice rather than the paper, because the paper is retracted
+    and a ``RETRACTED`` verdict would hide whichever verdict the container
+    produced.
+    """
+
+    def _notice(self, container: str) -> Result:
+        return compare(
+            wakefield_notice_ref(doi=None, pmid="20137807", container=container),
+            {"pubmed": pubmed_record("compare_pubmed_wakefield_notice.txt")},
+        )
+
+    def test_the_journals_own_name_does_not_fail_the_build(self) -> None:
+        """*The Lancet* is what the masthead, Crossref and every .bib say."""
+        result = self._notice("The Lancet")
+        assert not result.fails
+        assert not [i for i in result.issues if i.field == "container"]
+        assert [i.note for i in result.suppressed if i.field == "container"] == [
+            "registry files the journal without its leading article"
+        ]
+
+    def test_the_abbreviation_is_matched_against_the_registrys_own_alternate(self) -> None:
+        """An entry exported from PubMed or EndNote stores ``Lancet``.
+
+        Not a suppression: ``TA`` is a title PubMed itself carries for the
+        journal, so this is the chapter-with-two-containers path, and the note
+        has to name PubMed as the registry that holds the value — the reader is
+        being invited to check it against a page headed with the other one.
+        """
+        result = self._notice("Lancet")
+        assert not result.fails
+        note = next(i for i in result.issues if i.field == "container")
+        assert (note.kind, note.severity) == ("alternate-title", "info")
+        assert note.note == "pubmed also carries 'Lancet' for this work"
+
+    def test_a_sibling_journal_still_fails(self) -> None:
+        """The pairing. *The Lancet Oncology* is a different journal.
+
+        Citing the parent title for a paper that appeared in the offshoot is
+        one of the commonest real citation errors there is, and it survives
+        both routes: the qualifier is never stripped, and only a leading
+        article may differ.
+        """
+        result = self._notice("The Lancet Oncology")
+        assert result.verdict == "FIELD-MISMATCH"
+        assert [i.kind for i in result.issues if i.field == "container"] == ["mismatch"]
+
+    def test_an_unrelated_journal_still_fails(self) -> None:
+        result = self._notice("BMJ")
+        assert result.verdict == "FIELD-MISMATCH"
+        assert [i.kind for i in result.issues if i.field == "container"] == ["mismatch"]
 
 
 class TestYearTolerance:

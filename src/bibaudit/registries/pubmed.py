@@ -262,6 +262,11 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
     as NLM states it, and the only PMID this module ever has grounds to put on
     a record. The DOI is left to the caller, which knows the key the record was
     fetched under; MEDLINE's own ``AID`` list reaches ``raw`` and no further.
+
+    ``TA`` is carried as a container *alternate* as well as as the short title,
+    for the reason :attr:`bibaudit.model.Record.container_alternates` gives:
+    both are titles PubMed itself names for the same journal, and an entry
+    citing either is right.
     """
     title, translated = _clean_title(_first(fields.get("TI")))
 
@@ -276,14 +281,28 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
 
     retracted, retraction_kind = _retraction(fields)
 
+    # NLM files a serial under a title of its own making: the leading article
+    # dropped, and a place-of-publication qualifier appended wherever the base
+    # title would otherwise be ambiguous. ``JT`` is "Lancet (London, England)",
+    # "BMJ (Clinical research ed.)", "Science (New York, N.Y.)"; ``TA`` is the
+    # abbreviation, which for those three is the journal's plain name. On the
+    # PMID path PubMed is the only registry there is, so ``JT`` would be the
+    # only container an entry could match, and no bibliography stores it.
+    journal = _first(fields.get("JT"))
+    abbreviation = _first(fields.get("TA"))
+    alternates = (
+        [abbreviation] if abbreviation and fold(abbreviation) != fold(journal) else []
+    )
+
     return Record(
         source="pubmed",
         pmid=_first(fields.get("PMID")),
         title=title,
         authors=_authors_from(fields),
         years=years,
-        container=_first(fields.get("JT")),
-        container_short=_first(fields.get("TA")),
+        container=journal,
+        container_short=abbreviation,
+        container_alternates=alternates,
         volume=_first(fields.get("VI")),
         issue=_first(fields.get("IP")),
         pages=_first(fields.get("PG")),
