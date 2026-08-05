@@ -30,9 +30,10 @@ from typing import Any
 
 import pytest
 
+from bibaudit.model import Record
 from bibaudit.normalize import normalize_doi
 from bibaudit.registries.http import Transient
-from bibaudit.registries.retractions import Retractions
+from bibaudit.registries.retractions import Retractions, concern_in
 
 DATA = Path(__file__).parent / "data"
 
@@ -354,6 +355,21 @@ class TestPubMedEci:
         )
         result = Retractions(stub, cache_dir=tmp_path).status_for([CLEAN_DOI]).notices
         assert CLEAN_DOI not in result
+
+    def test_an_eci_that_is_not_medlines_list_is_not_a_concern(self) -> None:
+        """``Record.raw`` is free-form, and only MEDLINE's shape may be read.
+
+        ``concern_in`` is public and takes any :class:`Record`, whose ``raw`` is
+        typed ``dict[str, Any]`` and filled by whichever registry built it — a
+        Crossref record's is that work's own JSON. Indexing a bare string would
+        take its first character for a whole citation and report a concern about
+        a named paper on the strength of one letter.
+        """
+        assert concern_in(Record(source="pubmed", raw={"ECI": "PLoS One. 2021 Oct 28"})) is None
+        assert concern_in(Record(source="pubmed", raw={"ECI": []})) is None
+        assert concern_in(Record(source="pubmed", raw={"ECI": ["PLoS One. 2021 Oct 28"]})) == (
+            "expression-of-concern"
+        )
 
 
 class TestSourceCombination:
