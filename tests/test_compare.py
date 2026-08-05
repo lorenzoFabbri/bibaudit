@@ -1583,6 +1583,51 @@ class TestMedlineJournalTitleOnThePmidPath:
         assert [i.kind for i in result.issues if i.field == "container"] == ["mismatch"]
 
 
+class TestAlternateContainerWitness:
+    """An alternate title is only checkable if the note names who holds it.
+
+    The two registries do not supply the same alternates: PubMed's is
+    MEDLINE's ``TA``, Crossref's are the several ``container-title`` values a
+    chapter carries. A note telling the reader that *Crossref* also carries
+    ``Int J Cancer`` sends them to a landing page that does not, which is the
+    same class of defect as reporting a registry that was never asked.
+    """
+
+    def _result(self) -> Result:
+        return compare(
+            make_ref(container="Int J Cancer"),
+            {
+                "crossref": make_record(container="International Journal of Cancer"),
+                "pubmed": make_pubmed(
+                    container="International journal of cancer",
+                    container_alternates=["Int J Cancer"],
+                ),
+            },
+        )
+
+    def test_the_corroborators_alternate_is_read_at_all(self) -> None:
+        """Reading only the primary's leaves ``TA`` unseen on the DOI path.
+
+        The entry is then explained away by ``benign._container_abbreviation``
+        instead — a suppression standing in for a value PubMed actually
+        carries, which is a weaker claim about a correct entry.
+        """
+        result = self._result()
+
+        assert not result.fails
+        assert [i.kind for i in result.issues if i.field == "container"] == ["alternate-title"]
+        assert not result.suppressed
+
+    def test_the_note_names_the_registry_that_holds_it(self) -> None:
+        [note] = [i for i in self._result().issues if i.field == "container"]
+
+        assert note.note == "pubmed also carries 'Int J Cancer' for this work"
+        # The *source* is still the registry whose value was compared, which is
+        # the other one: two registries in one finding, each named for what it
+        # actually did.
+        assert note.source == "crossref"
+
+
 class TestMedlineSocietyExpansionOnThePmidPath:
     """``JT`` also spells out the society, and ``TA`` does not always rescue it.
 
