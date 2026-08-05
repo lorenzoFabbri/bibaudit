@@ -115,7 +115,7 @@ from ..normalize import clean, extract_dois, fold, normalize_doi, parse_year
 from .http import Cache, Client, Transient, default_cache_dir
 from .pubmed import PubMed
 
-__all__ = ["RetractionNotice", "Retractions"]
+__all__ = ["RetractionNotice", "Retractions", "concern_in"]
 
 #: Crossref Labs' distribution of the Retraction Watch database. Verified
 #: live (2026-08-01): a keyless, unauthenticated ``GET`` streams a ~66 MB,
@@ -378,6 +378,44 @@ def _index_from_payload(payload: Mapping[str, Any]) -> dict[str, RetractionNotic
     return out
 
 
+#: What an ``ECI`` line asserts, in :attr:`RetractionNotice.kind`'s vocabulary —
+#: which is also the one ``compare._CONCERN_KINDS`` folds against to keep a
+#: stated doubt from being reported under the word "retracted".
+_CONCERN = "expression-of-concern"
+
+
+def _eci_citation(record: Record) -> str:
+    """MEDLINE's ``ECI`` line as text, or ``""`` where the record has none.
+
+    Read off :attr:`~bibaudit.model.Record.raw`, where
+    ``pubmed._record_from_medline`` leaves every MEDLINE tag it saw whether or
+    not that module interprets it, so no MEDLINE parsing happens here.
+    """
+    raw = record.raw if isinstance(record.raw, dict) else {}
+    eci = raw.get("ECI")
+    if not isinstance(eci, list) or not eci:
+        return ""
+    return clean(eci[0])
+
+
+def concern_in(record: Record) -> str | None:
+    """The notice kind NLM records *about* this record's article, or ``None``.
+
+    The one post-publication signal in this module that is **not** keyed on a
+    DOI: ``ECI`` is a line on the MEDLINE citation itself, so a caller holding
+    a record — however it obtained it — can read it without a second lookup.
+    Retraction Watch's index and Crossref's ``updated-by`` linkage both need a
+    DOI to ask about, which is why a reference resolved by its PMID gets this
+    one and not those (see ``audit._with_pubmed_concern``).
+
+    Direction is guarded exactly as ``PT``'s is: only ``ECI`` ("Expression of
+    Concern In:") is read, never ``ECF`` ("Expression of Concern For:"), which
+    is the *notice's* own field pointing back at the paper it concerns. See
+    the module docstring, (b), for both recorded records.
+    """
+    return _CONCERN if _eci_citation(record) else None
+
+
 def _notice_from_pubmed(doi: str, record: Record) -> RetractionNotice | None:
     """PubMed's opinion on *doi*, from a :class:`~bibaudit.model.Record`
     already produced by :meth:`PubMed.by_dois`.
@@ -390,13 +428,11 @@ def _notice_from_pubmed(doi: str, record: Record) -> RetractionNotice | None:
     the one-word direction rule this module would otherwise have to
     reimplement, incorrectly, to matter.
 
-    What is new here is ``ECI``: NLM's "Expression of Concern In:"
-    cross-reference, carried verbatim on ``record.raw`` because
-    ``pubmed._record_from_medline`` stores every MEDLINE tag it saw
-    (``raw = dict(fields)``) whether or not ``pubmed.py`` itself interprets
-    it. Reading it here needs no MEDLINE parsing of its own — the module
-    docstring above is where the direction guard against ``ECF`` (the
-    mirror-image field, on the *notice's* own record) is explained.
+    ``ECI`` — NLM's "Expression of Concern In:" cross-reference — is read
+    through :func:`concern_in`, which is also what a caller holding a record
+    keyed on something other than a DOI uses. The citation itself is parsed
+    here rather than there because only a notice needs its ``notice_doi`` and
+    its date.
     """
     if record.retracted:
         return RetractionNotice(
@@ -407,18 +443,14 @@ def _notice_from_pubmed(doi: str, record: Record) -> RetractionNotice | None:
             date=str(record.year) if record.year is not None else None,
         )
 
-    raw = record.raw if isinstance(record.raw, dict) else {}
-    eci = raw.get("ECI")
-    if not isinstance(eci, list) or not eci:
-        return None
-    citation = clean(eci[0])
+    citation = _eci_citation(record)
     if not citation:
         return None
 
     notice_dois = extract_dois(citation)
     return RetractionNotice(
         doi=doi,
-        kind="expression-of-concern",
+        kind=_CONCERN,
         source="pubmed",
         notice_doi=notice_dois[0] if notice_dois else None,
         # The citation carries a full date ("2021 Oct 28"), but nothing

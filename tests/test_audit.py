@@ -31,6 +31,7 @@ from bibaudit.adapters.bibtex import read_bibtex
 from bibaudit.audit import AuditOptions, audit, resolve
 from bibaudit.model import ANSWERED, NOT_ASKED, UNREACHABLE, Name, Record, Reference
 from bibaudit.normalize import normalize_doi
+from bibaudit.registries import pubmed as pubmed_client
 from bibaudit.registries.http import Cache, Client, Transient
 from bibaudit.registries.pubmed import PmidAnswers
 from bibaudit.registries.retractions import RetractionNotice, RetractionStatus
@@ -436,6 +437,48 @@ def make_pmid_only_record(**overrides: object) -> Record:
     }
     base.update(overrides)
     return Record(**base)  # type: ignore[arg-type]
+
+
+#: PMID 23741377 — Neirinckx et al., *PLoS One* 2013;8(5):e64723,
+#: 10.1371/journal.pone.0064723. Not retracted, and carrying no
+#: retraction-shaped ``PT`` at all: what it carries is ``ECI``, the
+#: cross-reference to the expression of concern NLM published about it in 2021.
+CONCERN_PMID = "23741377"
+
+
+def concern_record() -> Record:
+    """The MEDLINE citation for :data:`CONCERN_PMID`, through the real parser.
+
+    Read from ``tests/data/pubmed_eci_concern.txt`` — NCBI's own bytes — rather
+    than built by hand, because what is under test is a field ``pubmed.py``
+    does not interpret: ``raw`` has to hold what ``efetch`` really sends, and a
+    hand-written ``raw`` would restate the shape instead of checking it.
+    """
+    text = (Path(__file__).parent / "data" / "pubmed_eci_concern.txt").read_text(
+        encoding="utf-8"
+    )
+    [fields] = pubmed_client._parse_medline_records(text)
+    return pubmed_client._record_from_medline(fields)
+
+
+def concern_ref() -> Reference:
+    """That paper, cited by PMID alone and correct in every field."""
+    return Reference(
+        key="neirinckx2013marrow",
+        locator="references.bib:9",
+        kind="article",
+        pmid=CONCERN_PMID,
+        title=(
+            "Adult bone marrow neural crest stem cells and mesenchymal stem cells "
+            "are not able to replace lost neurons in acute MPTP-lesioned mice"
+        ),
+        authors=[Name(family="Neirinckx", given="Virginie"), Name(et_al=True)],
+        year=2013,
+        container="PLoS One",
+        volume="8",
+        issue="5",
+        pages="e64723",
+    )
 
 
 def make_pubmed_record(**overrides: object) -> Record:
@@ -1058,14 +1101,13 @@ class TestPmidOnlyReferences:
     def test_the_unasked_retraction_sources_are_stated_on_the_entry(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Three of the four sources go unconsulted, and the entry says so.
+        """The two sources a PMID cannot reach go unconsulted, and the entry says so.
 
-        It reported ``verdict: OK, issues: []``: MEDLINE's ``PT`` flag was the
-        whole of the evidence, Retraction Watch's export, Crossref's
-        ``updated-by`` and PubMed's ``ECI`` cross-reference were never asked,
-        and nothing in the result said which. Ignorance about retraction
-        rendering as a clean bill of health is the one output this tool may not
-        produce.
+        It reported ``verdict: OK, issues: []``: PubMed's own two signals were
+        the whole of the evidence, Retraction Watch's export and Crossref's
+        ``updated-by`` were never asked, and nothing in the result said which.
+        Ignorance about retraction rendering as a clean bill of health is the
+        one output this tool may not produce.
         """
         _install(
             monkeypatch,
@@ -1101,6 +1143,65 @@ class TestPmidOnlyReferences:
 
         assert "retraction status not corroborated for 1 reference(s): " \
             "crossref, retraction-watch not asked" in out.getvalue()
+
+    def test_the_concern_medline_carries_is_read_on_this_path_too(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """``ECI`` is the one retraction signal that needs no DOI to ask about.
+
+        It is a line on the citation ``efetch`` already returned, and the
+        retraction pass that reads it runs inside ``if dois:``. So a paper
+        under a live NLM expression of concern — this one, the case
+        ``registries/retractions.py`` exists for — resolved by its PMID
+        reported ``PASS`` with the cross-reference unread in ``record.raw``.
+        """
+        _install(
+            monkeypatch,
+            pubmed=_StubRegistry("pubmed", pmid_records={CONCERN_PMID: concern_record()}),
+        )
+
+        result = audit([concern_ref()], _options(tmp_path))[0]
+
+        [concern] = [i for i in result.issues if i.kind == "expression-of-concern"]
+        assert (concern.field, concern.severity, concern.source) == ("status", "error", "pubmed")
+        assert result.fails
+
+    def test_the_concern_is_not_reported_as_a_retraction(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A stated doubt is not a withdrawal, and the entry must not say it is.
+
+        The paper stands and citing it is legitimate once the notice has been
+        read; ``RETRACTED`` would be a false factual claim about a named work.
+        """
+        _install(
+            monkeypatch,
+            pubmed=_StubRegistry("pubmed", pmid_records={CONCERN_PMID: concern_record()}),
+        )
+
+        result = audit([concern_ref()], _options(tmp_path))[0]
+
+        assert result.verdict != "RETRACTED"
+        assert not [i for i in result.issues if i.kind == "retracted"]
+
+    def test_no_retraction_check_leaves_the_cross_reference_unread(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """``ECI`` is independent corroboration, which is what that flag turns off.
+
+        The same gate the DOI path uses, so the two paths cannot disagree about
+        what ``--no-retraction-check`` means. MEDLINE's own ``PT`` flag is not
+        affected by it and still fails a retracted paper.
+        """
+        _install(
+            monkeypatch,
+            pubmed=_StubRegistry("pubmed", pmid_records={CONCERN_PMID: concern_record()}),
+        )
+
+        result = audit([concern_ref()], _options(tmp_path, retraction_check=False))[0]
+
+        assert not [i for i in result.issues if i.kind == "expression-of-concern"]
+        assert not result.fails
 
     def test_a_pmid_pubmed_does_not_hold_is_a_finding(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

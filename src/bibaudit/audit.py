@@ -35,17 +35,20 @@ was unreachable while some *other* reference was being resolved, because
 — so an entry carrying a DOI as well is resolved by the DOI and issues no
 PubMed request beyond the corroboration one it already made.
 
-Every retraction source but MEDLINE's own ``PT`` flag is keyed on a DOI, so
-three of the four go unconsulted on such a reference. That is stated twice
-rather than left to be inferred: ``retraction-watch`` is in
-:data:`~bibaudit.model.STATUS_SOURCES`, so ``consulted`` names it ``not-asked``
-on every reference rather than dropping the key, and ``compare`` raises
-``status/not-asked`` on the reference itself, which the terminal report prints
-beside the banner exactly as it prints an outage. MEDLINE's ``AID`` list does
-carry the work's DOI on most modern records, and using it as a second lookup
-key would restore the other three — a widening of coverage, and its own
-change; ``docs/retraction.md`` records what it would cost and what it would
-buy.
+Two of the four retraction sources are keyed on a DOI — Crossref's
+``updated-by`` linkage and Retraction Watch's own export — so neither is
+consulted for such a reference. That is stated twice rather than left to be
+inferred: ``retraction-watch`` is in :data:`~bibaudit.model.STATUS_SOURCES`, so
+``consulted`` names it ``not-asked`` on every reference rather than dropping the
+key, and ``compare`` raises ``status/not-asked`` on the reference itself, which
+the terminal report prints beside the banner exactly as it prints an outage.
+The other two are PubMed's and both are read: MEDLINE's ``PT`` flag, and its
+``ECI`` cross-reference, which is a line on the citation ``efetch`` already
+returned rather than a lookup keyed on anything — see
+:func:`_with_pubmed_concern`. MEDLINE's ``AID`` list does carry the work's DOI
+on most modern records, and using it as a second lookup key would restore the
+other two — a widening of coverage, and its own change; ``docs/retraction.md``
+records what it would cost and what it would buy.
 
 **Books** take a path of their own, keyed on ISBN rather than DOI, because
 most books never had a DOI minted at all: an entry carrying an ``isbn`` is
@@ -98,7 +101,7 @@ from .registries.datacite import DataCite
 from .registries.http import Cache, Client, Transient, default_cache_dir
 from .registries.openlibrary import OpenLibrary, normalize_isbn13
 from .registries.pubmed import PubMed
-from .registries.retractions import RetractionNotice, Retractions
+from .registries.retractions import RetractionNotice, Retractions, concern_in
 from .registries.search import Search
 from .suppress import Suppressions
 
@@ -276,7 +279,9 @@ def resolve(
             unreachable.add("pubmed")
         else:
             for pmid, record in answers.records.items():
-                records.setdefault(pmid, {})["pubmed"] = record
+                records.setdefault(pmid, {})["pubmed"] = _with_pubmed_concern(
+                    record, registries
+                )
             inconclusive = dict(answers.inconclusive)
 
     # Only references with no stronger identifier are worth an ISBN lookup: one
@@ -305,6 +310,37 @@ def resolve(
             unreachable.add("openlibrary")
 
     return records, unreachable, inconclusive
+
+
+def _with_pubmed_concern(record: Record, registries: _Registries) -> Record:
+    """MEDLINE's ``ECI`` folded into a record resolved by its PMID.
+
+    On the DOI path this arrives through :func:`_resolve_retractions`, which
+    sits inside ``if dois:`` because the other three sources are keyed on a
+    DOI. PubMed's ``ECI`` is not — it is a line on the very citation
+    ``efetch`` has already returned — so a reference with no DOI can have it
+    read without another request, and reading it is the difference between
+    reporting a doubt and reporting nothing. PMID 23741377
+    (10.1371/journal.pone.0064723, the case ``registries/retractions.py`` was
+    written for) carries no retraction-shaped ``PT`` at all and an ``ECI``
+    naming the concern published about it: resolved by its PMID, it reported
+    ``PASS`` with that line sitting unread in ``record.raw``.
+
+    Gated on ``--no-retraction-check`` exactly as the DOI path is, through the
+    same ``registries.retractions is None`` test: this *is* the independent
+    corroboration that flag turns off. MEDLINE's own ``PT`` flag is untouched
+    by it and keeps failing a retracted paper either way.
+
+    A concern is not a retraction and is never reported as one:
+    ``compare._status_issues`` reads ``retraction_kind`` and raises
+    ``status/expression-of-concern`` instead — see :data:`compare._CONCERN_KINDS`.
+    """
+    if registries.retractions is None:
+        return record
+    kind = concern_in(record)
+    if kind is None:
+        return record
+    return replace(record, retracted=True, retraction_kind=kind)
 
 
 def _resolve_dois(
