@@ -166,8 +166,11 @@ already handed the tool.
 An entry carrying **both** is resolved through the DOI, and the PMID becomes a
 field to check rather than a key: it looked nothing up, so it is a second,
 independent claim about which work is cited. When PubMed answers for that DOI
-under a different number the two identifiers name two citations, and that is a
-`FIELD-MISMATCH` like any other field disagreement.
+under a different number the two identifiers name two citations, and the entry
+is reported `INCOMPLETE` — a warning, not a failure, because only one side of
+that comparison was looked up. Nothing asks PubMed what the *stored* number
+names, and a number that has since stopped answering is invisible from this
+side. Use `--fail-on INCOMPLETE` to make it bite.
 
 An entry's `isbn` field (BibTeX's `isbn`, Zotero's own field, CSL-JSON's
 `ISBN`) is read as an identifier in its own right, checked against its ISO 2108

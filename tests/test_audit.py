@@ -31,6 +31,7 @@ from bibaudit.audit import AuditOptions, audit, resolve
 from bibaudit.model import ANSWERED, UNREACHABLE, Name, Record, Reference
 from bibaudit.normalize import normalize_doi
 from bibaudit.registries.http import Cache, Client, Transient
+from bibaudit.registries.pubmed import PmidAnswers
 from bibaudit.registries.retractions import RetractionNotice, RetractionStatus
 from bibaudit.report import Summary
 from bibaudit.suppress import Suppression, Suppressions
@@ -118,6 +119,7 @@ class _StubRegistry:
         *,
         records: dict[str, Record] | None = None,
         pmid_records: dict[str, Record] | None = None,
+        inconclusive_pmids: dict[str, tuple[str, ...]] | None = None,
         transient: bool = False,
     ) -> None:
         self.name = name
@@ -125,6 +127,9 @@ class _StubRegistry:
         #: PubMed's other role, keyed by PMID rather than DOI — what ``resolve``
         #: asks about a reference that stores a PMID and no DOI.
         self.pmid_records = dict(pmid_records or {})
+        #: The third state ``efetch`` can leave a PMID in: answered, but with
+        #: a citation under some other number. See ``PubMed.by_pmids``.
+        self.inconclusive_pmids = dict(inconclusive_pmids or {})
         self.transient = transient
         self.constructions = 0
         self.client: object = None
@@ -145,11 +150,20 @@ class _StubRegistry:
         # that volunteered records nobody requested would hide a routing bug.
         return {doi: self.records[doi] for doi in dois if doi in self.records}
 
-    def by_pmids(self, pmids: Sequence[str]) -> dict[str, Record]:
+    def by_pmids(self, pmids: Sequence[str]) -> PmidAnswers:
         self.by_pmids_calls.append(list(pmids))
         if self.transient:
             raise Transient(f"{self.name}: simulated outage")
-        return {pmid: self.pmid_records[pmid] for pmid in pmids if pmid in self.pmid_records}
+        return PmidAnswers(
+            records={
+                pmid: self.pmid_records[pmid] for pmid in pmids if pmid in self.pmid_records
+            },
+            inconclusive={
+                pmid: others
+                for pmid, others in self.inconclusive_pmids.items()
+                if pmid in pmids
+            },
+        )
 
 
 class _StubSearch:
@@ -680,7 +694,7 @@ class TestAbsenceIsDistinguishableFromIgnorance:
             pubmed=_StubRegistry("pubmed"),  # type: ignore[arg-type]
             search=_StubSearch(),  # type: ignore[arg-type]
         )
-        records, unreachable = resolve([make_ref()], registries)
+        records, unreachable, _ = resolve([make_ref()], registries)
 
         assert records == {DOI: {}}  # nobody had it
         assert unreachable == {"crossref"}  # and one of them was never asked
@@ -703,7 +717,7 @@ class TestAbsenceIsDistinguishableFromIgnorance:
             search=_StubSearch(),  # type: ignore[arg-type]
             retractions=_StubRetractions(rw_unreachable=True),  # type: ignore[arg-type]
         )
-        _, unreachable = resolve([make_ref()], registries)
+        _, unreachable, _ = resolve([make_ref()], registries)
 
         assert "retraction-watch" in unreachable
         # PubMed answered; only the leg that failed may be named.
@@ -1042,7 +1056,10 @@ class TestPmidOnlyReferences:
         """``BAD-ID`` here means PubMed answered, and answered that it has no such record.
 
         PubMed is the only registry that can hold the answer, so its authoritative
-        "not mine" is the whole of the evidence and is enough.
+        "not mine" is the whole of the evidence and is enough. That answer is an
+        empty ``efetch`` body — nothing in the records, nothing in
+        ``PmidAnswers.inconclusive`` — and it is the only shape of answer that
+        may fail a build.
         """
         _install(monkeypatch, pubmed=_StubRegistry("pubmed"))
 
@@ -1053,6 +1070,31 @@ class TestPmidOnlyReferences:
         issue = result.issues[0]
         assert (issue.field, issue.kind, issue.stored) == ("identifier", "unresolved", "99999999")
         assert Summary([result]).exit_code() == 1
+
+    def test_pubmed_answering_under_another_number_is_not_that_finding(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The pairing for the test above: ``efetch`` answered, about something else.
+
+        Declining a record whose own ``PMID`` line is not the number asked for
+        is right — its metadata and its retraction status belong to another
+        paper. Reporting that as PubMed holding no such record is not: the two
+        are different answers, and only the empty body is evidence about this
+        bibliography. Collapsed together, a whole-batch failure becomes fifty
+        accusations at once.
+        """
+        _install(
+            monkeypatch,
+            pubmed=_StubRegistry("pubmed", inconclusive_pmids={PMID: ("20137807",)}),
+        )
+
+        result = audit([make_pmid_ref()], _options(tmp_path))[0]
+
+        assert result.verdict == "UNCHECKED"
+        assert not result.fails
+        assert [i.kind for i in result.issues] == ["inconclusive"]
+        assert "20137807" in result.issues[0].note
+        assert Summary([result]).exit_code() == 0
 
     def test_a_pubmed_outage_leaves_a_pmid_unchecked_never_bad_id(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

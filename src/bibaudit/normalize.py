@@ -34,6 +34,7 @@ __all__ = [
     "normalize_kind",
     "normalize_pmid",
     "parse_year",
+    "pmc_number",
     "similarity",
 ]
 
@@ -164,6 +165,11 @@ def extract_dois(text: str) -> list[str]:
 #: and no check digit, so every all-digit string under the ceiling is accepted.
 _MAX_PMID_DIGITS = 8
 
+#: A PubMed Central accession, as MEDLINE's ``PMC`` line writes it and as
+#: Zotero's ``Extra`` box does: the letters ``PMC`` and then the number. Case
+#: is folded because a bibliography writes it however it was pasted.
+_PMCID_RE = re.compile(r"^PMC(\d+)$", re.IGNORECASE)
+
 #: A PMID sitting in free text is declared on a line of its own or not at all.
 #: Zotero's convention for an identifier its own schema has no field for is a
 #: line of the item's ``Extra`` reading ``PMID: 28520842``, usually with
@@ -218,6 +224,23 @@ def normalize_pmid(value: object) -> str | None:
     if text.startswith("0") or len(text) > _MAX_PMID_DIGITS:
         return None
     return text
+
+
+def pmc_number(value: object) -> str | None:
+    """The digits of a PubMed Central accession, or ``None``.
+
+    ``PMC5860629`` -> ``"5860629"``. The prefix is required and is the whole
+    of the test: a PMC accession and a PMID are both bare ascending integers,
+    so a number without it could be either, and one MEDLINE record carries one
+    of each — PMID 28520842 (*Am J Epidemiol* 2017, 10.1093/aje/kwx137) has
+    ``PMC  - PMC5860629`` beside its own ``PMID- 28520842``. Reading a bare
+    number as an accession would make every PMID look like one.
+
+    The digits are returned unprefixed because what asks for them compares
+    them against a PMID — see ``benign._pmid_pmc_accession``.
+    """
+    match = _PMCID_RE.match(clean(value).strip())
+    return match.group(1) if match else None
 
 
 def extract_pmid(text: str) -> str | None:

@@ -35,7 +35,7 @@ import threading
 import time
 import urllib.parse
 from collections.abc import Iterator, Sequence
-from dataclasses import replace
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from ..model import Name, Record
@@ -43,7 +43,7 @@ from ..names import parse_name
 from ..normalize import clean, fold, normalize_doi, normalize_pmid, parse_year
 from .http import Client
 
-__all__ = ["PubMed"]
+__all__ = ["PmidAnswers", "PubMed"]
 
 _EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 _ESEARCH_URL = f"{_EUTILS}/esearch.fcgi"
@@ -312,6 +312,36 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
     )
 
 
+@dataclass(frozen=True)
+class PmidAnswers:
+    """What ``efetch`` said about a batch of PMIDs — three states, not two.
+
+    :attr:`records` holds the citations attributed to the number they were
+    asked under. :attr:`inconclusive` holds the numbers ``efetch`` answered
+    *around*. A PMID in neither is PubMed's own "no record under that number",
+    and that one is the only one of the three that is evidence about a
+    bibliography.
+
+    The distinction is CLAUDE.md's "404 is a fact, a timeout is ignorance" at
+    an edge with a third state: a request that came back with a record nobody
+    asked for has neither timed out nor said no. Returning one dict made those
+    two the same empty entry, and :mod:`~bibaudit.compare` turns an empty
+    entry into ``BAD-ID``.
+    """
+
+    #: PMID as asked for -> the MEDLINE record whose own ``PMID`` line is that
+    #: number.
+    records: dict[str, Record] = field(default_factory=dict)
+    #: PMID as asked for -> the PMIDs its ``efetch`` batch came back under
+    #: instead, empty when the batch was not answered at all. Attribution
+    #: within a batch is impossible — ``efetch`` may return the records in any
+    #: order and simply omits the ones it has nothing for — so every
+    #: unanswered number in a batch that produced a stray record carries the
+    #: whole stray list. Guessing which one it belongs to is the positional
+    #: pairing the module docstring rules out for ``esearch``.
+    inconclusive: dict[str, tuple[str, ...]] = field(default_factory=dict)
+
+
 class PubMed:
     """NCBI PubMed lookup, by DOI or by PMID.
 
@@ -352,31 +382,23 @@ class PubMed:
         self._throttle()
         return self._client.get_text(f"{url}?{urllib.parse.urlencode(params)}")
 
-    def pmids_for(self, dois: Sequence[str]) -> dict[str, str]:
-        """Map each of *dois* to its PubMed PMID, where one exists.
-
-        A DOI missing from the result means PubMed has no PMID for it — the
-        normal case for anything outside biomedicine, not an error. A
-        registry outage during ``esearch``/``esummary`` instead raises
-        :class:`~bibaudit.registries.http.Transient`, so it is never confused
-        with a confirmed absence.
-
-        A DOI several PMIDs claim gets one of them, so a record is still
-        fetched for it; :meth:`by_dois` is where the multiplicity is read for
-        what it means. See :meth:`_pmids_by_doi`.
-        """
-        return {doi: pmids[-1] for doi, pmids in self._pmids_by_doi(dois).items()}
-
     def _pmids_by_doi(self, dois: Sequence[str]) -> dict[str, list[str]]:
         """Every PMID PubMed attributes to each of *dois*, in the order found.
 
-        Kept apart from :meth:`pmids_for` because *how many* PMIDs came back
-        for one DOI is evidence in its own right, and collapsing to one throws
-        it away. Two mean either that PubMed holds two citations for the work
-        or that one record lists another's identifier among its own article
-        ids — the case the ``doi in wanted`` filter below drops, in the
-        residual form where both records claim a DOI that *was* asked for.
-        Neither can be settled from this side.
+        A DOI missing from the result means PubMed has no PMID for it — the
+        normal case for anything outside biomedicine, not an error. A registry
+        outage during ``esearch``/``esummary`` instead raises
+        :class:`~bibaudit.registries.http.Transient`, so it is never confused
+        with a confirmed absence.
+
+        The list is kept whole because *how many* PMIDs came back for one DOI
+        is evidence in its own right, and collapsing to one throws it away.
+        Two mean either that PubMed holds two citations for the work or that
+        one record lists another's identifier among its own article ids — the
+        case the ``doi in wanted`` filter below drops, in the residual form
+        where both records claim a DOI that *was* asked for. Neither can be
+        settled from this side, which is why :meth:`by_dois` withholds the
+        PMID rather than picking one.
         """
         normalized = list(dict.fromkeys(doi for raw in dois if (doi := normalize_doi(raw))))
         if not normalized:
@@ -451,16 +473,21 @@ class PubMed:
                     )
         return out
 
-    def by_pmids(self, pmids: Sequence[str]) -> dict[str, Record]:
-        """Fetch full MEDLINE records for *pmids*, keyed by the PMID asked for.
+    def by_pmids(self, pmids: Sequence[str]) -> PmidAnswers:
+        """Fetch full MEDLINE records for *pmids*. See :class:`PmidAnswers`.
 
-        A PMID absent from the result is PubMed's own answer that it holds no
-        record under that number, which is the evidence a ``BAD-ID`` on a
-        PMID rests on. An outage raises
-        :class:`~bibaudit.registries.http.Transient` instead, for the reason
-        :meth:`by_dois` gives: this answers for a whole batch at once, and
-        half a batch must never be reported as the other half being confirmed
-        absent.
+        A PMID in neither half of the answer is PubMed's own statement that it
+        holds no record under that number, which is the evidence a ``BAD-ID``
+        on a PMID rests on. Witnessed: ``efetch`` for 20000157 and for
+        35000082, both deleted citations, answers HTTP 200 with an empty body
+        — no error, no substitute record, nothing. That is what an absence
+        looks like here, and it is why an answer of any other shape is
+        reported as ignorance instead.
+
+        An outage raises :class:`~bibaudit.registries.http.Transient`, for the
+        reason :meth:`by_dois` gives: this answers for a whole batch at once,
+        and half a batch must never be reported as the other half being
+        confirmed absent.
 
         Only ``efetch`` is issued — see the module docstring on why the
         ``esearch``/``esummary`` pair that opens :meth:`by_dois` is not a step
@@ -468,26 +495,43 @@ class PubMed:
         """
         wanted = list(dict.fromkeys(p for raw in pmids if (p := normalize_pmid(raw))))
         if not wanted:
-            return {}
-        requested = set(wanted)
+            return PmidAnswers()
 
         out: dict[str, Record] = {}
+        inconclusive: dict[str, tuple[str, ...]] = {}
         for batch in _chunk(wanted, _EFETCH_BATCH):
+            requested = set(batch)
             text = self._efetch_medline(batch)
             if text is None:
+                # A 404 on ``efetch.fcgi`` itself is a fact about the request,
+                # never about the numbers in it: NCBI answers 200 for a PMID
+                # it does not hold. Read as an absence it would condemn every
+                # entry in a batch of fifty at once, so the batch is ignorance
+                # — and only this batch, because the others' answers are still
+                # good and ``Transient`` would throw them away.
+                inconclusive.update(dict.fromkeys(batch, ()))
                 continue
+            others: list[str] = []
             for fields in _parse_medline_records(text):
                 # Attributed by each record's *own* ``PMID`` line, exactly as
-                # in ``by_dois`` and for the same reason: NLM merges duplicate
-                # citations, so a request for a retired number can come back
-                # as the surviving record under a different one. Adopting it
-                # would hand this reference another paper's metadata and
-                # another paper's retraction status.
+                # in ``by_dois``: a record answering under a number nobody
+                # asked for is not the citation this reference names, and
+                # adopting it would hand the entry another paper's metadata
+                # and another paper's retraction status. NO WITNESSED INSTANCE
+                # of ``efetch`` doing so — the two deleted PMIDs above come
+                # back empty rather than redirected — so the guard is a
+                # precaution, and what it declines is reported as such.
                 record_pmid = _first(fields.get("PMID"))
-                if record_pmid is None or record_pmid not in requested:
+                if record_pmid is None:
+                    continue
+                if record_pmid not in requested:
+                    others.append(record_pmid)
                     continue
                 out[record_pmid] = _record_from_medline(fields)
-        return out
+            if others:
+                strays = tuple(dict.fromkeys(others))
+                inconclusive.update({p: strays for p in batch if p not in out})
+        return PmidAnswers(records=out, inconclusive=inconclusive)
 
     def _esearch(self, dois: list[str]) -> list[str]:
         """PMIDs matching any of *dois* by Article ID.

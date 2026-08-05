@@ -405,7 +405,7 @@ class TestConsultationRecordsWhatWasActuallyAsked:
             retractions=stubs.retractions,  # type: ignore[arg-type]
         )
 
-        records, unreachable = resolve([ref], registries)
+        records, unreachable, _ = resolve([ref], registries)
         found = records[MARIN_DOI]
 
         really_called = {

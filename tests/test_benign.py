@@ -483,6 +483,42 @@ class TestRedirectingAggregatorDoi:
         assert classify("doi", "10.1111/j.1540-5907.2000.tb00000.x", "10.2307/2669548") is None
 
 
+class TestPmidPmcAccession:
+    """One MEDLINE record, two accession schemes.
+
+    PMID 28520842 (*Am J Epidemiol* 2017, 10.1093/aje/kwx137) carries ``PMC  -
+    PMC5860629`` beside its own ``PMID- 28520842``, and ``efetch
+    id=28520842`` shows both on the one citation. A ``pmid`` field holding
+    ``5860629`` names that record, so ``compare._check_pmid``'s claim — two
+    identifiers, two citations — is not true of it.
+    """
+
+    def test_the_records_own_pmc_accession_is_not_another_citation(self) -> None:
+        assert classify("pmid", "5860629", "28520842", raw={"PMC": ["PMC5860629"]}) == (
+            "stored number is this record's own PMC accession"
+        )
+
+    def test_the_prefix_is_read_however_it_was_pasted(self) -> None:
+        """A bibliography writes ``pmc5860629`` as readily as ``PMC5860629``."""
+        assert classify("pmid", "5860629", "28520842", raw={"PMC": ["pmc5860629"]}) is not None
+
+    def test_a_different_number_is_not_excused_by_the_pmc_line(self) -> None:
+        """The pairing: a record with a ``PMC`` line is not a record beyond question.
+
+        PMID 9500320 is Wakefield et al. — a different paper entirely — and
+        the rule must read the accession rather than the presence of one.
+        """
+        assert classify("pmid", "9500320", "28520842", raw={"PMC": ["PMC5860629"]}) is None
+
+    def test_a_record_with_no_pmc_line_explains_nothing(self) -> None:
+        """Crossref records have no ``PMC`` key, and none is invented for them."""
+        assert classify("pmid", "5860629", "28520842") is None
+
+    def test_a_pmc_field_that_is_not_a_list_is_not_read(self) -> None:
+        """``raw`` is whatever the registry sent; only MEDLINE's shape is parsed."""
+        assert classify("pmid", "5860629", "28520842", raw={"PMC": "PMC5860629"}) is None
+
+
 class TestRuleScoping:
     def test_a_title_rule_does_not_leak_into_another_field(self) -> None:
         """Each rule guards on its own field; without that, one rule silences all."""
@@ -522,6 +558,11 @@ class TestRuleScoping:
                 "title", "The Lancet", "Lancet",
                 {"container_alternates": []}, "_container_leading_article",
             ),
+            # _pmid_pmc_accession compares a stored number against the record's
+            # own PMC line. Unscoped, any field whose value happens to equal
+            # those digits is excused against the registry's — a PMC accession
+            # explains a wrong PMID and nothing else about the entry.
+            ("volume", "5860629", "47", {"raw": {"PMC": ["PMC5860629"]}}, "_pmid_pmc_accession"),
         ],
     )
     def test_no_rule_leaks_into_a_field_it_was_not_written_for(

@@ -24,6 +24,7 @@ from bibaudit.normalize import (
     normalize_doi,
     normalize_kind,
     parse_year,
+    pmc_number,
     similarity,
 )
 
@@ -242,6 +243,34 @@ class TestPmidExtraction:
         """
         assert extract_pmid("28520842") is None
         assert extract_pmid("cohort of 28520842 person-years") is None
+
+
+class TestPmcAccession:
+    """The other number NLM puts on the same record.
+
+    PMID 28520842 (*Am J Epidemiol* 2017) carries ``PMC  - PMC5860629``: one
+    citation, two accession schemes. Telling them apart is what the prefix is
+    for, and a bibliography with the accession in its ``pmid`` field is why
+    anything reads it.
+    """
+
+    @pytest.mark.parametrize("raw", ["PMC5860629", "pmc5860629", " PMC5860629 "])
+    def test_the_prefixed_form_yields_its_digits(self, raw: str) -> None:
+        assert pmc_number(raw) == "5860629"
+
+    def test_a_bare_number_is_not_an_accession(self) -> None:
+        """The refusal the whole function exists for.
+
+        PMIDs and PMC accessions are both bare ascending integers. Accepting a
+        naked number here would make every PMID answer as an accession, and the
+        rule that reads this would then explain away every disagreement it was
+        written to report.
+        """
+        assert pmc_number("5860629") is None
+
+    @pytest.mark.parametrize("raw", ["", "PMC", "PMC5860629.1", "PMCID: PMC5860629", None])
+    def test_anything_else_is_refused(self, raw: object) -> None:
+        assert pmc_number(raw) is None
 
 
 class TestYear:

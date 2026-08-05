@@ -29,7 +29,7 @@ import re
 from collections.abc import Callable
 
 from .model import Record, Reference
-from .normalize import clean, fold, is_article_number
+from .normalize import clean, fold, is_article_number, pmc_number
 
 __all__ = ["ArtifactCheck", "classify"]
 
@@ -368,6 +368,33 @@ def _doi_redirecting_prefix(field: str, stored: str, registry: str, ref: Referen
     return None
 
 
+def _pmid_pmc_accession(field: str, stored: str, registry: str, ref: Reference, rec: Record) -> str | None:
+    """Stored "PMID" is this very record's PMC accession, not another citation.
+
+    Instance: PMID 28520842 (*Am J Epidemiol* 2017, 10.1093/aje/kwx137). Its
+    MEDLINE record carries ``PMC  - PMC5860629`` beside ``PMID- 28520842``, so
+    ``efetch id=28520842`` shows both numbers on one citation. NLM issues a
+    PMID and a PMC accession for the same deposited article and Zotero keeps
+    them on adjacent lines of one ``Extra`` box, which is where a ``pmid``
+    field comes to hold ``5860629``.
+
+    That number names *this* record under NLM's other accession scheme, so
+    ``compare._check_pmid``'s claim — that the entry's two identifiers name two
+    citations — is not true of it, and the entry is not evidence of anything to
+    check. :func:`~bibaudit.normalize.normalize_pmid` already refuses the
+    prefixed ``PMC5860629``; only the stripped form gets this far.
+    """
+    if field != "pmid":
+        return None
+    values = rec.raw.get("PMC")
+    if not isinstance(values, list):
+        return None
+    for value in values:
+        if pmc_number(value) == stored:
+            return "stored number is this record's own PMC accession"
+    return None
+
+
 #: Order matters only for which reason is reported first; the checks are
 #: independent and none of them consumes another's input.
 CHECKS: tuple[ArtifactCheck, ...] = (
@@ -380,6 +407,7 @@ CHECKS: tuple[ArtifactCheck, ...] = (
     _container_abbreviation,
     _container_leading_article,
     _doi_redirecting_prefix,
+    _pmid_pmc_accession,
 )
 
 

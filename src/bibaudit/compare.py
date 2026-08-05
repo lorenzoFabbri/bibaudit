@@ -199,6 +199,20 @@ def _registry_value(ctx: _Context, attr: str) -> tuple[str, str]:
     return "", ""
 
 
+def _registry_source_record(ctx: _Context, attr: str) -> Record | None:
+    """The record :func:`_registry_value` would read *attr* from, or ``None``.
+
+    Same precedence, and it exists because a check whose suppression rule
+    reads the *rest* of that record — ``benign._pmid_pmc_accession`` wants
+    MEDLINE's ``PMC`` line — cannot work from a value and a registry name.
+    """
+    if getattr(ctx.primary, attr, None):
+        return ctx.primary
+    if ctx.corroborator and getattr(ctx.corroborator, attr, None):
+        return ctx.corroborator
+    return None
+
+
 def _alternate_containers(ctx: _Context) -> list[tuple[str, str]]:
     """Every *other* container title the registries carry, each with its source.
 
@@ -556,16 +570,30 @@ def _check_doi(ctx: _Context) -> None:
 
 
 def _check_pmid(ctx: _Context) -> None:
-    """Flag a stored PMID that is not the one the stored DOI resolved to.
+    """Report a stored PMID that is not the one the stored DOI resolved to.
 
     A PMID stored *beside* a DOI fetched nothing: the record in hand came back
     under the DOI, so the two identifiers are two independent claims the entry
     makes about which work it cites. A registry answering for the DOI under a
     different PMID means they name different citations, which is the shape a
-    mis-transcribed — or an invented — reference takes. So this is an ordinary
-    field mismatch and fails like one, unlike :func:`_check_doi` one function
-    up, where the identifier under comparison is the key that produced the
-    record and can only ever disagree with itself.
+    mis-transcribed — or an invented — reference takes.
+
+    **It is a warning, not an error, and the note says why.** One side of this
+    comparison was looked up and the other was not: nothing here asks PubMed
+    what the *stored* number names, so "these two identifiers name two works"
+    is an inference from one lookup, not a finding from two. The case that
+    decides it is a bibliography carrying a PMID that has since stopped
+    answering — ``efetch`` for 20000157 or 35000082 returns an empty body
+    today — beside the right DOI. Whether such a number was the work's own
+    when the entry was written cannot be seen from here: what came back is the
+    citation the DOI resolves to, and it says nothing about a number nobody
+    put to PubMed. Failing a build on that is the false alarm this tool's
+    third rule is about. An entry reaching this check prints
+    under ``INCOMPLETE``, whose group heading reads "the registry holds fields
+    the entry omits" and is a poor fit; the issue line beside it states
+    exactly what disagrees with what, and ``--fail-on INCOMPLETE`` is there
+    for a project that wants the finding to bite. Making it an error again
+    means looking the stored PMID up first — see ``docs/registry-artifacts.md``.
 
     Three situations it is structurally unable to fire on, each a refusal
     rather than a suppression:
@@ -600,25 +628,29 @@ def _check_pmid(ctx: _Context) -> None:
     one line below the PMID in a Zotero ``Extra`` block — is left alone rather
     than accused of disagreeing with a number it was never a candidate for.
 
-    :mod:`~bibaudit.benign` is not consulted, and that is the one difference
-    from every other check here. No registry defect is known that makes two
-    disagreeing PMIDs describe one work — the near miss, PubMed holding two
-    citations for a DOI, is the refusal above, where nothing is reported at all
-    rather than reported and explained away. Adding a ``field == "pmid"`` rule
-    to ``benign.CHECKS`` therefore takes a ``classify`` call here as well, or
-    it is a suppression that can never fire. Until such a case is witnessed, a
-    project that meets one adjudicates it in its own ``.bibaudit.toml``, where
-    the claim is somebody's say-so and reads as one.
+    The one suppression is ``benign._pmid_pmc_accession``: NLM issues a PMID
+    and a PMC accession for one deposited article and MEDLINE carries both on
+    the same record, so a ``pmid`` field holding the PMC number names the very
+    record it is being compared against. The record :func:`benign.classify`
+    is handed is therefore the one the registry PMID came from, not
+    ``ctx.primary`` — MEDLINE's ``PMC`` line is only on PubMed's record, and
+    Crossref's would explain nothing.
     """
     stored = normalize_pmid(ctx.ref.pmid)
     if not stored or not ctx.ref.doi:
         return
-    registry_text, source = _registry_value(ctx, "pmid")
-    registry = normalize_pmid(registry_text)
+    holder = _registry_source_record(ctx, "pmid")
+    if holder is None:
+        return
+    registry = normalize_pmid(holder.pmid)
     if not registry or registry == stored:
         return
+    reason = benign.classify("pmid", stored, registry, ctx.ref, holder)
+    if reason:
+        ctx.add_artifact("pmid", stored, registry, reason)
+        return
     ctx.add(
-        "pmid", "mismatch", "error", stored, registry, source=source,
+        "pmid", "mismatch", "warning", stored, registry, source=holder.source,
         note=(
             "the stored DOI resolved to a different PubMed citation; what the "
             "stored PMID names was not itself looked up"
@@ -1012,6 +1044,26 @@ def verdict_for(
     return "OK"
 
 
+def _inconclusive_note(inconclusive: Mapping[str, Sequence[str]]) -> str:
+    """Say what each registry answered with instead, for an ``UNCHECKED`` line.
+
+    The identifiers are named because a reader cannot otherwise tell this
+    apart from an outage: "pubmed answered with 20137807 instead" is something
+    they can look up, and looking it up is how a merged or mis-filed citation
+    gets found. The wording is here rather than at the call site in ``audit``
+    so that every note this module prints is written in this module.
+    """
+    parts = []
+    for name in sorted(inconclusive):
+        others = [text for value in inconclusive[name] if (text := clean(value))]
+        parts.append(
+            f"{name} answered with {', '.join(others)} instead"
+            if others
+            else f"{name} did not answer for it"
+        )
+    return f"{'; '.join(parts)}; an answer about another record is not one about this identifier"
+
+
 def compare(
     ref: Reference,
     records: dict[str, Record],
@@ -1019,6 +1071,7 @@ def compare(
     thresholds: Thresholds | None = None,
     unreachable: set[str] | None = None,
     asked: Collection[str] | None = None,
+    inconclusive: Mapping[str, Sequence[str]] | None = None,
 ) -> Result:
     """Compare one stored reference against the registry records found for it.
 
@@ -1039,6 +1092,16 @@ def compare(
         "PubMed answered and had nothing" from "PubMed was never asked because
         ``--no-corroborate`` was given". See :func:`_consultations` for what is
         assumed when it is omitted, and why the assumption errs low.
+    inconclusive:
+        Registries that answered on this reference's behalf without settling
+        whether they hold its identifier, each mapped to the identifiers they
+        answered with *instead* (empty when the request came back with
+        nothing at all). Read only when no record resolved, where it is the
+        difference between "the registry says there is no such record" and
+        "the registry said something else": the first is the evidence
+        ``BAD-ID`` rests on, the second is ignorance and reports
+        ``UNCHECKED``. ``registries/pubmed.py`` populates it — see
+        :class:`~bibaudit.registries.pubmed.PmidAnswers`.
 
     Returns
     -------
@@ -1103,6 +1166,26 @@ def compare(
                     severity="info",
                     stored=ref.identifier,
                     note="no registry was asked about this identifier; not checked",
+                )
+            )
+            return result
+        if ref.identifier and inconclusive:
+            # A registry that answered *around* the identifier has settled
+            # nothing about it. PubMed's ``efetch`` returning a citation under
+            # a number nobody asked for is the case this exists for: declining
+            # to adopt that record is right, but what came back is a record,
+            # not NLM's own "no record under that number", and only the second
+            # is evidence a stored PMID is wrong. Collapsing them made a
+            # verdict of ``BAD-ID`` out of an answer.
+            result.verdict = "UNCHECKED"
+            result.issues.append(
+                Issue(
+                    field="doi" if ref.doi else "identifier",
+                    kind="inconclusive",
+                    severity="info",
+                    stored=ref.identifier,
+                    source=",".join(sorted(inconclusive)),
+                    note=_inconclusive_note(inconclusive),
                 )
             )
             return result

@@ -108,7 +108,7 @@ def run_audit(
     # the package is the re-exported function of the same name, not the module,
     # which is also why monkeypatch's dotted-string form cannot find it.
     audit_module = importlib.import_module("bibaudit.audit")
-    monkeypatch.setattr(audit_module, "resolve", lambda refs, registries: (records, set()))
+    monkeypatch.setattr(audit_module, "resolve", lambda refs, registries: (records, set(), {}))
     options = AuditOptions(
         cache_dir=tmp_path / "cache",
         corroborate=False,

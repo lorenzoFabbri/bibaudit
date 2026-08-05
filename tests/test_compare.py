@@ -1183,19 +1183,27 @@ class TestPmidCheck:
     [DOI](https://doi.org/10.1016/S0140-6736(10)60175-4).
     """
 
-    def test_a_pmid_naming_another_work_is_an_ordinary_field_mismatch(self) -> None:
-        """No new verdict: the entry is right about the work and wrong about a field."""
+    def test_a_pmid_naming_another_work_is_reported_as_a_warning(self) -> None:
+        """One side of this comparison was looked up and the other was not.
+
+        The stored number is never put to PubMed, so "these two identifiers
+        name two works" is an inference from one lookup. A bibliography holding
+        a PMID that has since stopped answering — ``efetch`` for 20000157
+        returns an empty body today — would fail a build on that inference,
+        and a false alarm costs more than a miss.
+        """
         result = compare(
             make_ref(pmid="9500320"),
             {"crossref": make_record(), "pubmed": make_record(source="pubmed", pmid="29329392")},
         )
         issue = next(i for i in result.issues if i.field == "pmid")
 
-        assert (issue.kind, issue.severity) == ("mismatch", "error")
+        assert (issue.kind, issue.severity) == ("mismatch", "warning")
         assert (issue.stored, issue.registry) == ("9500320", "29329392")
         assert issue.source == "pubmed"
-        assert result.verdict == "FIELD-MISMATCH"
-        assert result.fails
+        assert "not itself looked up" in issue.note
+        assert result.verdict == "INCOMPLETE"
+        assert not result.fails
 
     def test_the_pmid_pubmed_holds_for_the_doi_is_silent(self) -> None:
         result = compare(
@@ -1215,7 +1223,7 @@ class TestPmidCheck:
         result = compare(
             make_ref(pmid="9500320"), {"pubmed": make_record(source="pubmed", pmid="29329392")}
         )
-        assert any(i.field == "pmid" and i.severity == "error" for i in result.issues)
+        assert any(i.field == "pmid" and i.kind == "mismatch" for i in result.issues)
 
     def test_a_registry_holding_no_pmid_is_not_a_disagreement(self) -> None:
         """Absence of evidence is not a mismatch.
@@ -1295,7 +1303,112 @@ class TestPmidCheck:
         issue = next(i for i in result.issues if i.field == "pmid")
 
         assert (issue.stored, issue.registry) == ("20137807", "9500320")
-        assert result.verdict == "FIELD-MISMATCH"
+        assert issue.kind == "mismatch"
+        assert result.verdict == "INCOMPLETE"
+
+    def test_the_records_own_pmc_accession_is_not_a_second_citation(self) -> None:
+        """PMID 28520842 carries ``PMC  - PMC5860629``: one record, two numbers.
+
+        NLM issues both for one deposited article and Zotero keeps them on
+        adjacent lines of one ``Extra`` box, so a ``pmid`` field comes to hold
+        the PMC number with its prefix dropped. That number names the record
+        being compared against, which is the one thing this check's claim —
+        two identifiers, two citations — cannot be true of.
+        """
+        result = compare(
+            make_ref(pmid="5860629"),
+            {
+                "crossref": make_record(),
+                "pubmed": make_record(
+                    source="pubmed", pmid="28520842", raw={"PMC": ["PMC5860629"]}
+                ),
+            },
+        )
+
+        assert not any(i.field == "pmid" for i in result.issues)
+        artifact = next(i for i in result.suppressed if i.field == "pmid")
+        assert artifact.note == "stored number is this record's own PMC accession"
+        assert result.verdict == "REGISTRY-ARTIFACT"
+        assert not result.fails
+
+    def test_an_unrelated_number_is_still_reported_when_a_pmc_line_exists(self) -> None:
+        """The other half: the rule reads the accession, not the presence of one.
+
+        A record carrying a ``PMC`` line must not become a record whose PMID
+        cannot be questioned.
+        """
+        result = compare(
+            make_ref(pmid="9500320"),
+            {
+                "crossref": make_record(),
+                "pubmed": make_record(
+                    source="pubmed", pmid="28520842", raw={"PMC": ["PMC5860629"]}
+                ),
+            },
+        )
+
+        assert any(i.field == "pmid" and i.kind == "mismatch" for i in result.issues)
+
+
+class TestAnAnswerAboutAnotherRecord:
+    """A registry that answered *around* an identifier has not answered about it.
+
+    ``PubMed.by_pmids`` declines to adopt a record whose own ``PMID`` line is
+    not the number requested — right, since that record is another paper's
+    metadata and another paper's retraction status. But the request did come
+    back with something, and ``BAD-ID`` rests on PubMed's own "no record under
+    that number", which is a different answer: ``efetch`` for a deleted PMID
+    returns HTTP 200 and an empty body.
+    """
+
+    def test_an_identifier_answered_around_is_unchecked_not_bad_id(self) -> None:
+        result = compare(
+            make_ref(doi=None, pmid="9500320"),
+            {},
+            asked={"pubmed"},
+            inconclusive={"pubmed": ("20137807",)},
+        )
+
+        assert result.verdict == "UNCHECKED"
+        assert not result.fails
+        issue = result.issues[0]
+        assert (issue.field, issue.kind, issue.severity) == (
+            "identifier",
+            "inconclusive",
+            "info",
+        )
+        assert issue.stored == "9500320"
+        assert issue.source == "pubmed"
+        # Named so a reader can look up what came back instead.
+        assert "20137807" in issue.note
+
+    def test_a_batch_that_was_not_answered_at_all_names_no_substitute(self) -> None:
+        """The 404-on-``efetch`` case: ignorance with nothing to name.
+
+        The note must not invent a number, and the verdict must not be the one
+        an answer would have earned.
+        """
+        result = compare(
+            make_ref(doi=None, pmid="9500320"),
+            {},
+            asked={"pubmed"},
+            inconclusive={"pubmed": ()},
+        )
+
+        assert result.verdict == "UNCHECKED"
+        assert result.issues[0].note.startswith("pubmed did not answer for it")
+
+    def test_an_answer_of_no_such_record_is_still_bad_id(self) -> None:
+        """The finding this must not swallow.
+
+        PubMed answering that it holds nothing under a number is the whole of
+        the evidence a ``BAD-ID`` on a PMID rests on, and it reaches ``compare``
+        as an empty ``inconclusive``.
+        """
+        result = compare(make_ref(doi=None, pmid="9500320"), {}, asked={"pubmed"})
+
+        assert result.verdict == "BAD-ID"
+        assert result.fails
 
 
 class TestMedlineJournalTitleOnThePmidPath:
@@ -1381,6 +1494,25 @@ class TestIncompleteness:
         result = compare(make_ref(pages=None), {"crossref": make_record()})
         assert result.verdict == "INCOMPLETE"
         assert not result.fails
+
+    def test_the_corroborator_fills_a_field_the_primary_never_deposited(self) -> None:
+        """A gap in Crossref's deposit is not a gap in the evidence.
+
+        Crossref deposits routinely omit the issue; MEDLINE's ``IP`` carries
+        it. Reading the primary alone would report the entry's correct issue as
+        a disagreement with nothing, and its wrong one as no disagreement at
+        all. Filling the gap is not arbitration — it happens only where the
+        primary has said nothing.
+        """
+        records = {
+            "crossref": make_record(issue=None),
+            "pubmed": make_record(source="pubmed", issue="9"),
+        }
+
+        assert compare(make_ref(issue="9"), records).verdict == "OK"
+        wrong = compare(make_ref(issue="2"), records)
+        issue = next(i for i in wrong.issues if i.field == "issue")
+        assert (issue.registry, issue.source) == ("9", "pubmed")
 
 
 class TestCosmetic:

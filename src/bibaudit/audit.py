@@ -221,21 +221,29 @@ def _pmid_key(ref: Reference) -> str | None:
 def resolve(
     refs: Sequence[Reference],
     registries: _Registries,
-) -> tuple[dict[str, dict[str, Record]], set[str]]:
+) -> tuple[dict[str, dict[str, Record]], set[str], dict[str, tuple[str, ...]]]:
     """Fetch registry records for every reference that carries an identifier.
 
-    Returns ``(records_by_identifier, unreachable_registries)`` — keyed by
-    normalised DOI, by PMID, or by normalised ISBN-13, whichever
-    :attr:`~bibaudit.model.Reference.identifier` ranks highest for the
-    reference at hand. The three never collide (a DOI always starts ``10.``; a
-    PMID is at most eight digits, an ISBN-13 exactly thirteen), so one dict
-    serves all of them without ambiguity. Keeping the unreachable set separate
-    from "no record found" is what stops a network outage from being reported
-    as a bibliography full of fabricated citations.
+    Returns ``(records_by_identifier, unreachable_registries,
+    inconclusive_pmids)`` — the first keyed by normalised DOI, by PMID, or by
+    normalised ISBN-13, whichever :attr:`~bibaudit.model.Reference.identifier`
+    ranks highest for the reference at hand. The three never collide (a DOI
+    always starts ``10.``; a PMID is at most eight digits, an ISBN-13 exactly
+    thirteen), so one dict serves all of them without ambiguity. Keeping the
+    unreachable set separate from "no record found" is what stops a network
+    outage from being reported as a bibliography full of fabricated citations.
+
+    The third is the same principle one state further in, and only PubMed's
+    PMID lookup can produce it: a number ``efetch`` answered *around* rather
+    than answered for. See :class:`~bibaudit.registries.pubmed.PmidAnswers`.
+    It is keyed by PMID rather than by registry because a run-wide set would
+    say the registry was inconclusive about references it answered perfectly
+    well for.
     """
     dois = sorted({normalize_doi(r.doi) for r in refs if r.doi})
     records: dict[str, dict[str, Record]] = {doi: {} for doi in dois}
     unreachable: set[str] = set()
+    inconclusive: dict[str, tuple[str, ...]] = {}
 
     if dois:
         _resolve_dois(dois, registries, records, unreachable)
@@ -251,10 +259,13 @@ def resolve(
         for pmid in pmids:
             records.setdefault(pmid, {})
         try:
-            for pmid, record in registries.pubmed.by_pmids(pmids).items():
-                records.setdefault(pmid, {})["pubmed"] = record
+            answers = registries.pubmed.by_pmids(pmids)
         except Transient:
             unreachable.add("pubmed")
+        else:
+            for pmid, record in answers.records.items():
+                records.setdefault(pmid, {})["pubmed"] = record
+            inconclusive = dict(answers.inconclusive)
 
     # Only references with no stronger identifier are worth an ISBN lookup: one
     # carrying a DOI as well is vanishingly rare (a handful of ebook publishers
@@ -281,7 +292,7 @@ def resolve(
         except Transient:
             unreachable.add("openlibrary")
 
-    return records, unreachable
+    return records, unreachable, inconclusive
 
 
 def _resolve_dois(
@@ -485,7 +496,7 @@ def audit(refs: Sequence[Reference], options: AuditOptions | None = None) -> lis
     """
     options = options or AuditOptions()
     registries = _build(options)
-    records, unreachable = resolve(refs, registries)
+    records, unreachable, inconclusive = resolve(refs, registries)
 
     results: list[Result] = []
     for ref in refs:
@@ -515,6 +526,12 @@ def audit(refs: Sequence[Reference], options: AuditOptions | None = None) -> lis
                 # below, and the empty set is what makes ``compare`` report
                 # UNCHECKED instead of accusing the entry.
                 asked={"pubmed"} if registries.pubmed is not None else set(),
+                # PubMed answering *around* this number is not PubMed saying
+                # it holds no such record, and only the latter may reach the
+                # BAD-ID branch — see ``PubMed.by_pmids``.
+                inconclusive=(
+                    {"pubmed": inconclusive[pmid]} if pmid in inconclusive else None
+                ),
             )
         elif isbn13:
             found = records.get(isbn13, {})

@@ -447,10 +447,7 @@ correct thing to store. Keeping the arbitrary one would fail a bibliography for
 a choice the tool made, on a check whose whole purpose is to catch a citation
 whose two identifiers name two different works.
 
-`compare._check_pmid` has no rule in `benign.CHECKS` and does not call
-`classify` at all: no registry defect is known that makes two disagreeing PMIDs
-describe one work, and the near miss is this section, where nothing is reported
-in the first place. Its other two refusals are not registry defects either, and
+`compare._check_pmid`'s other two refusals are not registry defects either, and
 each is stated where it lives — a reference with no DOI is *resolved* by its
 PMID and so is never compared against it, and no relation (Crossref's
 `updated-by`, MEDLINE's `RIN`/`ROF`) is read anywhere in the check, so an entry
@@ -458,6 +455,98 @@ citing a retraction notice by that notice's own DOI and PMID is silently
 correct. A project that meets a case none of this covers adjudicates it in its
 own `.bibaudit.toml`, where the claim reads as somebody's say-so and can be
 re-read.
+
+---
+
+## A record's PMC accession stored as its PMID
+
+**What happens.** NLM issues a PMID and a PubMed Central accession for one
+deposited article and MEDLINE carries both on the same record. A `pmid` field
+comes to hold the accession with its `PMC` prefix dropped, and the two numbers
+then disagree while naming one citation.
+
+**Observed.** PMID 28520842 (*Am J Epidemiol* 2017, 10.1093/aje/kwx137).
+`efetch id=28520842` returns a block with `PMID- 28520842` and `PMC  -
+PMC5860629` in it; Zotero writes the pair on adjacent lines of one `Extra` box,
+which is where a stripped-prefix copy comes from. The record side is what is
+recorded here — anyone can fetch it — rather than a bibliography that made the
+mistake.
+
+**Detection.** `benign._pmid_pmc_accession`, reached through
+`compare._check_pmid`, which hands `classify` the record the registry PMID came
+from rather than `ctx.primary`: MEDLINE's `PMC` line exists only on PubMed's
+record, and Crossref's would explain nothing.
+`normalize.pmc_number` owns the parsing, and it requires the prefix — a PMC
+accession and a PMID are both bare ascending integers, so a rule that accepted
+a naked number would read every PMID as an accession.
+
+**Reported as.** `REGISTRY-ARTIFACT`, with both numbers printed.
+
+**Why it matters.** The check's whole claim is that the entry's two identifiers
+name two citations. A number that names the record in hand is the one case
+where that claim is false by construction.
+
+---
+
+## The PMID check is one-sided, and warns rather than fails
+
+**What happens.** Nothing looks the *stored* PMID up. The record in hand came
+back under the stored DOI, so "these two identifiers name two works" is an
+inference from one lookup, not a finding from two. The case that decides it: a
+bibliography carrying a PMID that has since stopped answering — `efetch` for
+20000157 or 35000082 returns an empty body today — beside the right DOI.
+Whether such a number was the work's own when the entry was written cannot be
+seen from this side, because what came back is the citation the DOI resolves to
+and it says nothing about a number nobody put to PubMed.
+
+**Reported as.** A `pmid/mismatch` issue at `warning` severity, so the entry's
+verdict is `INCOMPLETE` and the run's exit code is 0. Two costs, both real. The
+group heading `INCOMPLETE` prints under reads "the registry holds fields the
+entry omits", which this is not; the issue line beside it names both numbers and
+says the stored one was not looked up. And the default report prints only the
+failing groups plus `DISPUTED`, so the finding needs `--verbose` to be seen, or
+`--fail-on INCOMPLETE` for a project that wants it to bite.
+
+**What would earn `error` back.** Looking the stored PMID up — `PubMed.by_pmids`
+already answers for a batch of numbers, so it is a second efetch per fifty
+dual-identifier entries — and adjudicating what comes back: a citation
+describing another work is a two-sided finding, a citation carrying the stored
+DOI is PubMed holding the work twice, and no citation at all is a stored number
+naming nothing. Until then the severity states what the evidence supports.
+
+---
+
+## An identifier a registry answered *around*
+
+**What happens.** `efetch` returns a MEDLINE record whose own `PMID` line is not
+the number requested. `PubMed.by_pmids` declines to adopt it — that record's
+metadata and retraction status belong to another paper — and the requested
+number is then left with no record.
+
+**Observed.** Nothing, for the substitution itself. `efetch` for the deleted
+PMIDs 20000157 and 35000082 answers HTTP 200 with an empty body: no error, no
+redirect, no surviving record put in its place. The guard stays because
+adopting another paper's citation is unrecoverable while declining one costs a
+lookup, but it is a precaution and is written up as one.
+
+**Reported as.** `UNCHECKED`, with an `identifier/inconclusive` issue naming
+what came back instead. Never `BAD-ID`: that verdict rests on PubMed's own "no
+record under that number", which is the empty body above and reaches `compare`
+as a plain missing key. A whole-batch failure — `efetch` answering 404 for the
+request rather than 200 for its contents — is reported the same way, for the
+same reason and at batch granularity, because read as absence it would condemn
+fifty entries at once.
+
+**Detection.** In `registries/pubmed.py` and `compare.compare`, not in
+`benign.py`. `PubMed.by_pmids` returns a `PmidAnswers` whose two dicts keep
+"answered with this record" and "answered with something else" apart, `resolve`
+carries the second to `audit`, and `compare`'s `inconclusive` argument is what
+stops the `BAD-ID` branch.
+
+**Why it matters.** It is CLAUDE.md's "404 is a fact, a timeout is ignorance" at
+an edge with a third state. An answer about another record is not an answer
+about this identifier, and only one of the three is evidence about a
+bibliography.
 
 ---
 

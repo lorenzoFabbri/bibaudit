@@ -55,8 +55,21 @@ The PMID is on the list, and the contrast is the reason it is worth stating. An
 entry storing a PMID *beside* a DOI looked nothing up with it: the DOI fetched
 the record, so the PMID is a second, independent claim about which work is
 being cited, and PubMed answering for that DOI under a different number means
-the two identifiers name two citations. That is `FIELD-MISMATCH`, like any
-other field disagreement. It is checked only when there is something to check
+the two identifiers name two citations.
+
+That is reported as a warning — verdict `INCOMPLETE`, exit code 0 — and the
+reason is the shape of the evidence rather than the size of the mistake. Only
+one side of the comparison was looked up: nothing asks PubMed what the *stored*
+number names, so a bibliography carrying a PMID that has since stopped
+answering, beside the right DOI, would fail a build on an inference. Such a
+number cannot be seen from this side at all — what comes back is the citation
+the DOI resolves to, which says nothing about a number nobody asked about.
+`--fail-on INCOMPLETE` is there for a
+project that wants the finding to bite, and
+[registry artifacts](registry-artifacts.md) records what it would take to earn
+`error` back.
+
+It is checked only when there is something to check
 it against — an entry with no DOI is *resolved* by its PMID, and that PMID
 gets the DOI's treatment above — and never when the registry offered no PMID at
 all, whether because it was not asked, because it had nothing, or because it

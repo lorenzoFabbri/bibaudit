@@ -41,7 +41,7 @@ from bibaudit.model import Record
 from bibaudit.normalize import normalize_doi
 from bibaudit.registries import pubmed
 from bibaudit.registries.http import Transient
-from bibaudit.registries.pubmed import PubMed
+from bibaudit.registries.pubmed import PmidAnswers, PubMed
 
 DATA = Path(__file__).parent / "data"
 
@@ -470,10 +470,10 @@ class TestDoiAttribution:
             },
             summary_uid_order=[WAKEFIELD_PMID, RETRACTION_NOTICE_PMID],
         )
-        mapping = PubMed(client).pmids_for([WAKEFIELD_DOI, RETRACTION_NOTICE_DOI])
+        mapping = PubMed(client)._pmids_by_doi([WAKEFIELD_DOI, RETRACTION_NOTICE_DOI])
         assert mapping == {
-            normalize_doi(WAKEFIELD_DOI): WAKEFIELD_PMID,
-            normalize_doi(RETRACTION_NOTICE_DOI): RETRACTION_NOTICE_PMID,
+            normalize_doi(WAKEFIELD_DOI): [WAKEFIELD_PMID],
+            normalize_doi(RETRACTION_NOTICE_DOI): [RETRACTION_NOTICE_PMID],
         }
 
     def test_a_candidate_whose_own_doi_was_not_asked_for_is_dropped(self) -> None:
@@ -491,8 +491,8 @@ class TestDoiAttribution:
                 RETRACTION_NOTICE_PMID: RETRACTION_NOTICE_DOI,
             },
         )
-        mapping = PubMed(client).pmids_for([WAKEFIELD_DOI])
-        assert mapping == {normalize_doi(WAKEFIELD_DOI): WAKEFIELD_PMID}
+        mapping = PubMed(client)._pmids_by_doi([WAKEFIELD_DOI])
+        assert mapping == {normalize_doi(WAKEFIELD_DOI): [WAKEFIELD_PMID]}
 
     def test_a_doi_with_no_pmid_is_absent_rather_than_an_error(self) -> None:
         """Most of the world is not in PubMed, and that is not a defect.
@@ -516,7 +516,7 @@ class TestDoiAttribution:
         is then nothing to attribute the PMID to.
         """
         client = _StubClient(esearch_ids=[WAKEFIELD_PMID], doi_by_pmid={})
-        assert PubMed(client).pmids_for([WAKEFIELD_DOI]) == {}
+        assert PubMed(client)._pmids_by_doi([WAKEFIELD_DOI]) == {}
 
     def test_no_candidates_means_no_further_requests(self) -> None:
         """``esearch`` finding nothing ends the pipeline there.
@@ -539,7 +539,7 @@ class TestDoiAttribution:
         from there.
         """
         client = _StubClient(esearch_ids=[])
-        PubMed(client).pmids_for([WAKEFIELD_DOI])
+        PubMed(client)._pmids_by_doi([WAKEFIELD_DOI])
         assert _params(client.urls[0])["term"] == '("10.1016/s0140-6736(97)11096-0"[aid])'
 
     def test_blank_dois_make_no_request(self) -> None:
@@ -661,9 +661,10 @@ class TestByDois:
     def test_a_record_for_a_pmid_nobody_asked_for_is_discarded(self) -> None:
         """``efetch``'s body is attributed by each record's own ``PMID`` line.
 
-        PubMed merges duplicate citations, so a request for a retired PMID can
-        come back as the surviving record under a *different* number. Taking
-        whatever the body contains and pinning it on the DOI at hand is the
+        One request carries fifty numbers and the reply is one text body, so
+        which record answers for which number is a question the body itself
+        has to settle. Taking whatever it contains and pinning it on the DOI
+        at hand is the
         same positional-pairing mistake ``esummary`` exists to prevent, one
         step later in the pipeline — and here it would hand a reference the
         metadata, and the retraction status, of an unrelated paper.
@@ -724,7 +725,7 @@ class TestByPmids:
         anonymous to the entry that asked for it.
         """
         client = _StubClient(medline=_fixture("retraction_notice"))
-        result = PubMed(client).by_pmids([RETRACTION_NOTICE_PMID])
+        result = PubMed(client).by_pmids([RETRACTION_NOTICE_PMID]).records
 
         assert set(result) == {RETRACTION_NOTICE_PMID}
         assert result[RETRACTION_NOTICE_PMID].title.startswith(
@@ -741,7 +742,7 @@ class TestByPmids:
         drift.
         """
         client = _StubClient(medline=_fixture("retraction_notice"))
-        result = PubMed(client).by_pmids([RETRACTION_NOTICE_PMID])
+        result = PubMed(client).by_pmids([RETRACTION_NOTICE_PMID]).records
 
         assert result[RETRACTION_NOTICE_PMID].pmid == RETRACTION_NOTICE_PMID
 
@@ -754,7 +755,7 @@ class TestByPmids:
         else standing between it and a clean report.
         """
         client = _StubClient(medline=_fixture("retracted"))
-        record = PubMed(client).by_pmids([WAKEFIELD_PMID])[WAKEFIELD_PMID]
+        record = PubMed(client).by_pmids([WAKEFIELD_PMID]).records[WAKEFIELD_PMID]
 
         assert record.retracted
         assert record.retraction_kind == "Retracted Publication"
@@ -762,25 +763,55 @@ class TestByPmids:
     def test_a_pmid_pubmed_does_not_hold_is_absent_rather_than_an_error(self) -> None:
         """An empty body is PubMed answering, and its answer is "no such record".
 
-        That absence is the evidence ``audit`` turns into ``BAD-ID``, so it has
-        to come back as a missing key rather than as an exception.
+        That is what NCBI really returns for a number it does not hold —
+        ``efetch`` for the deleted PMIDs 20000157 and 35000082 answers HTTP 200
+        with nothing in it — and it is the only shape of answer that may become
+        ``BAD-ID``, so it has to come back as a plain missing key: absent from
+        the records and absent from ``inconclusive`` both.
         """
         client = _StubClient(medline="")
-        assert PubMed(client).by_pmids(["99999999"]) == {}
+        answers = PubMed(client).by_pmids(["99999999"])
 
-    def test_a_record_under_a_number_nobody_asked_for_is_discarded(self) -> None:
-        """NLM merges duplicate citations, and a retired PMID answers as another.
+        assert answers == PmidAnswers()
 
-        Taking whatever the body contains would pin an unrelated paper's
+    def test_a_record_under_a_number_nobody_asked_for_is_not_adopted(self) -> None:
+        """Taking whatever the body contains would pin an unrelated paper's
         metadata — and its retraction status — on this reference, which is the
         same misattribution ``esummary`` exists to prevent on the DOI path.
+        """
+        client = _StubClient(medline=_fixture("retraction_notice"))
+        answers = PubMed(client).by_pmids([WAKEFIELD_PMID])
+
+        assert answers.records == {}
+
+    def test_a_record_under_another_number_is_ignorance_not_absence(self) -> None:
+        """The third state, and the one a single dict could not hold.
+
+        ``efetch`` answered — with a citation, under a number nobody asked for.
+        Reporting the requested number as one PubMed does not hold would make
+        an accusation out of an answer: ``compare`` reads a bare missing key as
+        the registry's own "no such record" and returns ``BAD-ID``. What came
+        back is named so a reader can look it up.
+        """
+        client = _StubClient(medline=_fixture("retraction_notice"))
+        answers = PubMed(client).by_pmids([WAKEFIELD_PMID])
+
+        assert answers.inconclusive == {WAKEFIELD_PMID: (RETRACTION_NOTICE_PMID,)}
+
+    def test_a_stray_record_leaves_the_numbers_it_did_answer_for_alone(self) -> None:
+        """One batch, one usable answer, one number left unsettled.
+
+        The stray taints only what the batch did not answer for. A record
+        attributed to its own requested number is evidence like any other, and
+        discarding the batch wholesale would spend a lookup to learn nothing.
         """
         client = _StubClient(
             medline=f"{_fixture('retracted')}\n{_fixture('retraction_notice')}"
         )
-        result = PubMed(client).by_pmids([WAKEFIELD_PMID])
+        answers = PubMed(client).by_pmids([WAKEFIELD_PMID, "99999999"])
 
-        assert set(result) == {WAKEFIELD_PMID}
+        assert set(answers.records) == {WAKEFIELD_PMID}
+        assert answers.inconclusive == {"99999999": (RETRACTION_NOTICE_PMID,)}
 
     def test_a_value_that_is_not_a_pmid_makes_no_request(self) -> None:
         """``PMC5860629`` and a zero-padded number are not lookup keys.
@@ -790,7 +821,7 @@ class TestByPmids:
         was never really asked about.
         """
         client = _StubClient(medline=_fixture("retracted"))
-        assert PubMed(client).by_pmids(["", "PMC5860629", "0" + WAKEFIELD_PMID]) == {}
+        assert PubMed(client).by_pmids(["", "PMC5860629", "0" + WAKEFIELD_PMID]) == PmidAnswers()
         assert client.urls == []
 
     def test_a_repeated_pmid_is_fetched_once(self) -> None:
@@ -830,10 +861,18 @@ class TestByPmids:
         with pytest.raises(Transient):
             PubMed(client).by_pmids([WAKEFIELD_PMID])
 
-    def test_a_404_is_an_answer_not_an_outage(self) -> None:
-        """``None`` from the client is a confirmed HTTP 404."""
+    def test_a_404_on_the_endpoint_says_nothing_about_the_numbers_in_it(self) -> None:
+        """``None`` from the client is a confirmed HTTP 404 — on the *request*.
+
+        NCBI answers 200 with an empty body for a PMID it does not hold, so a
+        404 here is the endpoint failing, not fifty numbers being absent. Read
+        as absence it would condemn a whole batch at once.
+        """
         client = _StubClient(medline=None)
-        assert PubMed(client).by_pmids([WAKEFIELD_PMID]) == {}
+        answers = PubMed(client).by_pmids([WAKEFIELD_PMID])
+
+        assert answers.records == {}
+        assert answers.inconclusive == {WAKEFIELD_PMID: ()}
 
 
 class TestEsearchBatching:
@@ -854,7 +893,9 @@ class TestEsearchBatching:
         pmid_by_doi = {f"10.1000/pubmedbatch.{i}": str(30000000 + i) for i in range(45)}
         client = _StubClient(pmid_by_doi=pmid_by_doi)
 
-        assert PubMed(client).pmids_for(list(pmid_by_doi)) == pmid_by_doi
+        assert PubMed(client)._pmids_by_doi(list(pmid_by_doi)) == {
+            doi: [pmid] for doi, pmid in pmid_by_doi.items()
+        }
 
         searches = [url for url in client.urls if "esearch.fcgi" in url]
         assert [_params(url)["term"].count("[aid]") for url in searches] == [20, 20, 5]
@@ -868,7 +909,7 @@ class TestEsearchBatching:
         client = _StubClient(
             esearch_ids=[WAKEFIELD_PMID], doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI}
         )
-        PubMed(client).pmids_for([WAKEFIELD_DOI, WAKEFIELD_DOI.upper(), WAKEFIELD_DOI])
+        PubMed(client)._pmids_by_doi([WAKEFIELD_DOI, WAKEFIELD_DOI.upper(), WAKEFIELD_DOI])
         assert _params(client.urls[0])["term"].count("[aid]") == 1
 
 
