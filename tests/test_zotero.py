@@ -1919,6 +1919,27 @@ class TestPmidGuard:
         item = {"note": "superseded, see PMID\n2017 reanalysis in the same journal"}
         assert self._pmid_of(tmp_path, item) is None
 
+    def test_pasted_medline_back_matter_declares_nothing(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """Extra is where a record's back-matter gets pasted, indent and all.
+
+        ``efetch`` wraps a ``RIN`` block six spaces in, so the notice's own
+        number starts a line without opening a declaration. PMID 42104705 is
+        the retracted *Arch Esp Urol* paper; 42438885 is the retraction that
+        pulled it. Read as the entry's identifier it resolved a correct
+        citation to the notice — ``WRONG-WORK`` against a title the entry
+        never claimed, with nothing anywhere saying the cited paper had been
+        retracted.
+        """
+        item = {
+            "note": (
+                "RIN - Arch Esp Urol. 2026 Jun;79(5):709. doi: 10.56434/j.arch.esp."
+                "urol.20267905.83.\n      PMID: 42438885"
+            )
+        }
+        assert self._pmid_of(tmp_path, item) is None
+
 
 class TestLocalApi:
     """Zotero's local read-only HTTP API, stubbed at ``urlopen``."""

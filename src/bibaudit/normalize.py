@@ -186,14 +186,28 @@ _PMCID_RE = re.compile(r"^PMC(\d+)$", re.IGNORECASE)
 #: the lookup key when no DOI outranks it, so the entry is then resolved as,
 #: and compared against, a different document.
 #:
+#: "Opens its line" means column zero, indent included. ``efetch`` wraps at 80
+#: columns and continues a field on a six-space line, so the same back-matter
+#: puts a bare label at the start of a continuation. PMID 42104705 (*Arch Esp
+#: Urol* 79(3):504-512, retracted) carries::
+#:
+#:     RIN - Arch Esp Urol. 2026 Jun;79(5):709. doi: 10.56434/j.arch.esp.
+#:           urol.20267905.83. PMID: 42438885
+#:
+#: and 42438885 is the notice, not the paper. Skipping the indent read it as
+#: the entry's own: a correct citation of the retracted work was resolved to
+#: the retraction, reported ``WRONG-WORK`` against a title it never claimed,
+#: and — because the notice is not itself retracted — the report never said
+#: the cited paper had been. Zotero writes its own ``PMID:`` at column zero
+#: and ``adapters/bibtex.py`` reads a ``pmid``/``eprint`` field rather than
+#: prose, so no exporter's declaration is lost to this.
+#:
 #: The separator class is horizontal whitespace, never ``\s``, so a line ending
 #: "...superseded, see PMID" cannot reach across the break and claim the number
 #: opening the line below. The neighbouring ``PMCID`` line is safe from both
 #: directions: the label ``PMID`` does not open it, and its ``PMC``-prefixed
 #: value would fail :func:`normalize_pmid` even if it did.
-_LABELLED_PMID_RE = re.compile(
-    r"^[ \t]*PMID\b[ \t]*[:=]?[ \t]*(\d+)", re.IGNORECASE | re.MULTILINE
-)
+_LABELLED_PMID_RE = re.compile(r"^PMID\b[ \t]*[:=]?[ \t]*(\d+)", re.IGNORECASE | re.MULTILINE)
 
 
 def normalize_pmid(value: object) -> str | None:

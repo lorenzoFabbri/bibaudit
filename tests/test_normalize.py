@@ -190,7 +190,6 @@ class TestPmidExtraction:
         "note",
         [
             "PMID: 28520842",
-            "  PMID: 28520842",
             "PMID:28520842",
             "PMID 28520842",
             "pmid = 28520842",
@@ -226,6 +225,37 @@ class TestPmidExtraction:
     )
     def test_a_label_inside_a_sentence_declares_nothing(self, note: str) -> None:
         assert extract_pmid(note) is None
+
+    def test_a_label_opening_a_wrapped_continuation_line_declares_nothing(self) -> None:
+        """The shape MEDLINE itself emits, and the one that costs the most.
+
+        ``efetch`` wraps a ``RIN``/``CIN``/``CON``/``EIN`` block at 80 columns
+        and continues it six spaces in, so the label lands at the start of a
+        line without opening one. Verbatim from PMID 42104705 (*Arch Esp Urol*
+        79(3):504-512), a retracted paper: 42438885 is the notice that
+        retracted it. Skipping the indent resolved a correct entry to that
+        notice, called it ``WRONG-WORK`` for a title it never claimed, and left
+        the report saying nothing about the retraction — ignorance rendered as
+        a different accusation.
+        """
+        note = (
+            "RIN - Arch Esp Urol. 2026 Jun;79(5):709. doi: 10.56434/j.arch.esp."
+            "urol.20267905.83.\n      PMID: 42438885"
+        )
+        assert extract_pmid(note) is None
+
+    def test_the_entrys_own_declaration_survives_pasted_back_matter(self) -> None:
+        """The pairing: refusing the continuation must not refuse the note.
+
+        An Extra box holding both is the ordinary case — Zotero's translator
+        writes the identifier at column zero, and whatever the user pasted
+        under it keeps MEDLINE's indent.
+        """
+        note = (
+            "PMID: 42104705\n"
+            "RIN - Arch Esp Urol. 2026 Jun;79(5):709.\n      PMID: 42438885"
+        )
+        assert extract_pmid(note) == "42104705"
 
     def test_a_malformed_declaration_stops_the_read(self) -> None:
         """The first labelled line settles it, and this one is unusable.
