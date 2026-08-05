@@ -42,7 +42,9 @@ src/bibaudit/
                    cross-reference, independent of Crossref's `updated-by`)
 
 docs/
-  registry-artifacts.md   every documented registry defect, with its DOI
+  registry-artifacts.md   every documented registry defect, with its DOI, and
+                          every guard kept against one nobody has witnessed,
+                          each saying which of the two it is
 ```
 
 `docs/registry-artifacts.md` is not prose beside the code — it is the reader's

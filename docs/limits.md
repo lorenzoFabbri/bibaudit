@@ -53,10 +53,20 @@ reference `UNCHECKED` instead, because confusing ignorance with absence is the
 one way this tool could accuse a real paper of not existing.
 
 How many registries "no consulted registry" covers depends on the identifier. A
-DOI is put to Crossref and then to DataCite. A PMID is put to PubMed alone,
-because nothing else is keyed on one — which is not the weakness it sounds like,
-since PubMed assigns the number and a PMID nobody else could confirm is not a
-PMID. An ISBN is put to Open Library alone, and that one *is* thin; see below.
+DOI is put to Crossref and then to DataCite. A PMID is put to PubMed alone, and
+an ISBN to Open Library alone.
+
+One registry is one registry, and the PMID case is worth stating without
+flattery. Other indexes do resolve PMIDs — Europe PMC, already in this tool for
+the identifier-less search, answers for 9500320 with the Wakefield paper — but
+it serves that record from MEDLINE, and a `SRC:MED` hit is NLM's own citation
+redistributed. Europe PMC corroborates a title/author match elsewhere in this
+tool precisely because it is curated separately there, indexing preprints and
+grey literature Crossref never saw; on a PMID it has nothing separate to say,
+and agreement between the two would be one answer read twice. That leaves a
+limit rather than a reassurance: a `BAD-ID` on a PMID rests on one index's
+response, and the second opinion that would widen it does not exist to be had.
+The ISBN case is thinner still; see below.
 
 Registry coverage has real gaps — pre-1990 work, grey literature, non-English
 publishing, and books. Books are the widest of them. Most were never issued a

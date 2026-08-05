@@ -1173,8 +1173,8 @@ def compare(
         whether they hold its identifier, each mapped to the identifiers they
         answered with *instead* (empty when the request came back with
         nothing at all). Read only when no record resolved, where it is the
-        difference between "the registry says there is no such record" and
-        "the registry said something else": the first is the evidence
+        difference between "nothing came back under this identifier" and "the
+        registry answered with something else": the first is the evidence
         ``BAD-ID`` rests on, the second is ignorance and reports
         ``UNCHECKED``. ``registries/pubmed.py`` populates it — see
         :class:`~bibaudit.registries.pubmed.PmidAnswers`.
@@ -1250,9 +1250,9 @@ def compare(
             # nothing about it. PubMed's ``efetch`` returning a citation under
             # a number nobody asked for is the case this exists for: declining
             # to adopt that record is right, but what came back is a record,
-            # not NLM's own "no record under that number", and only the second
-            # is evidence a stored PMID is wrong. Collapsing them made a
-            # verdict of ``BAD-ID`` out of an answer.
+            # not the empty response an absent number produces, and only the
+            # second is evidence a stored PMID is wrong. Collapsing them makes
+            # a verdict of ``BAD-ID`` out of an answer.
             result.verdict = "UNCHECKED"
             result.issues.append(
                 Issue(

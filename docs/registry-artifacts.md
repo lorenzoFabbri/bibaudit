@@ -23,6 +23,21 @@ all. They are here because they are reported as `REGISTRY-ARTIFACT` and so owe
 the reader the same explanation — read the section before concluding that a
 registry got something wrong.
 
+**Every section's `Observed` line is the record of what was actually seen**, and
+two of them say *nothing was*. *One DOI, more than one PubMed citation* and *An
+identifier a registry answered around* document a guard against something the
+registry's responses make representable but that no probe has caught a registry
+doing. They are kept because the two outcomes are not symmetrical — adopting
+another work's record hands an entry that work's metadata and that work's
+retraction status, which no later check recovers from, while declining one costs
+a lookup — and they open by saying so, so a reader can tell a witnessed defect
+from a guarded possibility without reading to the end. Anyone who catches an
+instance should record it on that line.
+
+One section documents no defect at all. *The PMID check is one-sided, and warns
+rather than fails* records why a comparison's severity is what it is, and it is
+here because [why field-level](why.md) sends a reader looking for exactly that.
+
 ---
 
 ## Mojibake surnames
@@ -417,6 +432,9 @@ the promise above was false.
 
 ## One DOI, more than one PubMed citation
 
+**A precaution, not a recorded defect.** Nothing was observed doing this; see
+the `Observed` line below for what was looked for.
+
 **What happens.** `esummary` answers for a queried DOI with two records that
 both carry it among their own `articleids`. Either PubMed holds two citations
 for the work, or one record lists another's identifier as its own — the case
@@ -490,6 +508,10 @@ where that claim is false by construction.
 
 ## The PMID check is one-sided, and warns rather than fails
 
+**No defect here, registry or otherwise.** This section records why a
+comparison carries the severity it does, and it is in this file because [why
+field-level](why.md) sends a reader looking for exactly that.
+
 **What happens.** Nothing looks the *stored* PMID up. The record in hand came
 back under the stored DOI, so "these two identifiers name two works" is an
 inference from one lookup, not a finding from two. The case that decides it: a
@@ -518,6 +540,9 @@ naming nothing. Until then the severity states what the evidence supports.
 
 ## An identifier a registry answered *around*
 
+**A precaution, not a recorded defect.** Nothing was observed doing this; see
+the `Observed` line below for what was looked for.
+
 **What happens.** `efetch` returns a MEDLINE record whose own `PMID` line is not
 the number requested. `PubMed.by_pmids` declines to adopt it — that record's
 metadata and retraction status belong to another paper — and the requested
@@ -525,17 +550,22 @@ number is then left with no record.
 
 **Observed.** Nothing, for the substitution itself. `efetch` for the deleted
 PMIDs 20000157 and 35000082 answers HTTP 200 with an empty body: no error, no
-redirect, no surviving record put in its place. The guard stays because
-adopting another paper's citation is unrecoverable while declining one costs a
-lookup, but it is a precaution and is written up as one.
+redirect, no surviving record put in its place. `id=99999999`, far above the
+highest number NLM has assigned, answers identically — so an absence and a
+withdrawal are the same response, and neither is a substitution. The guard stays
+because adopting another paper's citation is unrecoverable while declining one
+costs a lookup, but it is a precaution and is written up as one.
 
 **Reported as.** `UNCHECKED`, with an `identifier/inconclusive` issue naming
-what came back instead. Never `BAD-ID`: that verdict rests on PubMed's own "no
-record under that number", which is the empty body above and reaches `compare`
-as a plain missing key. A whole-batch failure — `efetch` answering 404 for the
-request rather than 200 for its contents — is reported the same way, for the
-same reason and at batch granularity, because read as absence it would condemn
-fifty entries at once.
+what came back instead. Never `BAD-ID`, which rests on a narrower fact than the
+phrase "no such record" suggests: `efetch` returns the citations it holds and
+says nothing at all about the rest, so the evidence is an omission — the empty
+body above, reaching `compare` as a plain missing key. That omission covers a
+number NLM never assigned and a deleted citation alike, as the three probes
+above show. A whole-batch failure — `efetch` answering 404 for the request
+rather than 200 for its contents — is reported as `UNCHECKED` too, for the same
+reason and at batch granularity, because read as absence it would condemn fifty
+entries at once.
 
 **Detection.** In `registries/pubmed.py` and `compare.compare`, not in
 `benign.py`. `PubMed.by_pmids` returns a `PmidAnswers` whose two dicts keep

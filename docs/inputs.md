@@ -187,10 +187,14 @@ several.
 
 `Extra` is one of the fields read, because Zotero's item schema has no PMID
 field and `Extra` is where its own users, its translators and its PubMed import
-all put one, a labelled line at a time. The `PMID: 28520842` line is read out of
-it and nothing else is: the `PMCID: PMC5860629` line that usually sits directly
-beneath it is a different identifier for a different index, and the label `PMID`
-does not occur inside `PMCID` in either direction.
+all put one, a labelled line at a time. A line the label `PMID` **opens** is a
+declaration and is read; nothing else in the box is. That rules out the
+`PMCID: PMC5860629` line which usually sits directly beneath it — a different
+identifier for a different index, and one whose label does not begin with
+`PMID` — and it rules out the free notes, call numbers and reading reminders
+the same box holds. The first declaration settles it: where that line's value
+is not PMID-shaped, the entry records no PMID rather than falling through to
+whatever number a later line names.
 
 Only the personal library — "My Library" — is read. Item keys and collection
 names are unique only *within* a library, so merging a group library into the
@@ -272,10 +276,22 @@ error rather than a filter that quietly matches nothing.
 ## PMIDs
 
 A PMID is read as an identifier in its own right, out of whichever field the
-source above keeps one in — BibTeX's `pmid` or a PubMed-typed `eprint`, CSL's
-`PMID` variable, a labelled line in a CSL `note`, a labelled line in a Zotero
-`Extra`. What differs between those is only where the number was written; what
-happens to it afterwards is the same.
+source above keeps one in. Those fields divide into two kinds, and the division
+decides how much of what a file holds actually reaches the audit.
+
+BibTeX's `pmid`, a PubMed-typed `eprint` and CSL's `PMID` variable are
+**declarations**: a field whose whole purpose is to hold this identifier, so
+whatever it holds is what the entry claims, and the only judgement made about it
+is the shape test below. A Zotero `Extra` box and a CSL `note` are **free text**
+that a PMID happens to be written into, so what the entry claims has to be read
+out of prose — and only a line the label `PMID` opens counts as a claim at all.
+A note can therefore hold a number this tool does not read, deliberately:
+`Erratum in PMID: 12237289` names a correction rather than the work being cited,
+and with no DOI to outrank it that number would become the key the entry is
+resolved by.
+
+Once a number has been read, its route is forgotten and the rest of this section
+applies to it whole.
 
 An entry carrying a PMID and no DOI is **resolved** by it. One `efetch` returns
 that MEDLINE citation and no other, where resolving a DOI costs an `esearch`
@@ -285,18 +301,25 @@ its own PMID has already supplied both. It is not searched for by title and
 author, which is what an entry with no identifier gets: a similarity score
 against three registries, with a plausible lookalike as its failure mode, is a
 poor substitute for an exact answer the bibliography was already holding.
-PubMed answering that it has no record
-under that number is a `BAD-ID`; PubMed being unreachable, or `--no-corroborate`
-having removed the only registry that could answer, is `UNCHECKED`, exactly as
-everywhere else in this tool.
+
+`efetch` coming back with no citation under that number is a `BAD-ID`, and
+[verdicts](verdicts.md) states how narrow that evidence is. `efetch` coming back
+with a citation under some *other* number, or failing outright, is `UNCHECKED`
+with an `identifier/inconclusive` finding naming what arrived instead: an answer
+about another record settles nothing about this one. PubMed being unreachable,
+or `--no-corroborate` having removed the only registry that could answer, is
+`UNCHECKED` as well, exactly as everywhere else in this tool.
 
 An entry carrying a PMID **and** a DOI is resolved by the DOI, and the same
 MEDLINE record is fetched once rather than twice under two keys. The PMID then
 has a different job: it looked nothing up, so it is a second, independent claim
 about which work is being cited, and it is compared against the PMID PubMed
 returns for the DOI. Two identifiers on one entry that name two different
-citations is a `FIELD-MISMATCH`. [Why field-level](why.md) sets that against the
-DOI, which is the lookup key and can never be a failure.
+citations is reported as a warning, so the verdict is `INCOMPLETE` and the run
+still exits 0 — only one side of that comparison was looked up, and nothing here
+asks PubMed what the stored number names. `--fail-on INCOMPLETE` makes it bite.
+[Why field-level](why.md) sets all of that against the DOI, which is the lookup
+key and can never be a failure.
 
 There is no check digit to test. A PMID is a sequential integer NLM assigns
 with no internal structure whatever, so nothing can be established about a

@@ -318,15 +318,15 @@ class PmidAnswers:
 
     :attr:`records` holds the citations attributed to the number they were
     asked under. :attr:`inconclusive` holds the numbers ``efetch`` answered
-    *around*. A PMID in neither is PubMed's own "no record under that number",
-    and that one is the only one of the three that is evidence about a
-    bibliography.
+    *around*. A PMID in neither is one nothing came back under at all, and that
+    one is the only one of the three that is evidence about a bibliography —
+    see :meth:`PubMed.by_pmids` for how narrow that evidence is.
 
     The distinction is CLAUDE.md's "404 is a fact, a timeout is ignorance" at
     an edge with a third state: a request that came back with a record nobody
-    asked for has neither timed out nor said no. Returning one dict made those
-    two the same empty entry, and :mod:`~bibaudit.compare` turns an empty
-    entry into ``BAD-ID``.
+    asked for has neither timed out nor said no. One dict would make those two
+    the same empty entry, and :mod:`~bibaudit.compare` turns an empty entry
+    into ``BAD-ID``.
     """
 
     #: PMID as asked for -> the MEDLINE record whose own ``PMID`` line is that
@@ -476,13 +476,16 @@ class PubMed:
     def by_pmids(self, pmids: Sequence[str]) -> PmidAnswers:
         """Fetch full MEDLINE records for *pmids*. See :class:`PmidAnswers`.
 
-        A PMID in neither half of the answer is PubMed's own statement that it
-        holds no record under that number, which is the evidence a ``BAD-ID``
-        on a PMID rests on. Witnessed: ``efetch`` for 20000157 and for
-        35000082, both deleted citations, answers HTTP 200 with an empty body
-        — no error, no substitute record, nothing. That is what an absence
-        looks like here, and it is why an answer of any other shape is
-        reported as ignorance instead.
+        A PMID in neither half of the answer came back with no citation under
+        it, which is the whole of the evidence a ``BAD-ID`` on a PMID rests on.
+        It is an omission, not a sentence: ``efetch`` returns the citations it
+        holds for the numbers in the request and says nothing whatever about
+        the rest. Witnessed: 20000157 and 35000082 (deleted citations) and
+        99999999 (above the highest number NLM has assigned) all answer HTTP
+        200 with an empty body — no error, no substitute record, nothing. So a
+        withdrawal and an absence are indistinguishable here, and that is the
+        limit ``docs/verdicts.md`` states. An answer of any other shape is not
+        this fact at all, and is reported as ignorance.
 
         An outage raises :class:`~bibaudit.registries.http.Transient`, for the
         reason :meth:`by_dois` gives: this answers for a whole batch at once,

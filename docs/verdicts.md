@@ -93,13 +93,23 @@ DOI nobody holds is reported as `doi/unresolved`, and any other identifier as
 `.bibaudit.toml` rule has to name, and [adjudicating a
 difference](suppressions.md) covers how.
 
-The evidence behind it is narrower for a PMID than for a DOI, and deliberately
-so. A DOI is put to Crossref and then to DataCite; a PMID is put to PubMed and
-nowhere else, because no other registry in this tool is keyed on one. PubMed's
-authoritative "I hold no record under that number" is therefore the whole of the
-evidence — which is enough, since PubMed is the only index that assigns the
-number at all. Take PubMed away with `--no-corroborate` and the verdict is
-`UNCHECKED` instead, never `BAD-ID`.
+The evidence behind it is narrower for a PMID than for a DOI, in two ways worth
+being precise about. A DOI is put to Crossref and then to DataCite; a PMID is
+put to PubMed and nowhere else, because no other registry in this tool is keyed
+on one. And PubMed's answer is an omission rather than a sentence: `efetch`
+returns the citations it holds for the numbers in the request and says nothing
+whatever about the rest, so what `BAD-ID` rests on is that no citation came back
+under that number. That much is a fact about the response, and it is all that is
+claimed. It does not distinguish a number NLM never assigned from one it
+assigned and later withdrew — `efetch` answers both with an empty body — so a
+`BAD-ID` on a PMID says the number resolves to nothing today, not that it never
+named a paper.
+
+An answer of any other shape is not that fact and is not this verdict. `efetch`
+returning a citation under a number nobody asked for, or the request failing
+outright, leaves the entry `UNCHECKED` with an `identifier/inconclusive` finding
+naming what came back instead. Take PubMed away with `--no-corroborate` and the
+verdict is `UNCHECKED` too, never `BAD-ID`.
 
 ## `RETRACTED` is about the cited work
 

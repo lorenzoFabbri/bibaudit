@@ -82,9 +82,9 @@ stop querying PubMed at all.
 On an entry resolved by a **PMID** it removes the only registry that could have
 answered: Crossref and DataCite are keyed on DOIs and have nothing to say about
 a PMID, and the retraction leg is keyed on DOIs too, so it does not pick this
-up. Such an entry is then reported `UNCHECKED` — nothing was verified — and
-not `BAD-ID`, which would state that a registry answered and holds no such
-record. It is the distinction `--no-isbn` rests on below, and it is what stops a
+up. Such an entry is then reported `UNCHECKED` — nothing was verified — and not
+`BAD-ID`, which takes a response from PubMed with no citation under that number
+in it. It is the distinction `--no-isbn` rests on below, and it is what stops a
 decision not to look from reading as evidence about the bibliography.
 
 **`--no-search`** stops entries carrying no identifier at all — no DOI, no PMID,
@@ -102,10 +102,13 @@ off retraction reporting. A retraction the publisher deposited in Crossref's
 is read off the record itself and still fails as `RETRACTED`. What goes unnoticed
 is a retraction that was never deposited in either place — the gap the
 independent check exists for. The narrower coverage is stated rather than left
-to be noticed: every reference carries a `status/not-asked` finding naming
-`retraction-watch`, the run prints it beside the banner, and `consulted` records
-`retraction-watch` as `not-asked`. `status/retraction-unverified` stays what it
-always was, a source that could not be *reached*.
+to be noticed: every reference nothing was found against carries a
+`status/not-asked` finding naming `retraction-watch`, the run prints it beside
+the banner, and `consulted` records `retraction-watch` as `not-asked` on every
+reference in the run. A reference some source *did* report a retraction for
+carries the retraction instead — there is no gap left to state once the answer
+arrived. `status/retraction-unverified` stays what it always was, a source that
+could not be *reached*.
 [Retraction](retraction.md) covers the four sources in full.
 
 **`--no-isbn`** means Open Library is never constructed, so no book is resolved

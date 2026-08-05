@@ -19,29 +19,58 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Added
 
-- **A PMID is read as an identifier in its own right, and checked.** BibTeX's
-  `pmid` field, an `eprint` paired with `eprinttype = {pubmed}`, a labelled
-  `PMID: 28520842` line in a Zotero `Extra` or a CSL `note`, and CSL's own
-  `PMID` variable all reach `Reference.pmid`. An entry carrying a PMID and no
-  DOI is resolved through PubMed's `efetch` alone — one request where a DOI
-  costs three — rather than searched by title and author, so it can now report
-  `BAD-ID` (PubMed answered and holds no such record) or `UNCHECKED` (PubMed
-  unreachable, or `--no-corroborate`, so nothing was asked). An entry carrying
-  both is resolved by the DOI and its PMID becomes a compared field: one naming
-  a different citation than the DOI resolved to is a `FIELD-MISMATCH`, reported
-  as `pmid/mismatch`, and `compare.CHECKED_FIELDS` gains `pmid` accordingly.
-  `Record.pmid` carries the registry's side of that comparison; it is left
-  unset when PubMed answered for the DOI under more than one PMID, so an entry
-  storing either of them is never accused. Nothing is ever proposed for a
-  missing PMID: `--suggest` fills absent fields, and this check never reports
-  one as absent. Two consequences worth knowing before re-running an audit: a
-  PMID-bearing entry is no longer searched for by title and author, so it no
-  longer receives a proposed DOI from a search candidate; and it reaches one of
-  the four retraction sources rather than all four, keeping NLM's `PT -
-  Retracted Publication` — a field of the MEDLINE record the lookup returns —
-  and not Retraction Watch's export, Crossref's `updated-by` or PubMed's `ECI`
-  cross-reference, each of which is queried by DOI. An expression of concern
-  about such an entry therefore goes unreported.
+- **A PMID is read as an identifier in its own right, and resolved.** BibTeX's
+  `pmid` field, an `eprint` paired with `eprinttype = {pubmed}` (or the older
+  `archiveprefix`), CSL's own `PMID` variable, and a `PMID: 28520842` label
+  opening a line of a Zotero `Extra` box or a CSL `note` all reach
+  `Reference.pmid`. An entry carrying a PMID and no DOI is resolved through
+  PubMed's `efetch` alone — one request where a DOI costs three — instead of
+  being searched for by title and author, and its title, authors, year,
+  journal and the rest are compared against the MEDLINE citation exactly as a
+  DOI-resolved entry's are. A label mid-sentence is not a declaration: MEDLINE
+  back-matter pasted into an `Extra` box (`Comment in: JAMA. 2003;289:2560.
+  PMID: 12759325`) names a correction, not the work being cited, and is not
+  read.
+- **What `efetch` answers with decides the verdict, and there are three
+  answers.** A citation under the number asked for resolves the entry. A
+  response carrying no citation under it is `BAD-ID` — narrower evidence than
+  the wording suggests, because `efetch` omits what it has nothing for rather
+  than saying anything: the same empty response comes back for a number NLM
+  never assigned and for one it assigned and later withdrew. A response
+  carrying a citation under some *other* number, or a request that failed
+  outright, is `UNCHECKED` with an `identifier/inconclusive` finding naming
+  what came back instead — an answer about another record is not an answer
+  about this identifier, and only an absence may accuse a bibliography. PubMed
+  unreachable, or `--no-corroborate` leaving no registry to ask at all, is
+  `UNCHECKED` too.
+- **A PMID stored beside a DOI is compared, not looked up.** The DOI fetches
+  the record, so the PMID is a second, independent claim about which work is
+  cited; PubMed answering for that DOI under a different number means the two
+  identifiers name two citations, reported as `pmid/mismatch` and added to
+  `compare.CHECKED_FIELDS`. It is a **warning**: the verdict is `INCOMPLETE`
+  and the exit code 0, because only one side of the comparison was looked up —
+  nothing asks PubMed what the *stored* number names, and a number that has
+  since stopped answering is invisible from this side. It takes `--verbose` to
+  see and `--fail-on INCOMPLETE` to bite. Two ways it declines to fire:
+  `Record.pmid` is left unset when PubMed answered for the DOI under more than
+  one PMID, so an entry storing either is never accused; and a stored number
+  that is the record's own PubMed Central accession — NLM issues both for one
+  article and Zotero keeps them on adjacent `Extra` lines — is a
+  `REGISTRY-ARTIFACT`.
+- **A source that was never asked is stated, not passed over.** A reference
+  reaching fewer than all four retraction sources now carries a
+  `status/not-asked` finding naming them, and the run prints it beside the
+  banner as it prints an outage, on its own line ending `not asked`.
+  `consulted` names `crossref`, `datacite`, `pubmed` and `retraction-watch` on
+  every reference in every run, so an unasked source reads as `not-asked`
+  rather than as a key that is not there. This closes the gap a PMID opens: a
+  reference resolved by its PMID keeps NLM's `PT - Retracted Publication`,
+  which is a field of the MEDLINE record the lookup already returned, and is
+  asked nothing else — Retraction Watch's export, Crossref's `updated-by` and
+  PubMed's own `ECI` cross-reference all take a DOI it does not carry, so an
+  expression of concern about such an entry goes unreported. A book resolved by
+  its ISBN and a run given `--no-retraction-check` reach the same finding by
+  the same rule.
 - `pmid` joins the `field` values a `.bibaudit.toml` `[[ignore]]` rule can name,
   alongside `doi`, `isbn`, `identifier` and `status`.
 - Documentation site at <https://lorenzofabbri.github.io/bibaudit/>, built with
@@ -75,6 +104,16 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Changed
 
+- **An entry carrying a PMID is no longer searched for by title and author.**
+  It is resolved by that PMID instead, which is the exact answer a similarity
+  search was standing in for — so such an entry no longer receives a proposed
+  DOI from a search candidate under `--suggest`. Nothing is ever proposed for a
+  missing PMID either: gap-filling works from a `missing` finding, and no check
+  raises one for an identifier the entry never claimed.
+- The retraction banner prints one line per reason rather than one line for all
+  of them, so an outage and a source nobody asked are counted and named
+  separately. A rerun may settle the first; no rerun asks a DOI-keyed source
+  about a reference with no DOI.
 - **`--no-isbn` on a book stored with only an ISBN now reports `UNCHECKED`
   rather than `BAD-ID`, and no longer fails the run.** The flag switches off the
   only registry organised around books, and "resolves in no consulted registry"
@@ -89,6 +128,25 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **The journal titles MEDLINE files a serial under no longer fail a correct
+  entry.** NLM drops a leading article and appends a place qualifier, so `JT`
+  is `Lancet (London, England)` where a bibliography stores `The Lancet`. On a
+  PMID-resolved entry PubMed is the only registry consulted and that was the
+  only container value there was, so every correct Lancet, BMJ or Science entry
+  was a `FIELD-MISMATCH` and the run exited 1. MEDLINE's `TA` is now carried as
+  an alternate title as well (`Lancet` gets an `info` note naming PubMed as the
+  registry that holds it), and a stored value differing by one opening
+  `The`/`A`/`An` is a `REGISTRY-ARTIFACT`. The qualifier is never stripped:
+  `(London, England)` is what tells two serials sharing a base title apart.
+- **An `et al.` written as a Zotero creator no longer counts as an author.**
+  Zotero's single-field creator — `fieldMode` 1 in the database, `name` in its
+  item JSON, `literal` in CSL — carries both a corporate byline and the
+  truncation marker a producer that stores only the first author writes for the
+  rest. Counted as a name it made every such entry disagree with the registry
+  on author count, which `compare` hands to the verdict as evidence the
+  identifier resolved to a different work. It is now read as truncation on all
+  three routes, which voids the length comparison and nothing else — a wrong
+  first author beside the marker still fires.
 - A Retraction Watch outage is now reported instead of passed over. The bulk
   export failing was absorbed and returned as a bare `dict`, so nothing reached
   the run's unreachable set, `compare` could not raise `retraction-unverified`,

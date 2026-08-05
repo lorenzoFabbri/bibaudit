@@ -215,21 +215,23 @@ source that exists only to carry this signal.
 
 ## When a source was never asked
 
-The same rule from the other direction, and for a long time it was the half that
-went unstated. A reference resolved by its **PMID** is asked of PubMed and of
-nobody else: the other three sources are keyed on a DOI it does not carry. The
-result was `verdict: OK, issues: []` — a clean bill of health from a run that
-consulted one source out of four, which is the output this tool exists to
-prevent. `--no-retraction-check` and a book resolved by its ISBN produce the
-same shape.
+The same rule from the other direction. A reference resolved by its **PMID** is
+asked of PubMed and of nobody else: the other three sources are keyed on a DOI
+it does not carry. Left to speak for itself such an entry renders `verdict: OK,
+issues: []` — a clean bill of health from a run that consulted one source out of
+four, which is the output this tool exists to prevent. `--no-retraction-check`
+and a book resolved by its ISBN have the same shape.
 
-`compare` raises `status/not-asked` on each such reference, at `info` severity
-and naming the sources: "retraction status not corroborated: crossref,
-retraction-watch were never asked about this reference". It reaches the reader
-by the three routes above, the banner line ending in `not asked` rather than
-`unreachable`. `consulted` states it too — `crossref`, `datacite`, `pubmed` and
-`retraction-watch` are named on every reference in every run, so a source that
-was not asked reads as `not-asked` rather than as a key that is not there.
+So where no source that answered records a retraction, `compare` raises
+`status/not-asked` on the reference, at `info` severity and naming the sources:
+"retraction status not corroborated: crossref, retraction-watch were never asked
+about this reference". It reaches the reader by the three routes above, the
+banner line ending in `not asked` rather than `unreachable`. An entry a source
+*did* report a retraction for gets the retraction instead: an answer arrived,
+and there is no gap left to state. `consulted` states the gap too — `crossref`,
+`datacite`, `pubmed` and `retraction-watch` are named on every reference in
+every run, so a source that was not asked reads as `not-asked` rather than as a
+key that is not there.
 
 Two kinds rather than one, because the reader's next move differs: a rerun may
 settle an outage, and no rerun asks Retraction Watch about a reference with no

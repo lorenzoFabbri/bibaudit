@@ -2,10 +2,11 @@
 
 bibaudit checks that every reference in a bibliography **exists**, and that
 **every field stored for it matches the publisher's record** — title, every
-author, year, journal, volume, issue, pages, publisher — against Crossref,
-DataCite, PubMed and, for books, Open Library. Every reference that resolves **to
-a DOI** is also checked for retraction, against Retraction Watch's own export and
-PubMed's expression-of-concern cross-reference, independently of whatever a
+author, year, journal, volume, issue, pages, publisher, and a PMID stored beside
+a DOI — against Crossref, DataCite, PubMed and, for books, Open Library. Every
+reference that resolves **to a DOI** is also checked for retraction, against
+Retraction Watch's own export and PubMed's expression-of-concern
+cross-reference, independently of whatever a
 publisher happened to deposit with Crossref. Every retraction source is keyed on
 a DOI, so an entry resolved by a PMID or by an ISBN reaches fewer of them, and
 [limits](limits.md) says which. It reads `.bib` files, Quarto and Obsidian

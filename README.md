@@ -17,8 +17,9 @@
 
 Checks that every reference in a bibliography **exists** and that **every stored
 field matches the publisher's record** — title, every author, year, journal,
-volume, issue, pages, publisher — against Crossref, DataCite, PubMed and, for
-books, Open Library. Every reference that resolves **to a DOI** is also checked
+volume, issue, pages, publisher, and a PMID stored beside a DOI — against
+Crossref, DataCite, PubMed and, for books, Open Library. Every reference that
+resolves **to a DOI** is also checked
 for retraction status against Retraction Watch's own export and PubMed's
 expression-of-concern cross-reference, independently of whatever a publisher
 happened to deposit with Crossref.
@@ -155,10 +156,13 @@ obsidian-pandoc-reference-list interpret that path.
 
 An entry's PMID is read as an identifier in its own right, out of the fields a
 PMID is actually kept in: BibTeX's `pmid`, or an `eprint` whose `eprinttype`
-says `pubmed`; CSL's own `PMID` variable; and a labelled `PMID: 28520842` line
-in a Zotero `Extra` block or a CSL `note`, which is how a PMID gets recorded in
-a schema that has no field for one. An entry carrying a PMID and no DOI is
-fetched from PubMed by that number — a single `efetch`, where resolving a DOI
+says `pubmed`; CSL's own `PMID` variable; and a line a `PMID:` label opens in a
+Zotero `Extra` block or a CSL `note`, which is how a PMID gets recorded in a
+schema that has no field for one. The label has to open the line: the same box
+holds free notes and pasted MEDLINE back-matter, and `Comment in: JAMA.
+2003;289:2560. PMID: 12759325` names a correction rather than the work being
+cited. An entry carrying a PMID and no DOI is fetched from PubMed by that
+number — a single `efetch`, where resolving a DOI
 costs an `esearch` and an `esummary` first — instead of being searched for by
 title and author, which is a guess standing in for the exact answer the entry
 already handed the tool.
@@ -381,7 +385,7 @@ confirm a book that has no identifier at all — see
 ## How this was built
 
 bibaudit was written with [Claude Code](https://claude.com/claude-code) — the
-implementation, the 1,283-test suite, and the adversarial review passes that
+implementation, the 1,353-test suite, and the adversarial review passes that
 found most of the defects it now guards against, including the ones described
 above.
 
