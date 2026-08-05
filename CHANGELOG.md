@@ -64,13 +64,12 @@ so `uv sync --all-extras` does not install it into the test environment.
   `consulted` names `crossref`, `datacite`, `pubmed` and `retraction-watch` on
   every reference in every run, so an unasked source reads as `not-asked`
   rather than as a key that is not there. This closes the gap a PMID opens: a
-  reference resolved by its PMID keeps NLM's `PT - Retracted Publication`,
-  which is a field of the MEDLINE record the lookup already returned, and is
-  asked nothing else — Retraction Watch's export, Crossref's `updated-by` and
-  PubMed's own `ECI` cross-reference all take a DOI it does not carry, so an
-  expression of concern about such an entry goes unreported. A book resolved by
-  its ISBN and a run given `--no-retraction-check` reach the same finding by
-  the same rule.
+  reference resolved by its PMID keeps both of PubMed's own signals — NLM's
+  `PT - Retracted Publication` and its `ECI` cross-reference, fields of the
+  MEDLINE record the lookup already returned — and is asked nothing else,
+  because Retraction Watch's export and Crossref's `updated-by` both take a DOI
+  it does not carry. A book resolved by its ISBN and a run given
+  `--no-retraction-check` reach the same finding by the same rule.
 - `pmid` joins the `field` values a `.bibaudit.toml` `[[ignore]]` rule can name,
   alongside `doi`, `isbn`, `identifier` and `status`.
 - Documentation site at <https://lorenzofabbri.github.io/bibaudit/>, built with
@@ -129,15 +128,55 @@ so `uv sync --all-extras` does not install it into the test environment.
 ### Fixed
 
 - **The journal titles MEDLINE files a serial under no longer fail a correct
-  entry.** NLM drops a leading article and appends a place qualifier, so `JT`
-  is `Lancet (London, England)` where a bibliography stores `The Lancet`. On a
-  PMID-resolved entry PubMed is the only registry consulted and that was the
-  only container value there was, so every correct Lancet, BMJ or Science entry
-  was a `FIELD-MISMATCH` and the run exited 1. MEDLINE's `TA` is now carried as
-  an alternate title as well (`Lancet` gets an `info` note naming PubMed as the
-  registry that holds it), and a stored value differing by one opening
-  `The`/`A`/`An` is a `REGISTRY-ARTIFACT`. The qualifier is never stripped:
-  `(London, England)` is what tells two serials sharing a base title apart.
+  entry.** NLM drops a leading article, appends a place qualifier, and spells
+  out the sponsoring society after a spaced colon, so `JT` is `Lancet (London,
+  England)` where a bibliography stores `The Lancet`, and `Cancer epidemiology,
+  biomarkers & prevention : a publication of the American Association for
+  Cancer Research, cosponsored by …` where it stores the journal's own name. On
+  a PMID-resolved entry PubMed is the only registry consulted and that was the
+  only container value there was, so every correct Lancet, BMJ, Science or
+  Cancer Epidemiology, Biomarkers & Prevention entry was a `FIELD-MISMATCH` and
+  the run exited 1 — 26 of the 173 journals in a 300-record sample carry the
+  society expansion, *J Clin Oncol*, *Clin Cancer Res* and *Ann Oncol* among
+  them. MEDLINE's `TA` is now carried as an alternate title as well (`Lancet`
+  gets an `info` note naming PubMed as the registry that holds it), a stored
+  value differing by one opening `The`/`A`/`An` is a `REGISTRY-ARTIFACT`, and
+  so is one matching everything before the society expansion. Neither is a
+  prefix test — `Cancer Epidemiology` is a different journal and still fires —
+  and the parenthetical qualifier is never stripped: `(London, England)` is
+  what tells two serials sharing a base title apart.
+- **A year MEDLINE itself carries no longer fails a PMID-resolved entry.**
+  `DP` is the issue a citation is filed under and `DEP` the day the work went
+  online; only `DP` was read, so an entry citing the online-first year of a
+  paper printed the following year was a `FIELD-MISMATCH`. Both now reach
+  `Record.years`, as Crossref's `published-print`/`published-online` already
+  did on the DOI path, and `Record.year` still prefers `DP`.
+- **PubMed's expression-of-concern cross-reference is now read for a
+  PMID-resolved reference.** `ECI` is a line on the MEDLINE record `efetch`
+  already returned rather than a lookup keyed on a DOI, but the retraction pass
+  that reads it runs only for DOI-bearing references — so a paper under a live
+  NLM expression of concern, cited by PMID, reported `PASS`. It is reported as
+  a concern and never as a retraction, and `--no-retraction-check` turns it off
+  exactly as it does on the DOI path.
+- **MEDLINE back-matter pasted into a Zotero `Extra` box can no longer mint an
+  identifier.** `efetch` wraps a `RIN`/`CIN`/`CON`/`EIN` block at 80 columns
+  and continues it six spaces in, so a *retraction notice's* `PMID:` opens a
+  line without opening a declaration. Read as the entry's own it resolved a
+  correct citation of the retracted paper to the notice, reported `WRONG-WORK`
+  against a title the entry never claimed, and said nothing about the
+  retraction. A label now has to start at column zero, which is where Zotero
+  writes its own; a `pmid` or `eprint` field is unaffected.
+- **`--fail-on` now decides which reference groups are printed, not only the
+  banner.** The group filter read the default set, so `--fail-on INCOMPLETE` —
+  the documented way to make the `pmid/mismatch` warning bite — exited 1 over a
+  summary count with no citekey, no locator and no issue line. A verdict named
+  in `--fail-on` now brings its references with it, and one excluded from it
+  keeps printing.
+- **A journal name differing by a *different* leading article is no longer
+  suppressed.** The article came off both sides, so `A Journal of Cancer`
+  against `The Journal of Cancer` was filed as "registry files the journal
+  without its leading article" — a reason that is false of it. Only the stored
+  value is stripped now.
 - **An `et al.` written as a Zotero creator no longer counts as an author.**
   Zotero's single-field creator — `fieldMode` 1 in the database, `name` in its
   item JSON, `literal` in CSL — carries both a corporate byline and the
