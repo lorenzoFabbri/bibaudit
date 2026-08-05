@@ -7,8 +7,11 @@ and the finding names which one, because "both curated sources agree" and "only
 PubMed knows about this; the publisher never deposited the linkage" are different
 things to hand a reader. The second is also a bug report for the publisher.
 
-A book resolved through its ISBN alone is not checked at all. That is not an
-oversight; it is stated below, under [what a clean result does not
+All four sources are keyed on DOIs, so how much of the union a reference gets
+depends on which identifier resolved it. A reference resolved by its PMID gets
+one of the four — MEDLINE's own flag, which is on the record the lookup already
+returned. A book resolved through its ISBN alone gets none. Neither is an
+oversight; both are stated below, under [what a clean result does not
 establish](#what-a-clean-result-does-not-establish).
 
 ## The four sources
@@ -134,11 +137,25 @@ work, both findings are printed and the verdict is `RETRACTED`.
 
 ## What a clean result does not establish
 
-**Only DOIs are checked.** All four sources are keyed on DOIs, and Open Library
-mints none, so a book resolved through its ISBN alone has nothing to ask them
-about. Its retraction status is not checked, and a clean report does not claim
-otherwise. A DOI carried by a candidate that a title/author search confirmed *is*
-checked, on the spot, because it is new to the run.
+**All four sources are keyed on DOIs.** A DOI carried by a candidate that a
+title/author search confirmed *is* checked, on the spot, because it is new to
+the run. An entry resolved by some other identifier is a different matter, and
+the shortfall is not the same for the two of them.
+
+A reference resolved by its **PMID** keeps `PT - Retracted Publication` and
+loses the other three sources. NLM's flag arrives free: it is a field of the
+MEDLINE record the PMID lookup already returned, so a retraction NLM has indexed
+still reports `RETRACTED` and still fails. What is not asked is Retraction
+Watch's export, Crossref's `updated-by` and PubMed's own `ECI` cross-reference,
+each of which takes a DOI. The `ECI` gap is the sharper of the three, because it
+is the same registry: PubMed knows about the concern, this run holds a PubMed
+record, and the field that would state it is reached by a query the entry has no
+key for. So on such an entry an expression of concern goes unreported, and a
+retraction Retraction Watch logged but NLM never indexed goes unreported too.
+
+A book resolved through its **ISBN** alone loses all four, because Open Library
+mints no DOI to ask them about. Its retraction status is not checked at all, and
+a clean report does not claim otherwise.
 
 **A notice never promotes a DOI to "resolved".** Retraction status is looked up
 for every stored DOI, resolved or not, but a notice is only attached where some

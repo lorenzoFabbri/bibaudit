@@ -125,9 +125,11 @@ bibaudit check references.bib --format json --output audit.json
 ```
 
 Useful flags: `--offline` (cache only — for reproducing an earlier run),
-`--refresh` (ignore the cache), `--no-corroborate` (skip PubMed, halves request
-volume), `--no-retraction-check` (skip the independent Retraction Watch /
-PubMed expression-of-concern check — see [Retraction](#retraction) below),
+`--refresh` (ignore the cache), `--no-corroborate` (drop PubMed's second
+opinion; an entry resolved by its PMID alone then has no registry left to ask
+and reports `UNCHECKED`), `--no-retraction-check` (skip the independent
+Retraction Watch / PubMed expression-of-concern check — see
+[Retraction](#retraction) below),
 `--no-isbn` (skip Open Library entirely), `--verbose` (show cosmetic and
 informational findings), `--mailto you@example.org` (puts Crossref requests in
 the polite pool; no account or key needed anywhere in this tool), `--suggest`
@@ -151,12 +153,28 @@ directory carrying `.obsidian` above it), in which case it resolves against
 the vault root instead — matching how Obsidian citation plugins such as
 obsidian-pandoc-reference-list interpret that path.
 
+An entry's PMID is read as an identifier in its own right, out of the fields a
+PMID is actually kept in: BibTeX's `pmid`, or an `eprint` whose `eprinttype`
+says `pubmed`; CSL's own `PMID` variable; and a labelled `PMID: 28520842` line
+in a Zotero `Extra` block or a CSL `note`, which is how a PMID gets recorded in
+a schema that has no field for one. An entry carrying a PMID and no DOI is
+fetched from PubMed by that number — a single `efetch`, where resolving a DOI
+costs an `esearch` and an `esummary` first — instead of being searched for by
+title and author, which is a guess standing in for the exact answer the entry
+already handed the tool.
+
+An entry carrying **both** is resolved through the DOI, and the PMID becomes a
+field to check rather than a key: it looked nothing up, so it is a second,
+independent claim about which work is cited. When PubMed answers for that DOI
+under a different number the two identifiers name two citations, and that is a
+`FIELD-MISMATCH` like any other field disagreement.
+
 An entry's `isbn` field (BibTeX's `isbn`, Zotero's own field, CSL-JSON's
 `ISBN`) is read as an identifier in its own right, checked against its ISO 2108
 check digit and resolved through Open Library — the one registry in this tool
-organised around books rather than DOIs. It is only ever consulted when no DOI
-is stored: a reference carrying both is resolved through the DOI, the stronger
-identifier of the two.
+organised around books rather than DOIs. It is only ever consulted when neither
+a DOI nor a usable PMID is stored. The order is `doi`, `pmid`, `isbn`, and a
+reference carrying more than one is resolved by the strongest, once.
 
 ## Verdicts
 
@@ -214,12 +232,20 @@ publisher chose to deposit and the second two independently of it:
   `PT` value the second bullet reads — closing a gap where NLM knows about a
   concern and the tool, until this was added, did not.
 
-Checked for every reference that resolves to a DOI — one stored in the entry, or
-one carried by a candidate a title/author search confirmed, which is new to the
-run and gets checked on the spot. A book resolved through its ISBN alone is the
-exception, and not a discretionary one: all four sources above are keyed on DOIs,
-and Open Library mints none, so there is nothing to ask them about. Its
-retraction status is not checked, and a clean report does not claim otherwise.
+All four are checked for every reference that resolves to a DOI — one stored in
+the entry, or one carried by a candidate a title/author search confirmed, which
+is new to the run and gets checked on the spot. Each of the four is keyed on a
+DOI, so an entry resolved by some other identifier reaches fewer of them, and
+not by anybody's discretion.
+
+A reference resolved by its **PMID** keeps the second bullet and loses the other
+three: NLM's `PT - Retracted Publication` is on the MEDLINE record the lookup
+already returned, so a retraction NLM indexed still reports `RETRACTED`, while
+Retraction Watch's export, Crossref's `updated-by` and PubMed's own `ECI`
+cross-reference are all asked by DOI and are not asked at all. A book resolved
+through its **ISBN** alone loses all four, because Open Library mints no DOI for
+them to be keyed on; its retraction status is not checked, and a clean report
+does not claim otherwise.
 
 A retraction **either one source records alone is still reported**, and the
 finding names which one
@@ -329,7 +355,10 @@ attached to.** That is the failure mode no metadata check can reach, and it
 requires reading the paper. Every report says so.
 
 It also cannot prove a work does not exist — registry coverage has real gaps,
-particularly for pre-1990 work, grey literature and non-English publishing. A
+particularly for pre-1990 work, grey literature and non-English publishing. Nor
+does resolving an identifier make a citation apt: a PMID that resolves
+establishes that NLM indexed a work under that number, and nothing whatever
+about whether that work says what the sentence citing it claims. A
 book with an ISBN is resolved through Open Library, whose catalogue is
 crowd-sourced and noticeably patchier than Crossref's: many records carry a
 title and nothing else, which is why a thin record can never *by itself*
@@ -340,7 +369,7 @@ confirm a book that has no identifier at all — see
 ## How this was built
 
 bibaudit was written with [Claude Code](https://claude.com/claude-code) — the
-implementation, the 1,204-test suite, and the adversarial review passes that
+implementation, the 1,283-test suite, and the adversarial review passes that
 found most of the defects it now guards against, including the ones described
 above.
 

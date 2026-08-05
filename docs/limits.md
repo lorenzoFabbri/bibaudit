@@ -24,11 +24,25 @@ different paper than the one described in the entry — that is `WRONG-WORK`, an
 it is one of the failure modes a plain "does the DOI resolve" check passes. It
 cannot tell you whether the paper that DOI *does* resolve to supports the
 sentence you attached the citation to. The comparison works on titles, author
-lists, years, container titles, volume, issue, first page and publisher, and
-none of those is evidence about a claim in your manuscript. A perfectly
-recorded citation of an irrelevant paper passes every check in this tool,
-cleanly, and nothing here will ever say otherwise. Reading the paper is the only
-remedy, and no metadata check substitutes for it.
+lists, years, container titles, volume, issue, first page, publisher and the
+PMID, and none of those is evidence about a claim in your manuscript. A
+perfectly recorded citation of an irrelevant paper passes every check in this
+tool, cleanly, and nothing here will ever say otherwise. Reading the paper is
+the only remedy, and no metadata check substitutes for it.
+
+A resolving identifier is the weakest thing on that list, not the strongest, and
+a PMID is worth saying so about because it looks like more than it is. A PMID
+that resolves establishes one fact: NLM has indexed some work under that number.
+It does not establish that the work is the one the entry describes — that is
+what the field comparison beside it is for, which is why a PMID lookup is
+followed by the same title, author and year checks a DOI lookup gets. It does
+not establish that the work is sound: PubMed indexes journals rather than
+judging findings, and a retracted paper keeps its PMID — PMID 9500320, the
+Wakefield paper, resolves exactly as it did before, and the retraction is a
+field on that record rather than its removal. And it says nothing whatever
+about whether that work supports the sentence it was cited for. Two identifiers
+agreeing with each other is a stronger statement than one resolving, and it is
+still a statement about identifiers.
 
 ## It cannot prove that a work does not exist
 
@@ -37,6 +51,12 @@ consulted registry*. That is a fact about the registries that answered on that
 run, not a fact about the world. A registry that could not be reached leaves the
 reference `UNCHECKED` instead, because confusing ignorance with absence is the
 one way this tool could accuse a real paper of not existing.
+
+How many registries "no consulted registry" covers depends on the identifier. A
+DOI is put to Crossref and then to DataCite. A PMID is put to PubMed alone,
+because nothing else is keyed on one — which is not the weakness it sounds like,
+since PubMed assigns the number and a PMID nobody else could confirm is not a
+PMID. An ISBN is put to Open Library alone, and that one *is* thin; see below.
 
 Registry coverage has real gaps — pre-1990 work, grey literature, non-English
 publishing, and books. Books are the widest of them. Most were never issued a
@@ -99,11 +119,16 @@ Less than the absence of a `RETRACTED` line suggests, and the shortfall is
 worth stating item by item. [Retraction](retraction.md) describes the sources
 and how they are combined; these are their edges.
 
-- **Only DOIs are checked.** Retraction status is looked up by DOI — the one
-  stored in the entry, or one a title/author search confirmed. A book resolved
-  through its ISBN alone is not checked for retraction at all: every source is
-  keyed on DOIs and Open Library mints none, so there is nothing to ask them
-  about. On such an entry a clean report is silence, not a result.
+- **Every source is keyed on a DOI.** Retraction status is looked up by DOI —
+  the one stored in the entry, or one a title/author search confirmed. An entry
+  resolved by another identifier gets less, and how much less differs. A
+  reference resolved by its **PMID** keeps NLM's `PT - Retracted Publication`,
+  which is a field of the MEDLINE record the lookup already returned, and loses
+  Retraction Watch's export, Crossref's `updated-by` and PubMed's own `ECI`
+  cross-reference — so an expression of concern about it is not reported at all.
+  A book resolved through its **ISBN** alone is not checked for retraction in
+  any way: Open Library mints no DOI, so there is nothing to ask any of them
+  about, and a clean report there is silence rather than a result.
 - **Crossref's and PubMed's own flags depend on somebody having recorded the
   linkage** — a publisher deposit, or NLM's curation. A retraction nobody
   deposited and nobody indexed is invisible to them.

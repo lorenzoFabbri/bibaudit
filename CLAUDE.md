@@ -32,7 +32,9 @@ src/bibaudit/
   suggest.py     --suggest: writes references.suggested.bib + .diff, never the original
   cli.py         argument parsing
   adapters/      bibtex, markdown (Quarto/Obsidian), zotero — read-only
-  registries/    http (cache + retry), crossref, datacite, pubmed,
+  registries/    http (cache + retry), crossref, datacite,
+                 pubmed (corroborates a DOI; also resolves an entry whose
+                   only identifier is a PMID, by efetch alone),
                  search (Crossref + Europe PMC + OpenAlex, for entries with
                    no identifier — see "Adding a registry" below),
                  openlibrary (books: by ISBN, or by title/author search),

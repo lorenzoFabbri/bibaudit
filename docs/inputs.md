@@ -28,10 +28,10 @@ is read, which is what someone reviewing a suggestion wants.
 
 Every entry is parsed, and every field is kept. `title`, `author` (or `editor`),
 `year` (or `date`), `journal` or `booktitle`, `volume`, `number`, `pages`,
-`publisher`, `doi`, `isbn` and `url` are read into the reference bibaudit
-checks; the entry's complete field dictionary is carried along beside it
-untouched, in the file's own capitalisation, so a report can show you what was
-actually written.
+`publisher`, `doi`, `pmid` (or a PubMed-typed `eprint`), `isbn` and `url` are
+read into the reference bibaudit checks; the entry's complete field dictionary
+is carried along beside it untouched, in the file's own capitalisation, so a
+report can show you what was actually written.
 
 - **Authors.** The author field is never split naively on `" and "` — `{The
   Endogenous Hormones and Breast Cancer Collaborative Group}` is one author,
@@ -48,6 +48,16 @@ actually written.
   `TBD`, a pair of braces that survives as whitespace — is recognised as
   not-a-DOI and the `url` is tried instead, rather than being normalised into a
   confident-looking fake that a registry would then report as a bad identifier.
+- **PMIDs.** BibTeX has no standard field for one, so two spellings are read.
+  The dedicated `pmid = {28520842}` most exporters write wins; failing that,
+  BibLaTeX's `eprint`, and only when `eprinttype` (or the older
+  `archiveprefix`) folds to `pubmed` or `pmid`. That gate is not politeness
+  about a convention: `eprint` is a bare number with no meaning of its own, and
+  an arXiv id, an SSRN id and a HAL id are all exactly as bare-numeric as a
+  PMID. Reading one as the other would send a real identifier to a registry
+  that cannot hold it and report the answer as a work nobody can find. The
+  same placeholder safety the `doi` field gets applies here — `N/A`, `TBD`, an
+  empty pair of braces falls through as "no PMID recorded".
 - **Year.** `year` is used, falling back to `date` — the field Better BibTeX and
   CSL-flavoured `.bib` files write instead.
 - **Locators.** Findings point at `references.bib:412`. The line index comes
@@ -175,6 +185,13 @@ resolved **by name** at read time, never hardcoded, because Zotero renumbers
 them across schema migrations and a library synced since 2015 has been through
 several.
 
+`Extra` is one of the fields read, because Zotero's item schema has no PMID
+field and `Extra` is where its own users, its translators and its PubMed import
+all put one, a labelled line at a time. The `PMID: 28520842` line is read out of
+it and nothing else is: the `PMCID: PMC5860629` line that usually sits directly
+beneath it is a different identifier for a different index, and the label `PMID`
+does not occur inside `PMCID` in either direction.
+
 Only the personal library — "My Library" — is read. Item keys and collection
 names are unique only *within* a library, so merging a group library into the
 personal one would file one library's work under another's key. Group libraries
@@ -205,10 +222,22 @@ require a CSL producer to invent a field the CSL spec forbids. Reading one shape
 as the other would not fail loudly, it would produce items with every field
 empty, which is exactly the outcome worth spending a discriminator on.
 
-From a CSL item, bibaudit reads `DOI`, `ISBN`, `URL`, `title`, `container-title`,
-`volume`, `issue`, `page`, `publisher`, and the year out of `issued` — from
+From a CSL item, bibaudit reads `DOI`, `PMID`, `ISBN`, `URL`, `title`,
+`container-title`, `volume`, `issue`, `page`, `publisher`, and the year out of
+`issued` — from
 `date-parts`, or from the `raw`/`literal` forms a processor falls back to when
-it could not decompose a date. `author` is used when present and `editor`
+it could not decompose a date. An item carries the `PMID` variable only where
+whatever wrote the file recognised the value as that variable; everything else
+in the item's `Extra` goes to CSL's `note` verbatim, newlines and labels intact,
+which is where a PMID typed by hand into Zotero's Extra box normally lands. So
+`note` is read as a fallback and a labelled `PMID: 11959894` line is taken out
+of it — one library exports both shapes, and reading only the dedicated variable
+leaves the hand-typed half on the floor, which is exactly the half nothing else
+has checked. The dedicated variable wins where both are present, because a
+`note` is free text that may also be quoting the PMID of a correction or a
+companion paper.
+
+`author` is used when present and `editor`
 substituted when it is not, the same rule the other two Zotero paths apply, and
 a creator written as a CSL `literal` stays one collective author rather than
 being torn into a given and a family name. A bare top-level array is the usual
@@ -222,6 +251,45 @@ in the library when it was made, with no per-item flag left to read afterwards.
 Both are options on `read_zotero()`, the Python entry point behind all three
 Zotero routes, and asking for a collection by name against a `.json` file is an
 error rather than a filter that quietly matches nothing.
+
+## PMIDs
+
+A PMID is read as an identifier in its own right, out of whichever field the
+source above keeps one in — BibTeX's `pmid` or a PubMed-typed `eprint`, CSL's
+`PMID` variable, a labelled line in a CSL `note`, a labelled line in a Zotero
+`Extra`. What differs between those is only where the number was written; what
+happens to it afterwards is the same.
+
+An entry carrying a PMID and no DOI is **resolved** by it. One `efetch` returns
+that MEDLINE citation and no other, where resolving a DOI costs an `esearch`
+and an `esummary` first — those two steps exist to turn a DOI into a PMID and
+to attribute the answer back to the DOI that asked, and an entry that stores
+its own PMID has already supplied both. It is not searched for by title and
+author, which is what an entry with no identifier gets: a similarity score
+against three registries, with a plausible lookalike as its failure mode, is a
+poor substitute for an exact answer the bibliography was already holding.
+PubMed answering that it has no record
+under that number is a `BAD-ID`; PubMed being unreachable, or `--no-corroborate`
+having removed the only registry that could answer, is `UNCHECKED`, exactly as
+everywhere else in this tool.
+
+An entry carrying a PMID **and** a DOI is resolved by the DOI, and the same
+MEDLINE record is fetched once rather than twice under two keys. The PMID then
+has a different job: it looked nothing up, so it is a second, independent claim
+about which work is being cited, and it is compared against the PMID PubMed
+returns for the DOI. Two identifiers on one entry that name two different
+citations is a `FIELD-MISMATCH`. [Why field-level](why.md) sets that against the
+DOI, which is the lookup key and can never be a failure.
+
+There is no check digit to test. A PMID is a sequential integer NLM assigns
+with no internal structure whatever, so nothing can be established about a
+stored one without asking PubMed. What is read is therefore a *rejection* and
+never a validation: a value carrying non-ASCII digits, a leading zero, or more
+digits than the widest PMID NLM has assigned is not PMID-shaped and is not
+treated as an identifier at all. It is not repaired either — a mistyped number
+falls through as "no PMID recorded", to whatever identifier the entry has left,
+rather than becoming a lookup that returns an authoritative absence about a
+number nobody meant to write.
 
 ## ISBNs
 
@@ -249,8 +317,9 @@ a sibling of the distinction `BAD-ID` and `UNCHECKED` rest on (see
 registry's holdings nor ignorance about them — it is a defect in the
 bibliography's own data, provable without a network call.
 
-The ISBN is consulted **only when no DOI is stored**. An entry carrying both is
-resolved through the DOI, the stronger identifier of the two — which also means
+The ISBN is consulted **only when neither a DOI nor a usable PMID is stored**.
+The order is `doi`, `pmid`, `isbn`, and an entry carrying more than one is
+resolved by the strongest of them, once — which also means
 a book matched by ISBN alone gets no retraction check, because Open Library
 mints no DOI for the retraction sources to be keyed on. [Retraction](retraction.md)
 states that gap in full. `--no-isbn` skips Open Library entirely, at a cost

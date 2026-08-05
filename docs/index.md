@@ -6,9 +6,10 @@ author, year, journal, volume, issue, pages, publisher — against Crossref,
 DataCite, PubMed and, for books, Open Library. Every reference that resolves **to
 a DOI** is also checked for retraction, against Retraction Watch's own export and
 PubMed's expression-of-concern cross-reference, independently of whatever a
-publisher happened to deposit with Crossref — a book matched by ISBN alone is
-not, because Open Library mints no DOI for those sources to be keyed on. It reads
-`.bib` files, Quarto and Obsidian notes, Zotero libraries and CSL-JSON.
+publisher happened to deposit with Crossref. Every retraction source is keyed on
+a DOI, so an entry resolved by a PMID or by an ISBN reaches fewer of them, and
+[limits](limits.md) says which. It reads `.bib` files, Quarto and Obsidian
+notes, Zotero libraries and CSL-JSON.
 
 **No language model is involved at any point.** Every verdict is reproducible
 from the cached registry response, and any single finding can be checked by hand

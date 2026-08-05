@@ -70,7 +70,7 @@ All three default to `"*"` and all three are shell-style globs:
 | key | what it matches |
 | --- | --- |
 | `key` | the citekey. `"epic*"` matches `epic2019diet`; `"*"` applies the rule across the whole bibliography |
-| `field` | the field the difference is in — `title`, `authors`, `year`, `container`, `volume`, `issue`, `pages`, `publisher`, `kind`, `doi`, `identifier`, `status` |
+| `field` | the field the difference is in — `title`, `authors`, `year`, `container`, `volume`, `issue`, `pages`, `publisher`, `kind`, `doi`, `pmid`, `isbn`, `identifier`, `status` |
 | `kind` | the sort of difference — `mismatch`, `missing`, `drift`, `cosmetic`, and the rest |
 
 Both halves are printed in the report as `field/kind` on the line above the two

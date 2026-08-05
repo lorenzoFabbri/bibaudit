@@ -34,7 +34,16 @@ so `uv sync --all-extras` does not install it into the test environment.
   unset when PubMed answered for the DOI under more than one PMID, so an entry
   storing either of them is never accused. Nothing is ever proposed for a
   missing PMID: `--suggest` fills absent fields, and this check never reports
-  one as absent.
+  one as absent. Two consequences worth knowing before re-running an audit: a
+  PMID-bearing entry is no longer searched for by title and author, so it no
+  longer receives a proposed DOI from a search candidate; and it reaches one of
+  the four retraction sources rather than all four, keeping NLM's `PT -
+  Retracted Publication` — a field of the MEDLINE record the lookup returns —
+  and not Retraction Watch's export, Crossref's `updated-by` or PubMed's `ECI`
+  cross-reference, each of which is queried by DOI. An expression of concern
+  about such an entry therefore goes unreported.
+- `pmid` joins the `field` values a `.bibaudit.toml` `[[ignore]]` rule can name,
+  alongside `doi`, `isbn`, `identifier` and `status`.
 - Documentation site at <https://lorenzofabbri.github.io/bibaudit/>, built with
   MkDocs Material and gated by `mkdocs build --strict`.
 - `py.typed` marker (PEP 561), so the package's annotations are visible to type

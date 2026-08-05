@@ -83,6 +83,24 @@ An unresolved citekey — used in a document, absent from the bibliography — a
 exits 1, independently of the verdicts. Exit 2 means the tool could not run:
 a usage error or an unreadable file. See [in CI](ci.md).
 
+## `BAD-ID` is about whichever identifier did the looking up
+
+An entry is resolved by the strongest identifier it carries — `doi`, then
+`pmid`, then `isbn` — and `BAD-ID` says that identifier resolves in no registry
+that answered. Which one it was is on the finding rather than in the verdict: a
+DOI nobody holds is reported as `doi/unresolved`, and any other identifier as
+`identifier/unresolved` with the stored value beside it. That is the pair a
+`.bibaudit.toml` rule has to name, and [adjudicating a
+difference](suppressions.md) covers how.
+
+The evidence behind it is narrower for a PMID than for a DOI, and deliberately
+so. A DOI is put to Crossref and then to DataCite; a PMID is put to PubMed and
+nowhere else, because no other registry in this tool is keyed on one. PubMed's
+authoritative "I hold no record under that number" is therefore the whole of the
+evidence — which is enough, since PubMed is the only index that assigns the
+number at all. Take PubMed away with `--no-corroborate` and the verdict is
+`UNCHECKED` instead, never `BAD-ID`.
+
 ## `RETRACTED` is about the cited work
 
 `RETRACTED` means the work you cited was itself retracted. A retraction
@@ -165,9 +183,12 @@ saying what each registry contributed. Three states, not a bool:
 
 `not-asked`
 :   Never queried. DataCite is only asked about DOIs Crossref did not answer for.
-    `--no-corroborate` drops PubMed's bibliographic corroboration but does not by
-    itself put PubMed here: the retraction check queries PubMed too, so that
-    takes `--no-retraction-check` as well.
+    On a DOI-bearing reference `--no-corroborate` drops PubMed's bibliographic
+    corroboration but does not by itself put PubMed here: the retraction check
+    queries PubMed too, so that takes `--no-retraction-check` as well. On a
+    reference resolved by its PMID it does put PubMed here, and Crossref and
+    DataCite are here on every such reference in every run — neither is keyed on
+    a PMID, so neither is ever asked about one.
 
 It was a bool once, computed as "not known to be unreachable" — so a run with
 `--no-corroborate` reported `"pubmed": true` on every reference in the file. The

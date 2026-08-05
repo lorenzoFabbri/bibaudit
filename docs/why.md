@@ -141,9 +141,14 @@ the field matrix from generating noise that would make it unreadable:
 
 ## When there is no identifier to resolve
 
-An entry carrying no identifier at all — no DOI, no PMID, no arXiv id, no ISBN —
-cannot be checked by any resolver, which is the case a DOI check does not merely
-miss but cannot address. bibaudit searches for it, and then holds every
+An entry carrying no identifier at all — no DOI, no PMID, no ISBN — cannot be
+checked by any resolver, which is the case a DOI check does not merely miss but
+cannot address. Those three are the whole set. A preprint is reached through the
+DOI its repository minted, `10.48550/arXiv.1706.03762` for an arXiv one, which
+DataCite answers for; a bare arXiv id sitting on its own in an entry is not read
+as an identifier and does not keep it out of this paragraph.
+
+bibaudit searches for such an entry, and then holds every
 candidate — whoever found it — to the same bar in `compare.confirm_without_id`:
 a title similarity of at least 0.90, a first author that does not disagree, and
 — where the entry and the candidate both carry a year at all — a year within one

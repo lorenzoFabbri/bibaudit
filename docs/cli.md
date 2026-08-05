@@ -44,7 +44,7 @@ whichever format was asked for.
 | Flag | Default | |
 |---|---|---|
 | `--mailto EMAIL` | none | contact address sent to Crossref and NCBI; puts requests in Crossref's polite pool. No account or key is needed |
-| `--no-corroborate` | off | skip PubMed corroboration |
+| `--no-corroborate` | off | skip PubMed corroboration, and PubMed lookups for entries resolved by a PMID |
 | `--no-search` | off | do not try to confirm entries that carry no identifier |
 | `--no-retraction-check` | off | skip the independent Retraction Watch / PubMed expression-of-concern check |
 | `--no-isbn` | off | do not resolve books through Open Library |
@@ -65,22 +65,35 @@ time. It is not an API key, and there is no API key anywhere in this tool:
 nothing bibaudit sends to any registry is a credential, and no service it
 consults requires an account.
 
-**`--no-corroborate`** removes PubMed from the DOI resolution path. What you
-lose is the independently curated second opinion — the one that catches a defect
-in Crossref's own deposit rather than agreeing with it. What you do not lose on
-an otherwise default run is the requests: the retraction check has its own
-PubMed leg, handed the identical DOI list, so the same E-utilities queries are
-issued either way — by the corroboration pass, or, once this flag removes it, by
-the retraction pass that had been reading them back out of the cache the
+**`--no-corroborate`** constructs no PubMed client at all, which costs two
+different things on two kinds of entry.
+
+On a DOI-bearing entry it removes PubMed from the resolution path: what you lose
+is the independently curated second opinion — the one that catches a defect in
+Crossref's own deposit rather than agreeing with it. What you do not lose on an
+otherwise default run is the requests: the retraction check has its own PubMed
+leg, handed the identical DOI list, so the same E-utilities queries are issued
+either way — by the corroboration pass, or, once this flag removes it, by the
+retraction pass that had been reading them back out of the cache the
 corroboration pass filled. `--help` says the flag halves request volume; that
 holds only alongside `--no-retraction-check`, which is also what it takes to
 stop querying PubMed at all.
 
-**`--no-search`** stops entries carrying no DOI, PMID, arXiv ID or ISBN from
-being looked up by title and author at all. It does not quieten them — in a run
-where every registry answered, such an entry is reported `UNCONFIRMED`, a
-failing verdict, having consulted nothing. The flag stops the attempt to clear
-them, not the consequence of their not being cleared.
+On an entry resolved by a **PMID** it removes the only registry that could have
+answered: Crossref and DataCite are keyed on DOIs and have nothing to say about
+a PMID, and the retraction leg is keyed on DOIs too, so it does not pick this
+up. Such an entry is then reported `UNCHECKED` — nothing was verified — and
+not `BAD-ID`, which would state that a registry answered and holds no such
+record. It is the distinction `--no-isbn` rests on below, and it is what stops a
+decision not to look from reading as evidence about the bibliography.
+
+**`--no-search`** stops entries carrying no identifier at all — no DOI, no PMID,
+no ISBN — from being looked up by title and author. An entry storing any of the
+three is not among them: it has an identifier, it is resolved by it, and this
+flag never reaches it. The flag does not quieten the rest — in a run where every
+registry answered, such an entry is reported `UNCONFIRMED`, a failing verdict,
+having consulted nothing. It stops the attempt to clear them, not the
+consequence of their not being cleared.
 
 **`--no-retraction-check`** turns off the independent pair: Retraction Watch's
 own export and PubMed's expression-of-concern cross-reference. It does not turn

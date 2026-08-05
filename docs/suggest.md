@@ -41,7 +41,10 @@ Only two kinds of finding reach the suggested copy:
   the candidate corroborated the stored title, first author and year. A
   candidate carrying a matching title and no author or year data at all to
   check it against is refused outright, because a title-only match is how a
-  plausible-but-wrong work gets adopted.
+  plausible-but-wrong work gets adopted. Only an entry carrying no identifier at
+  all is searched for, so this is the one entry a DOI is ever proposed for: one
+  storing a PMID or an ISBN is resolved by it, and a lookup answers the question
+  a search was standing in for.
 
 Given an entry that stores a correct title, author and year and nothing else,
 against a Crossref record carrying the rest, the suggested copy contains:
@@ -82,6 +85,15 @@ construction, not a second filter that could be got wrong separately.
 artifact move the difference out of the result's issue list before `--suggest`
 ever sees the result, so there is again no "is this suppressed" check here to
 disagree with the one the report uses.
+
+**An identifier the entry does not carry, other than that one DOI.** A PMID is
+never proposed, and neither is an ISBN. The gap-filling above works from a
+`missing` finding, which is raised when the registry holds a value the entry
+omits — and no check raises one for either identifier: an entry with no PMID is
+making no claim about which PubMed citation it means, and the comparison has
+nothing to disagree with. Adding the number PubMed happens to hold would be the
+tool putting a second identifier into a bibliography on its own initiative,
+which is a different act from completing a field somebody started.
 
 **The author list, even when it is entirely missing.** The report prints a
 missing author list as the first three creators, semicolon-joined, in display
