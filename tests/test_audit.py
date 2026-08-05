@@ -46,6 +46,17 @@ TITLE = (
     "and other medical conditions by accounting for smoking among relatives"
 )
 
+#: A second work, cited by PMID alone — the shape a reference exported from
+#: PubMed's own "Send to: Citation manager" takes, which writes a ``pmid``
+#: field and no ``doi`` at all. PMID 28520842 is Kim et al., *Am J Epidemiol*
+#: 2017;186(5):524-531; the DOI this bibliography never recorded is
+#: 10.1093/aje/kwx137.
+PMID = "28520842"
+PMID_TITLE = (
+    "Alcohol Consumption and Breast Cancer Risk in Younger Women According to "
+    "Family History of Breast Cancer and Folate Intake"
+)
+
 
 @pytest.fixture(autouse=True)
 def _no_network(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -106,14 +117,19 @@ class _StubRegistry:
         name: str,
         *,
         records: dict[str, Record] | None = None,
+        pmid_records: dict[str, Record] | None = None,
         transient: bool = False,
     ) -> None:
         self.name = name
         self.records = dict(records or {})
+        #: PubMed's other role, keyed by PMID rather than DOI — what ``resolve``
+        #: asks about a reference that stores a PMID and no DOI.
+        self.pmid_records = dict(pmid_records or {})
         self.transient = transient
         self.constructions = 0
         self.client: object = None
         self.by_dois_calls: list[list[str]] = []
+        self.by_pmids_calls: list[list[str]] = []
 
     def make(self, client: object) -> _StubRegistry:
         """Constructor stand-in, so a test can see whether it was built at all."""
@@ -128,6 +144,12 @@ class _StubRegistry:
         # Answer only for what was asked, exactly as the real clients do: a stub
         # that volunteered records nobody requested would hide a routing bug.
         return {doi: self.records[doi] for doi in dois if doi in self.records}
+
+    def by_pmids(self, pmids: Sequence[str]) -> dict[str, Record]:
+        self.by_pmids_calls.append(list(pmids))
+        if self.transient:
+            raise Transient(f"{self.name}: simulated outage")
+        return {pmid: self.pmid_records[pmid] for pmid in pmids if pmid in self.pmid_records}
 
 
 class _StubSearch:
@@ -349,6 +371,53 @@ def make_record(**overrides: object) -> Record:
         "issue": "2",
         "pages": "473-483",
         "kind": "journal-article",
+    }
+    base.update(overrides)
+    return Record(**base)  # type: ignore[arg-type]
+
+
+def make_pmid_ref(**overrides: object) -> Reference:
+    """A reference carrying a PMID and no DOI."""
+    base: dict[str, object] = {
+        "key": "kim2017alcohol",
+        "locator": "references.bib:2",
+        "kind": "article",
+        "doi": None,
+        "pmid": PMID,
+        "title": PMID_TITLE,
+        "authors": [
+            Name(family="Kim", given="Hyun Ja"),
+            Name(family="Jung", given="Seungyoun"),
+        ],
+        "year": 2017,
+        "container": "American journal of epidemiology",
+        "volume": "186",
+        "issue": "5",
+        "pages": "524-531",
+    }
+    base.update(overrides)
+    return Reference(**base)  # type: ignore[arg-type]
+
+
+def make_pmid_only_record(**overrides: object) -> Record:
+    """What ``PubMed.by_pmids`` returns for :func:`make_pmid_ref`.
+
+    No ``doi``: MEDLINE's ``AID`` line is not parsed into one, and on this path
+    there was no DOI to look the record up by either. The record is keyed by
+    the PMID that fetched it, so it needs none.
+    """
+    base: dict[str, object] = {
+        "source": "pubmed",
+        "title": PMID_TITLE,
+        "authors": [
+            Name(family="Kim", given="Hyun Ja"),
+            Name(family="Jung", given="Seungyoun"),
+        ],
+        "years": {"issued": 2017},
+        "container": "American journal of epidemiology",
+        "volume": "186",
+        "issue": "5",
+        "pages": "524-531",
     }
     base.update(overrides)
     return Record(**base)  # type: ignore[arg-type]
@@ -909,6 +978,183 @@ class TestRegistryRouting:
         result = audit([make_ref(doi="10.1016/S0140-6736(03)14065-2")], _options(tmp_path))[0]
 
         assert stubs.crossref.by_dois_calls == [[doi]]
+        assert result.verdict == "OK"
+
+
+class TestPmidOnlyReferences:
+    """A stored PMID is a lookup key, not a decoration.
+
+    Before it was one, such a reference fell through every identifier branch to
+    ``_audit_unidentified`` and was checked by a title-and-author search — a
+    guess, against three registries, standing in for the deterministic answer
+    the entry had already handed the tool.
+    """
+
+    def test_a_pmid_only_reference_resolves_through_pubmed(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The point of the whole path: an exact lookup replaces a search.
+
+        A title/author search can return a plausible lookalike and can fail on
+        a title the registry spells differently; the PMID names one record and
+        nothing else can satisfy it.
+        """
+        stubs = _install(
+            monkeypatch,
+            pubmed=_StubRegistry("pubmed", pmid_records={PMID: make_pmid_only_record()}),
+        )
+
+        result = audit([make_pmid_ref()], _options(tmp_path))[0]
+
+        assert result.verdict == "OK"
+        assert stubs.pubmed.by_pmids_calls == [[PMID]]
+        assert stubs.search.candidate_calls == []
+
+    def test_the_consulted_map_names_pubmed_and_nobody_else(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Crossref cannot be asked about a PMID, and must not appear to have been.
+
+        ``answered`` on a registry that was never queried is the exact false
+        statement about evidence ``Consultation`` exists to prevent — here it
+        would credit a verdict to the broadest registry in the tool on a
+        reference it has no key for.
+        """
+        stubs = _install(
+            monkeypatch,
+            pubmed=_StubRegistry("pubmed", pmid_records={PMID: make_pmid_only_record()}),
+        )
+
+        result = audit([make_pmid_ref()], _options(tmp_path))[0]
+
+        assert result.consulted["pubmed"] == ANSWERED
+        assert result.consulted["crossref"] == "not-asked"
+        assert result.consulted["datacite"] == "not-asked"
+        # Retraction Watch's export is keyed on DOI, so it genuinely was not
+        # asked; MEDLINE's own `PT` flag is all this path has.
+        assert result.consulted.get("retraction-watch", "not-asked") == "not-asked"
+        assert stubs.crossref.by_dois_calls == []
+        assert stubs.retractions.status_for_calls == []
+
+    def test_a_pmid_pubmed_does_not_hold_is_a_finding(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """``BAD-ID`` here means PubMed answered, and answered that it has no such record.
+
+        PubMed is the only registry that can hold the answer, so its authoritative
+        "not mine" is the whole of the evidence and is enough.
+        """
+        _install(monkeypatch, pubmed=_StubRegistry("pubmed"))
+
+        result = audit([make_pmid_ref(pmid="99999999")], _options(tmp_path))[0]
+
+        assert result.verdict == "BAD-ID"
+        assert result.fails
+        issue = result.issues[0]
+        assert (issue.field, issue.kind, issue.stored) == ("identifier", "unresolved", "99999999")
+        assert Summary([result]).exit_code() == 1
+
+    def test_a_pubmed_outage_leaves_a_pmid_unchecked_never_bad_id(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """404 is a fact, a timeout is ignorance — on this path as on every other.
+
+        PubMed is the *only* registry that could have answered, so collapsing
+        the two would turn one registry being down into an accusation that a
+        real paper does not exist, with nothing left in the run to contradict it.
+        """
+        _install(monkeypatch, pubmed=_StubRegistry("pubmed", transient=True))
+
+        result = audit([make_pmid_ref()], _options(tmp_path))[0]
+
+        assert result.verdict == "UNCHECKED"
+        assert not result.fails
+        assert [i.kind for i in result.issues] == ["unreachable"]
+        assert result.consulted["pubmed"] == UNREACHABLE
+        assert Summary([result]).exit_code() == 0
+
+    def test_no_corroborate_does_not_accuse_a_pmid_of_not_existing(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """``--no-corroborate`` switches off the only registry that answers for a PMID.
+
+        The same trap ``--no-isbn`` sets on a book: "resolves in no consulted
+        registry" is vacuously true when nothing was consulted, and reads as a
+        finding about the bibliography rather than about the run's own options.
+        """
+        stubs = _install(monkeypatch)
+
+        result = audit([make_pmid_ref()], _options(tmp_path, corroborate=False))[0]
+
+        assert result.verdict == "UNCHECKED"
+        assert not result.fails
+        assert result.consulted["pubmed"] == "not-asked"
+        assert stubs.pubmed.by_pmids_calls == []
+
+    def test_a_reference_carrying_both_resolves_through_the_doi(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A DOI outranks a PMID, and outranking it has to cost nothing.
+
+        ``by_dois`` already fetches this very MEDLINE record on its way through
+        ``esearch``/``esummary``; a second fetch under the PMID would double
+        PubMed's share of a run's requests to re-read what is already in hand,
+        against a registry that allows three a second.
+        """
+        stubs = _install(
+            monkeypatch,
+            crossref=_StubRegistry("crossref", records={DOI: make_record()}),
+            pubmed=_StubRegistry(
+                "pubmed",
+                records={DOI: make_pubmed_record()},
+                pmid_records={PMID: make_pmid_only_record()},
+            ),
+        )
+
+        result = audit([make_ref(pmid=PMID)], _options(tmp_path))[0]
+
+        assert result.verdict == "OK"
+        assert stubs.pubmed.by_pmids_calls == []
+        assert stubs.pubmed.by_dois_calls == [[DOI]]
+        assert result.consulted["crossref"] == ANSWERED
+
+    def test_a_pmid_outranks_an_isbn(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """``Reference.identifier``'s ordering, followed by the lookup as well.
+
+        Open Library's record would never be read — the PMID branch resolves
+        the entry — so fetching one is a request nothing consumes.
+        """
+        stubs = _install(
+            monkeypatch,
+            pubmed=_StubRegistry("pubmed", pmid_records={PMID: make_pmid_only_record()}),
+        )
+
+        result = audit([make_pmid_ref(isbn="0-201-89683-4")], _options(tmp_path))[0]
+
+        assert result.verdict == "OK"
+        assert stubs.openlibrary.by_isbns_calls == []
+
+    def test_a_pmid_that_is_not_a_number_falls_through_to_the_search_path(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """No request is built from it, so no registry can have answered about it.
+
+        Reporting ``BAD-ID`` would state that PubMed does not hold a number
+        PubMed was never asked for. The entry has no usable identifier left, so
+        it is checked the way any other entry without one is — and a PMCID in a
+        ``pmid`` field is the commonest way that happens, the two sitting on
+        adjacent lines of a Zotero ``Extra``.
+        """
+        stubs = _install(
+            monkeypatch, search=_StubSearch(candidates=[make_pmid_only_record()])
+        )
+
+        result = audit([make_pmid_ref(pmid="PMC5860629")], _options(tmp_path))[0]
+
+        assert stubs.pubmed.by_pmids_calls == []
+        assert stubs.search.candidate_calls == [make_pmid_ref(pmid="PMC5860629")]
         assert result.verdict == "OK"
 
 

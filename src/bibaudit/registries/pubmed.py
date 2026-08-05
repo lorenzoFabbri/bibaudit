@@ -19,6 +19,13 @@ pipeline:
    candidates positionally would silently misattribute a hit the moment a
    batch dropped even one DOI.
 3. ``efetch`` (MEDLINE text) — the full citation for every PMID recovered.
+
+A caller that already holds the PMID needs none of that. ``efetch`` answers
+for a PMID directly, so :meth:`PubMed.by_pmids` issues step 3 alone: steps 1
+and 2 exist to *obtain* a PMID and to attribute the answer back to the DOI
+that asked for it, and a reference storing its own PMID has both already.
+NCBI's three-requests-a-second ceiling is the whole client's rather than each
+endpoint's, so the two steps not taken are two requests not spent.
 """
 
 from __future__ import annotations
@@ -33,7 +40,7 @@ from typing import Any
 
 from ..model import Name, Record
 from ..names import parse_name
-from ..normalize import clean, fold, normalize_doi, parse_year
+from ..normalize import clean, fold, normalize_doi, normalize_pmid, parse_year
 from .http import Client
 
 __all__ = ["PubMed"]
@@ -280,7 +287,10 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
 
 
 class PubMed:
-    """NCBI PubMed lookup by DOI, via ``esearch`` -> ``esummary`` -> ``efetch``.
+    """NCBI PubMed lookup, by DOI or by PMID.
+
+    A DOI takes the ``esearch`` -> ``esummary`` -> ``efetch`` pipeline the
+    module docstring sets out; a PMID takes ``efetch`` alone.
 
     Every request goes through ``client``, but see :data:`_MAX_REQUESTS_PER_SECOND`
     for why this class also paces its own calls independently of ``client``'s
@@ -380,6 +390,44 @@ class PubMed:
                     # sharing one Record instance would make the second
                     # assignment's `.doi` silently override the first's.
                     out[doi] = replace(record, doi=doi)
+        return out
+
+    def by_pmids(self, pmids: Sequence[str]) -> dict[str, Record]:
+        """Fetch full MEDLINE records for *pmids*, keyed by the PMID asked for.
+
+        A PMID absent from the result is PubMed's own answer that it holds no
+        record under that number, which is the evidence a ``BAD-ID`` on a
+        PMID rests on. An outage raises
+        :class:`~bibaudit.registries.http.Transient` instead, for the reason
+        :meth:`by_dois` gives: this answers for a whole batch at once, and
+        half a batch must never be reported as the other half being confirmed
+        absent.
+
+        Only ``efetch`` is issued — see the module docstring on why the
+        ``esearch``/``esummary`` pair that opens :meth:`by_dois` is not a step
+        this path skips but one it never needed.
+        """
+        wanted = list(dict.fromkeys(p for raw in pmids if (p := normalize_pmid(raw))))
+        if not wanted:
+            return {}
+        requested = set(wanted)
+
+        out: dict[str, Record] = {}
+        for batch in _chunk(wanted, _EFETCH_BATCH):
+            text = self._efetch_medline(batch)
+            if text is None:
+                continue
+            for fields in _parse_medline_records(text):
+                # Attributed by each record's *own* ``PMID`` line, exactly as
+                # in ``by_dois`` and for the same reason: NLM merges duplicate
+                # citations, so a request for a retired number can come back
+                # as the surviving record under a different one. Adopting it
+                # would hand this reference another paper's metadata and
+                # another paper's retraction status.
+                record_pmid = _first(fields.get("PMID"))
+                if record_pmid is None or record_pmid not in requested:
+                    continue
+                out[record_pmid] = _record_from_medline(fields)
         return out
 
     def _esearch(self, dois: list[str]) -> list[str]:

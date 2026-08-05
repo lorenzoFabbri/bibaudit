@@ -22,12 +22,25 @@ citation nothing can DOI-lookup does not by itself become ``UNCONFIRMED``. See
 that module's docstring for why OpenAlex counts for discovery there but never
 for corroboration.
 
-**Books** take a third path, keyed on ISBN rather than DOI, because most books
-never had a DOI minted at all: an entry carrying an ``isbn`` is resolved
-through :class:`~bibaudit.registries.openlibrary.OpenLibrary`, exactly as a
-DOI-bearing one is resolved through Crossref — see :func:`resolve`. A book or
-chapter with **no** identifier at all adds OpenLibrary to the candidate search
-alongside ``registries.search`` (see ``_audit_unidentified``), because a
+A reference carrying a **PMID and no DOI** is resolved through PubMed alone,
+keyed on that PMID. ``efetch`` answers for a PMID directly, so the lookup costs
+one request where a DOI's costs three — the ``esearch``/``esummary`` pair
+exists to *find* a PMID, and this reference brought its own. Crossref is never
+asked, because a PMID is not a Crossref key, and ``Result.consulted`` records
+that as ``not-asked`` rather than as an answer nobody obtained. Precedence is
+:attr:`~bibaudit.model.Reference.identifier`'s own — DOI, then PMID, then ISBN
+— so an entry carrying a DOI as well is resolved by the DOI and issues no
+PubMed request beyond the corroboration one it already made. Retraction Watch's
+export is keyed on DOI, so a reference resolved this way is checked for
+retraction against MEDLINE's own ``PT`` flag alone and ``retraction-watch``
+reports as ``not-asked``: a stated gap, never a clean bill of health.
+
+**Books** take a path of their own, keyed on ISBN rather than DOI, because
+most books never had a DOI minted at all: an entry carrying an ``isbn`` is
+resolved through :class:`~bibaudit.registries.openlibrary.OpenLibrary`, exactly
+as a DOI-bearing one is resolved through Crossref — see :func:`resolve`. A book
+or chapter with **no** identifier at all adds OpenLibrary to the candidate
+search alongside ``registries.search`` (see ``_audit_unidentified``), because a
 title/author search that never asks the one registry organised around books
 is not really searching for one. An ISBN whose check digit fails is neither a
 fact (no registry was asked) nor ignorance (no registry could not be reached)
@@ -67,7 +80,7 @@ from pathlib import Path
 
 from .compare import Thresholds, compare, confirm_without_id, verdict_for
 from .model import Issue, Record, Reference, Result
-from .normalize import normalize_doi, normalize_kind
+from .normalize import normalize_doi, normalize_kind, normalize_pmid
 from .registries.crossref import Crossref
 from .registries.datacite import DataCite
 from .registries.http import Cache, Client, Transient, default_cache_dir
@@ -180,19 +193,43 @@ def _build(options: AuditOptions) -> _Registries:
     )
 
 
+def _pmid_key(ref: Reference) -> str | None:
+    """The PMID *ref* is looked up by, or ``None`` when it is looked up otherwise.
+
+    Precedence, not preference, and it is
+    :attr:`~bibaudit.model.Reference.identifier`'s: a reference carrying a DOI
+    is a DOI lookup even when it carries a PMID too, so this returns ``None``
+    for it and the same MEDLINE record is fetched once, by ``PubMed.by_dois``,
+    rather than a second time under the other key. The test is on the stored
+    ``doi`` being present, exactly as ``identifier``'s is — the two have to
+    agree about which identifier a reference *is* for, or a report would name
+    one while the lookup used another.
+
+    A ``pmid`` :func:`~bibaudit.normalize.normalize_pmid` refuses is not a
+    lookup key either: no request is ever built from it, so no registry
+    answers about it, and treating it as one would turn a mistyped number into
+    an authoritative absence. Such a reference falls through to whatever
+    identifier it has left, and to ``_audit_unidentified`` when it has none.
+    """
+    if ref.doi or not ref.pmid:
+        return None
+    return normalize_pmid(ref.pmid)
+
+
 def resolve(
     refs: Sequence[Reference],
     registries: _Registries,
 ) -> tuple[dict[str, dict[str, Record]], set[str]]:
-    """Fetch registry records for every reference that carries a DOI or an ISBN.
+    """Fetch registry records for every reference that carries an identifier.
 
     Returns ``(records_by_identifier, unreachable_registries)`` — keyed by
-    normalised DOI for a DOI-bearing reference and by normalised ISBN-13 for
-    an ISBN-bearing one with no DOI. The two never collide (a DOI always
-    starts ``10.``; an ISBN-13 is thirteen digits), so one dict serves both
-    without ambiguity. Keeping the unreachable set separate from "no record
-    found" is what stops a network outage from being reported as a
-    bibliography full of fabricated citations.
+    normalised DOI, by PMID, or by normalised ISBN-13, whichever
+    :attr:`~bibaudit.model.Reference.identifier` ranks highest for the
+    reference at hand. The three never collide (a DOI always starts ``10.``; a
+    PMID is at most eight digits, an ISBN-13 exactly thirteen), so one dict
+    serves all of them without ambiguity. Keeping the unreachable set separate
+    from "no record found" is what stops a network outage from being reported
+    as a bibliography full of fabricated citations.
     """
     dois = sorted({normalize_doi(r.doi) for r in refs if r.doi})
     records: dict[str, dict[str, Record]] = {doi: {} for doi in dois}
@@ -202,15 +239,35 @@ def resolve(
         _resolve_dois(dois, registries, records, unreachable)
         _resolve_retractions(dois, registries, records, unreachable)
 
-    # Only references with no DOI are worth an ISBN lookup: a reference
-    # carrying both is vanishingly rare (a handful of ebook publishers mint
-    # DOIs for books) and the DOI, already the stronger identifier by
-    # `Reference.identifier`'s own ordering, is resolved above.
+    # PubMed is the only registry that can answer for a bare PMID, and it is
+    # asked about one only for a reference with no DOI: `_resolve_dois` has
+    # already fetched the very same MEDLINE record through `by_dois` for the
+    # rest, so asking again under the other key would spend a second request
+    # from a rate-limited budget on an answer already in hand.
+    pmids = sorted({pmid for r in refs if (pmid := _pmid_key(r))})
+    if pmids and registries.pubmed is not None:
+        for pmid in pmids:
+            records.setdefault(pmid, {})
+        try:
+            for pmid, record in registries.pubmed.by_pmids(pmids).items():
+                records.setdefault(pmid, {})["pubmed"] = record
+        except Transient:
+            unreachable.add("pubmed")
+
+    # Only references with no stronger identifier are worth an ISBN lookup: one
+    # carrying a DOI as well is vanishingly rare (a handful of ebook publishers
+    # mint DOIs for books) and is resolved above, as is one carrying a PMID.
+    # Both outrank an ISBN in `Reference.identifier`'s own ordering, and the
+    # branch of `audit` that resolves such an entry never reads an ISBN-keyed
+    # record, so fetching one would be a request nothing consumes.
     isbns = sorted(
         {
             isbn13
             for r in refs
-            if not r.doi and r.isbn and (isbn13 := normalize_isbn13(r.isbn))
+            if not r.doi
+            and not _pmid_key(r)
+            and r.isbn
+            and (isbn13 := normalize_isbn13(r.isbn))
         }
     )
     if isbns and registries.openlibrary is not None:
@@ -391,12 +448,13 @@ def _asked_registries(
     the two still agree, so the copy cannot drift unnoticed.
     """
     if not ref.doi or not normalize_doi(ref.doi):
-        # ``resolve`` only ever looks up DOIs, and it looks up the *normalised*
-        # form — a stored value that normalises to nothing is dropped by every
-        # registry client before a request is built, so no registry was asked
-        # about this entry however non-empty its ``doi`` field looks. What is
-        # asked about an entry carrying no identifier is decided in
-        # ``_audit_unidentified``.
+        # This restates ``resolve``'s *DOI* plan, and that plan looks up the
+        # *normalised* form — a stored value that normalises to nothing is
+        # dropped by every registry client before a request is built, so no
+        # registry was asked about this entry however non-empty its ``doi``
+        # field looks. What is asked about an entry resolved by some other
+        # identifier is stated at the ``audit`` branch that resolves it, and
+        # about one carrying none at all in ``_audit_unidentified``.
         return set()
     asked = {"crossref"}
     # ``resolve`` asks DataCite only about the DOIs Crossref did not answer for,
@@ -429,6 +487,7 @@ def audit(refs: Sequence[Reference], options: AuditOptions | None = None) -> lis
 
     results: list[Result] = []
     for ref in refs:
+        pmid = _pmid_key(ref)
         isbn13 = normalize_isbn13(ref.isbn) if ref.isbn else None
         if ref.doi:
             found = records.get(normalize_doi(ref.doi), {})
@@ -438,6 +497,22 @@ def audit(refs: Sequence[Reference], options: AuditOptions | None = None) -> lis
                 thresholds=options.thresholds,
                 unreachable=unreachable,
                 asked=_asked_registries(ref, found, unreachable, options),
+            )
+        elif pmid:
+            found = records.get(pmid, {})
+            result = compare(
+                ref,
+                found,
+                thresholds=options.thresholds,
+                unreachable=unreachable,
+                # PubMed alone, and only when there is a PubMed to ask.
+                # Crossref is not asked because a PMID is not a Crossref key,
+                # and ``--no-corroborate`` leaves nothing at all to ask, so
+                # naming it would claim an authoritative "no such record"
+                # nobody obtained — the same trap ``--no-isbn`` sets on a book
+                # below, and the empty set is what makes ``compare`` report
+                # UNCHECKED instead of accusing the entry.
+                asked={"pubmed"} if registries.pubmed is not None else set(),
             )
         elif isbn13:
             found = records.get(isbn13, {})

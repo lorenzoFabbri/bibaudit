@@ -643,6 +643,128 @@ class TestByDois:
         assert PubMed(client).by_dois([WAKEFIELD_DOI]) == {}
 
 
+class TestByPmids:
+    """A reference that stores its own PMID needs ``efetch`` and nothing else.
+
+    ``esearch`` and ``esummary`` exist to turn a DOI into a PMID and to
+    attribute the answer back to the DOI that asked. A caller holding the PMID
+    has both already, so issuing them anyway would spend two thirds of NCBI's
+    three-a-second budget rediscovering what it was told.
+    """
+
+    def test_a_pmid_is_fetched_without_esearch_or_esummary(self) -> None:
+        client = _StubClient(medline=_fixture("retraction_notice"))
+        PubMed(client).by_pmids([RETRACTION_NOTICE_PMID])
+
+        assert [url.split("?")[0].rsplit("/", 1)[-1] for url in client.urls] == ["efetch.fcgi"]
+        assert _params(client.urls[0])["id"] == RETRACTION_NOTICE_PMID
+
+    def test_the_record_is_keyed_by_the_pmid_it_was_asked_for(self) -> None:
+        """The key is the caller's own lookup key, as ``by_dois``' is its DOI.
+
+        ``compare`` is handed records under the identifier the reference
+        stores; keying them any other way would leave every PubMed record
+        anonymous to the entry that asked for it.
+        """
+        client = _StubClient(medline=_fixture("retraction_notice"))
+        result = PubMed(client).by_pmids([RETRACTION_NOTICE_PMID])
+
+        assert set(result) == {RETRACTION_NOTICE_PMID}
+        assert result[RETRACTION_NOTICE_PMID].title.startswith(
+            "Retraction--Ileal-lymphoid-nodular hyperplasia"
+        )
+
+    def test_medline_retraction_flags_survive_this_path_too(self) -> None:
+        """``PT`` is read by the same parser, so a PMID lookup sees it as well.
+
+        This is the whole of the retraction evidence available to a reference
+        with no DOI: Retraction Watch's export is keyed on DOI, so a PMID-only
+        entry citing the Wakefield paper has MEDLINE's own flag and nothing
+        else standing between it and a clean report.
+        """
+        client = _StubClient(medline=_fixture("retracted"))
+        record = PubMed(client).by_pmids([WAKEFIELD_PMID])[WAKEFIELD_PMID]
+
+        assert record.retracted
+        assert record.retraction_kind == "Retracted Publication"
+
+    def test_a_pmid_pubmed_does_not_hold_is_absent_rather_than_an_error(self) -> None:
+        """An empty body is PubMed answering, and its answer is "no such record".
+
+        That absence is the evidence ``audit`` turns into ``BAD-ID``, so it has
+        to come back as a missing key rather than as an exception.
+        """
+        client = _StubClient(medline="")
+        assert PubMed(client).by_pmids(["99999999"]) == {}
+
+    def test_a_record_under_a_number_nobody_asked_for_is_discarded(self) -> None:
+        """NLM merges duplicate citations, and a retired PMID answers as another.
+
+        Taking whatever the body contains would pin an unrelated paper's
+        metadata — and its retraction status — on this reference, which is the
+        same misattribution ``esummary`` exists to prevent on the DOI path.
+        """
+        client = _StubClient(
+            medline=f"{_fixture('retracted')}\n{_fixture('retraction_notice')}"
+        )
+        result = PubMed(client).by_pmids([WAKEFIELD_PMID])
+
+        assert set(result) == {WAKEFIELD_PMID}
+
+    def test_a_value_that_is_not_a_pmid_makes_no_request(self) -> None:
+        """``PMC5860629`` and a zero-padded number are not lookup keys.
+
+        Sending one would spend a request to be told nothing, and the reply
+        would then read as PubMed authoritatively not holding a number PubMed
+        was never really asked about.
+        """
+        client = _StubClient(medline=_fixture("retracted"))
+        assert PubMed(client).by_pmids(["", "PMC5860629", "0" + WAKEFIELD_PMID]) == {}
+        assert client.urls == []
+
+    def test_a_repeated_pmid_is_fetched_once(self) -> None:
+        client = _StubClient(medline=_fixture("retracted"))
+        PubMed(client).by_pmids([WAKEFIELD_PMID, WAKEFIELD_PMID])
+        assert _params(client.urls[0])["id"] == WAKEFIELD_PMID
+
+    def test_pmids_past_the_first_batch_are_still_fetched_and_still_paced(
+        self, clock: _FakeClock
+    ) -> None:
+        """``efetch`` returns whole citations, so a batch is fifty, not two hundred.
+
+        A batching bug here is silent in the same way ``esearch``'s is: the
+        PMIDs past the cut are never requested, come back with no record, and
+        are reported as PubMed not holding them — the shape of a fabricated
+        citation. The pacing assertion rides along because a second batch is
+        the first chance this path has to exceed NCBI's ceiling.
+        """
+        pmids = [str(30000000 + i) for i in range(60)]
+        client = _StubClient(medline="", clock=clock)
+
+        PubMed(client).by_pmids(pmids)
+
+        requested = [_params(url)["id"].split(",") for url in client.urls]
+        assert [len(batch) for batch in requested] == [50, 10]
+        assert [pmid for batch in requested for pmid in batch] == pmids
+        assert client.request_times[1] - client.request_times[0] >= 1 / 3
+
+    def test_an_efetch_outage_propagates_rather_than_reading_as_absence(self) -> None:
+        """The one distinction this module exists to keep: 404 versus timeout.
+
+        Swallowing it would report every PMID in the batch as one PubMed does
+        not hold, which ``audit`` would then render as ``BAD-ID`` — a network
+        problem printed as an accusation about the bibliography.
+        """
+        client = _StubClient(medline="", unreachable="efetch.fcgi")
+        with pytest.raises(Transient):
+            PubMed(client).by_pmids([WAKEFIELD_PMID])
+
+    def test_a_404_is_an_answer_not_an_outage(self) -> None:
+        """``None`` from the client is a confirmed HTTP 404."""
+        client = _StubClient(medline=None)
+        assert PubMed(client).by_pmids([WAKEFIELD_PMID]) == {}
+
+
 class TestEsearchBatching:
     """A bibliography is searched for in ``OR``-ed batches of twenty DOIs."""
 
