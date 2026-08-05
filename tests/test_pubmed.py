@@ -584,6 +584,38 @@ class TestByDois:
         record = _resolve_one("retracted", pmid=WAKEFIELD_PMID, doi=WAKEFIELD_DOI)
         assert record.doi == normalize_doi(WAKEFIELD_DOI)
 
+    def test_the_record_carries_the_pmid_it_was_fetched_under(self) -> None:
+        """A DOI-resolved record still states which citation it is.
+
+        An entry storing a PMID beside its DOI is making a second claim about
+        which work it cites, and ``compare._check_pmid`` can only check it
+        against something. Leaving this unset would make that claim
+        uncheckable on the one path where it is worth checking — a DOI is what
+        fetched the record, so the PMID is the identifier nothing verified.
+        """
+        record = _resolve_one("retracted", pmid=WAKEFIELD_PMID, doi=WAKEFIELD_DOI)
+        assert record.pmid == WAKEFIELD_PMID
+
+    def test_a_doi_two_pmids_claim_resolves_but_carries_no_pmid(self) -> None:
+        """Two citations for one DOI make either PMID a correct thing to store.
+
+        ``esummary`` answering with two records that both carry the queried
+        DOI leaves no basis for choosing between them. The DOI still resolves —
+        either record's title, authors and retraction status are the work's —
+        but the PMID is dropped, because keeping the arbitrary one would let
+        ``compare._check_pmid`` report a bibliography that stored the *other*
+        number as disagreeing with a registry that named both.
+        """
+        client = _StubClient(
+            esearch_ids=[WAKEFIELD_PMID, RETRACTION_NOTICE_PMID],
+            doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI, RETRACTION_NOTICE_PMID: WAKEFIELD_DOI},
+            medline=f"{_fixture('retracted')}\n{_fixture('retraction_notice')}",
+        )
+        record = PubMed(client).by_dois([WAKEFIELD_DOI])[normalize_doi(WAKEFIELD_DOI)]
+
+        assert record.pmid is None
+        assert record.title.startswith("Ileal-lymphoid-nodular hyperplasia")
+
     def test_journal_title_and_iso_abbreviation_stay_in_separate_fields(self) -> None:
         """``JT`` is the journal, ``TA`` its NLM abbreviation.
 
@@ -673,6 +705,20 @@ class TestByPmids:
         assert result[RETRACTION_NOTICE_PMID].title.startswith(
             "Retraction--Ileal-lymphoid-nodular hyperplasia"
         )
+
+    def test_the_record_states_the_pmid_it_is(self) -> None:
+        """Read off the block's own ``PMID`` line, not copied from the key.
+
+        On this path the two are equal by construction — the attribution guard
+        above requires it — so the value is only worth having because it is the
+        same field ``by_dois`` fills from a lookup that had no PMID to start
+        with, and one builder filling it two ways is how the two paths would
+        drift.
+        """
+        client = _StubClient(medline=_fixture("retraction_notice"))
+        result = PubMed(client).by_pmids([RETRACTION_NOTICE_PMID])
+
+        assert result[RETRACTION_NOTICE_PMID].pmid == RETRACTION_NOTICE_PMID
 
     def test_medline_retraction_flags_survive_this_path_too(self) -> None:
         """``PT`` is read by the same parser, so a PMID lookup sees it as well.

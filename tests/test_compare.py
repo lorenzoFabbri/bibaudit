@@ -1165,6 +1165,139 @@ class TestDoiAlias:
         assert not any(i.field == "doi" for i in result.issues)
 
 
+class TestPmidCheck:
+    """A PMID stored beside a DOI is a second claim, and it can be wrong.
+
+    The DOI fetched the record, so it cannot disagree with the bibliography in
+    any way that counts (see :class:`TestDoiAlias`). A PMID sitting next to it
+    fetched nothing: it is the entry's own assertion that PubMed holds this
+    work under that number, and a citation whose two identifiers name two works
+    is exactly the shape a mis-transcribed reference takes.
+
+    The reference these build on is a real pairing. According to PubMed, PMID
+    29329392 is Molina-Montes et al., *Int J Epidemiol* 2018;47(2):473-483,
+    [DOI](https://doi.org/10.1093/ije/dyx269) — the entry ``make_ref`` returns.
+    PMID 9500320 is Wakefield et al., *Lancet* 1998,
+    [DOI](https://doi.org/10.1016/s0140-6736(97)11096-0), and 20137807 is the
+    2010 notice retracting it,
+    [DOI](https://doi.org/10.1016/S0140-6736(10)60175-4).
+    """
+
+    def test_a_pmid_naming_another_work_is_an_ordinary_field_mismatch(self) -> None:
+        """No new verdict: the entry is right about the work and wrong about a field."""
+        result = compare(
+            make_ref(pmid="9500320"),
+            {"crossref": make_record(), "pubmed": make_record(source="pubmed", pmid="29329392")},
+        )
+        issue = next(i for i in result.issues if i.field == "pmid")
+
+        assert (issue.kind, issue.severity) == ("mismatch", "error")
+        assert (issue.stored, issue.registry) == ("9500320", "29329392")
+        assert issue.source == "pubmed"
+        assert result.verdict == "FIELD-MISMATCH"
+        assert result.fails
+
+    def test_the_pmid_pubmed_holds_for_the_doi_is_silent(self) -> None:
+        result = compare(
+            make_ref(pmid="29329392"),
+            {"crossref": make_record(), "pubmed": make_record(source="pubmed", pmid="29329392")},
+        )
+        assert not any(i.field == "pmid" for i in result.issues)
+        assert result.verdict == "OK"
+
+    def test_pubmed_answering_as_the_only_registry_is_still_compared(self) -> None:
+        """Crossref silent, PubMed holding the DOI: the check is not corroborator-only.
+
+        The record fills the ``primary`` slot in that case, and reading the
+        PMID off the corroborator alone would silence the check on precisely
+        the entries PubMed is the sole witness for.
+        """
+        result = compare(
+            make_ref(pmid="9500320"), {"pubmed": make_record(source="pubmed", pmid="29329392")}
+        )
+        assert any(i.field == "pmid" and i.severity == "error" for i in result.issues)
+
+    def test_a_registry_holding_no_pmid_is_not_a_disagreement(self) -> None:
+        """Absence of evidence is not a mismatch.
+
+        Crossref carries no PMID at all, and this is also the shape of PubMed
+        having been asked and having had nothing, of ``--no-corroborate``, and
+        of a DOI PubMed answered for under more than one PMID — where
+        ``registries/pubmed.py`` withholds the value rather than pick one. None
+        of them may read as "PubMed says your PMID is wrong".
+        """
+        result = compare(make_ref(pmid="9500320"), {"crossref": make_record()})
+        assert not any(i.field == "pmid" for i in result.issues)
+        assert result.verdict == "OK"
+
+    def test_a_pmid_that_did_the_looking_up_is_never_compared(self) -> None:
+        """With no DOI stored, the PMID is the key and the record resolved from it.
+
+        ``audit._pmid_key`` fetches under that number, so a disagreement here
+        cannot mean what it means above — it would be the record contradicting
+        the question it answered. The DOI gets the same treatment for the same
+        reason.
+        """
+        result = compare(
+            make_ref(doi=None, pmid="9500320"),
+            {"pubmed": make_record(source="pubmed", doi=None, pmid="29329392")},
+        )
+        assert not any(i.field == "pmid" for i in result.issues)
+
+    def test_a_pmcid_in_the_pmid_field_is_left_alone(self) -> None:
+        """``PMCID: PMC5860629`` sits one line under the PMID in a Zotero Extra block.
+
+        A value that is not PMID-shaped was never a candidate for the number
+        PubMed holds, and accusing it of disagreeing would report an encoding
+        or a copy-paste as a wrong citation.
+        """
+        result = compare(
+            make_ref(pmid="PMC5860629"),
+            {"crossref": make_record(), "pubmed": make_record(source="pubmed", pmid="29329392")},
+        )
+        assert not any(i.field == "pmid" for i in result.issues)
+        assert result.verdict == "OK"
+
+    def test_a_notice_cited_by_its_own_pair_of_identifiers_is_clean(self) -> None:
+        """Citing a retraction notice is legitimate and must stay silent.
+
+        Nothing in this check reads ``updated-by``, ``update-to`` or MEDLINE's
+        ``RIN``/``ROF``, so there is no relation direction to get backwards:
+        the notice's own DOI and its own PMID agree, and that is the whole of
+        the test.
+        """
+        result = compare(
+            make_ref(doi="10.1016/S0140-6736(10)60175-4", pmid="20137807"),
+            {
+                "crossref": make_record(doi="10.1016/S0140-6736(10)60175-4"),
+                "pubmed": make_record(
+                    source="pubmed", doi="10.1016/S0140-6736(10)60175-4", pmid="20137807"
+                ),
+            },
+        )
+        assert not any(i.field == "pmid" for i in result.issues)
+
+    def test_the_paper_doi_beside_the_notice_pmid_is_still_reported(self) -> None:
+        """The pairing for the test above: the silence must not become a licence.
+
+        These are two Lancet documents twelve years apart with two titles, and
+        a reader following one identifier lands somewhere the other does not.
+        """
+        result = compare(
+            make_ref(doi="10.1016/S0140-6736(97)11096-0", pmid="20137807"),
+            {
+                "crossref": make_record(doi="10.1016/S0140-6736(97)11096-0"),
+                "pubmed": make_record(
+                    source="pubmed", doi="10.1016/S0140-6736(97)11096-0", pmid="9500320"
+                ),
+            },
+        )
+        issue = next(i for i in result.issues if i.field == "pmid")
+
+        assert (issue.stored, issue.registry) == ("20137807", "9500320")
+        assert result.verdict == "FIELD-MISMATCH"
+
+
 class TestYearTolerance:
     def test_online_first_year_is_accepted(self) -> None:
         """A work online in 2020 and printed in 2021 has two correct years."""

@@ -34,7 +34,7 @@ The first class is the only one that check can see.
 registry, and it is deliberately short enough to state:
 
 ```
-title, authors, year, container, volume, issue, pages, publisher
+title, authors, year, container, volume, issue, pages, publisher, pmid
 ```
 
 A stored field outside that tuple is never adjudicated: the DOI and the entry's
@@ -50,6 +50,18 @@ redirect or an alias — `doi.org` content-negotiates the JSTOR DOI to the
 publisher's own — and that is reported as a `doi/alias` note so a reader who
 looks the entry up by hand is not surprised by a different identifier. It can
 never be a failure.
+
+The PMID is on the list, and the contrast is the reason it is worth stating. An
+entry storing a PMID *beside* a DOI looked nothing up with it: the DOI fetched
+the record, so the PMID is a second, independent claim about which work is
+being cited, and PubMed answering for that DOI under a different number means
+the two identifiers name two citations. That is `FIELD-MISMATCH`, like any
+other field disagreement. It is checked only when there is something to check
+it against — an entry with no DOI is *resolved* by its PMID, and that PMID
+gets the DOI's treatment above — and never when the registry offered no PMID at
+all, whether because it was not asked, because it had nothing, or because it
+answered under more than one. Silence from PubMed never reads as PubMed
+contradicting you.
 
 The three classes of the audit above map onto three verdicts, all defined in
 full on [verdicts](verdicts.md):

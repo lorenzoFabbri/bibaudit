@@ -415,6 +415,52 @@ the promise above was false.
 
 ---
 
+## One DOI, more than one PubMed citation
+
+**What happens.** `esummary` answers for a queried DOI with two records that
+both carry it among their own `articleids`. Either PubMed holds two citations
+for the work, or one record lists another's identifier as its own — the case
+the DOI filter in `PubMed._pmids_by_doi` already drops candidates for, in the
+residual form where both records claim a DOI that *was* asked for.
+
+**Observed.** Nothing. Every DOI checked against `"<doi>"[aid]` while this was
+written came back with exactly one PMID, including `10.1093/ije/dyx269`
+(Molina-Montes et al., *Int J Epidemiol* 2018 — PMID 29329392), the entry the
+comparison tests are built on. This section exists because the ambiguity is
+representable in what `esummary` returns and because `compare._check_pmid` is
+the first thing that would turn an arbitrary choice into an accusation — not
+because a defective payload was recorded. Anyone who finds one should record it
+here.
+
+**Reported as.** Nothing at all. This is a refusal rather than a suppression:
+no `REGISTRY-ARTIFACT` line is printed, because there is no difference to
+explain. The comparison never runs.
+
+**Detection.** In `registries/pubmed.py`, not in `benign.py`.
+`PubMed._pmids_by_doi` keeps every PMID a DOI came back under, and `by_dois`
+hands the record on with `Record.pmid` unset whenever there is more than one.
+The DOI still resolves — either record's title, authors and retraction status
+are the work's — so nothing is lost but the one comparison that had no basis.
+
+**Why it matters.** A work with two PubMed citations makes either number a
+correct thing to store. Keeping the arbitrary one would fail a bibliography for
+a choice the tool made, on a check whose whole purpose is to catch a citation
+whose two identifiers name two different works.
+
+`compare._check_pmid` has no rule in `benign.CHECKS` and does not call
+`classify` at all: no registry defect is known that makes two disagreeing PMIDs
+describe one work, and the near miss is this section, where nothing is reported
+in the first place. Its other two refusals are not registry defects either, and
+each is stated where it lives — a reference with no DOI is *resolved* by its
+PMID and so is never compared against it, and no relation (Crossref's
+`updated-by`, MEDLINE's `RIN`/`ROF`) is read anywhere in the check, so an entry
+citing a retraction notice by that notice's own DOI and PMID is silently
+correct. A project that meets a case none of this covers adjudicates it in its
+own `.bibaudit.toml`, where the claim reads as somebody's say-so and can be
+re-read.
+
+---
+
 ## Deposit timestamps recorded as publication years
 
 **What happens.** A working-paper series re-deposits an old item and the

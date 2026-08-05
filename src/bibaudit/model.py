@@ -168,6 +168,14 @@ class Record:
 
     source: str
     doi: str | None = None
+    #: The PMID of the MEDLINE citation this record was built from, where the
+    #: registry has one. Only PubMed sets it, and only when it is unambiguous —
+    #: see ``registries/pubmed.py``. It exists so that a reference storing a
+    #: PMID *beside* a DOI can be checked: the DOI fetched the record, so the
+    #: PMID is a second, independent claim about which work is cited, and a
+    #: pair naming two different records is what a mis-transcribed citation
+    #: looks like. ``compare._check_pmid`` is the only check that reads it.
+    pmid: str | None = None
     title: str | None = None
     authors: list[Name] = field(default_factory=list)
     years: dict[str, int] = field(default_factory=dict)

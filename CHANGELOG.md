@@ -19,6 +19,22 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Added
 
+- **A PMID is read as an identifier in its own right, and checked.** BibTeX's
+  `pmid` field, an `eprint` paired with `eprinttype = {pubmed}`, a labelled
+  `PMID: 28520842` line in a Zotero `Extra` or a CSL `note`, and CSL's own
+  `PMID` variable all reach `Reference.pmid`. An entry carrying a PMID and no
+  DOI is resolved through PubMed's `efetch` alone — one request where a DOI
+  costs three — rather than searched by title and author, so it can now report
+  `BAD-ID` (PubMed answered and holds no such record) or `UNCHECKED` (PubMed
+  unreachable, or `--no-corroborate`, so nothing was asked). An entry carrying
+  both is resolved by the DOI and its PMID becomes a compared field: one naming
+  a different citation than the DOI resolved to is a `FIELD-MISMATCH`, reported
+  as `pmid/mismatch`, and `compare.CHECKED_FIELDS` gains `pmid` accordingly.
+  `Record.pmid` carries the registry's side of that comparison; it is left
+  unset when PubMed answered for the DOI under more than one PMID, so an entry
+  storing either of them is never accused. Nothing is ever proposed for a
+  missing PMID: `--suggest` fills absent fields, and this check never reports
+  one as absent.
 - Documentation site at <https://lorenzofabbri.github.io/bibaudit/>, built with
   MkDocs Material and gated by `mkdocs build --strict`.
 - `py.typed` marker (PEP 561), so the package's annotations are visible to type

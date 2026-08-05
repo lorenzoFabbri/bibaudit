@@ -256,7 +256,13 @@ def _parse_medline_records(text: str) -> list[dict[str, list[str]]]:
 
 
 def _record_from_medline(fields: dict[str, list[str]]) -> Record:
-    """Build a :class:`Record` (with ``doi`` unset) from one MEDLINE block."""
+    """Build a :class:`Record` from one MEDLINE block, ``doi`` unset.
+
+    The block's own ``PMID`` line *is* carried: it is the citation's identity
+    as NLM states it, and the only PMID this module ever has grounds to put on
+    a record. The DOI is left to the caller, which knows the key the record was
+    fetched under; MEDLINE's own ``AID`` list reaches ``raw`` and no further.
+    """
     title, translated = _clean_title(_first(fields.get("TI")))
 
     years: dict[str, int] = {}
@@ -272,6 +278,7 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
 
     return Record(
         source="pubmed",
+        pmid=_first(fields.get("PMID")),
         title=title,
         authors=_authors_from(fields),
         years=years,
@@ -334,6 +341,23 @@ class PubMed:
         registry outage during ``esearch``/``esummary`` instead raises
         :class:`~bibaudit.registries.http.Transient`, so it is never confused
         with a confirmed absence.
+
+        A DOI several PMIDs claim gets one of them, so a record is still
+        fetched for it; :meth:`by_dois` is where the multiplicity is read for
+        what it means. See :meth:`_pmids_by_doi`.
+        """
+        return {doi: pmids[-1] for doi, pmids in self._pmids_by_doi(dois).items()}
+
+    def _pmids_by_doi(self, dois: Sequence[str]) -> dict[str, list[str]]:
+        """Every PMID PubMed attributes to each of *dois*, in the order found.
+
+        Kept apart from :meth:`pmids_for` because *how many* PMIDs came back
+        for one DOI is evidence in its own right, and collapsing to one throws
+        it away. Two mean either that PubMed holds two citations for the work
+        or that one record lists another's identifier among its own article
+        ids — the case the ``doi in wanted`` filter below drops, in the
+        residual form where both records claim a DOI that *was* asked for.
+        Neither can be settled from this side.
         """
         normalized = list(dict.fromkeys(doi for raw in dois if (doi := normalize_doi(raw))))
         if not normalized:
@@ -346,11 +370,11 @@ class PubMed:
             return {}
 
         wanted = set(normalized)
-        result: dict[str, str] = {}
+        result: dict[str, list[str]] = {}
         for batch in _chunk(sorted(candidate_pmids), _ESUMMARY_BATCH):
             for pmid, doi in self._esummary(batch).items():
                 if doi in wanted:
-                    result[doi] = pmid
+                    result.setdefault(doi, []).append(pmid)
         return result
 
     def by_dois(self, dois: Sequence[str]) -> dict[str, Record]:
@@ -362,17 +386,31 @@ class PubMed:
         here: this method answers for the whole batch at once, and a partial
         outage must not be reported as some of the batch's DOIs being
         confirmed absent from PubMed.
+
+        Each record carries the PMID it was fetched under, so that a reference
+        storing a PMID beside its DOI can be checked against it — unless
+        PubMed answered for that DOI under more than one PMID, in which case
+        it carries none. See the comment on ``ambiguous`` below.
         """
-        doi_to_pmid = self.pmids_for(dois)
-        if not doi_to_pmid:
+        candidates = self._pmids_by_doi(dois)
+        if not candidates:
             return {}
 
         # A PMID could in principle be the target of more than one requested
         # DOI (a duplicate deposit); keep every DOI it should map back to
         # rather than dropping all but the last.
         pmid_to_dois: dict[str, list[str]] = {}
-        for doi, pmid in doi_to_pmid.items():
-            pmid_to_dois.setdefault(pmid, []).append(doi)
+        for doi, pmids in candidates.items():
+            pmid_to_dois.setdefault(pmids[-1], []).append(doi)
+
+        # The other direction, and it is not the same fact. Any of the PMIDs a
+        # DOI came back under fetches a usable citation, so the record still
+        # goes out; *which* one it is, is arbitrary. The record therefore
+        # carries no PMID, because the only thing that reads one —
+        # `compare._check_pmid` — would otherwise report a bibliography storing
+        # the PMID this line happened not to pick as disagreeing with PubMed,
+        # when PubMed named both.
+        ambiguous = {doi for doi, pmids in candidates.items() if len(pmids) > 1}
 
         out: dict[str, Record] = {}
         for batch in _chunk(list(pmid_to_dois), _EFETCH_BATCH):
@@ -389,7 +427,9 @@ class PubMed:
                     # A fresh copy per DOI: Record is mutable, and two DOIs
                     # sharing one Record instance would make the second
                     # assignment's `.doi` silently override the first's.
-                    out[doi] = replace(record, doi=doi)
+                    out[doi] = replace(
+                        record, doi=doi, pmid=None if doi in ambiguous else record.pmid
+                    )
         return out
 
     def by_pmids(self, pmids: Sequence[str]) -> dict[str, Record]:

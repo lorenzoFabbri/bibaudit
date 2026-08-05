@@ -30,7 +30,15 @@ from .model import (
     is_registry_artifact,
 )
 from .names import compare_author_lists
-from .normalize import clean, first_page, fold, normalize_doi, normalize_kind, similarity
+from .normalize import (
+    clean,
+    first_page,
+    fold,
+    normalize_doi,
+    normalize_kind,
+    normalize_pmid,
+    similarity,
+)
 
 __all__ = ["CHECKED_FIELDS", "Thresholds", "compare", "confirm_without_id", "verdict_for"]
 
@@ -44,8 +52,14 @@ __all__ = ["CHECKED_FIELDS", "Thresholds", "compare", "confirm_without_id", "ver
 #: redirect or an alias, which :func:`_check_doi` states as a note and which can
 #: never be a failure — so it is checked, but never adjudicated, and putting it
 #: in this tuple would promise otherwise.
+#:
+#: ``pmid`` *is* here, and the difference between the two is the whole of
+#: :func:`_check_pmid`: a PMID stored beside a DOI fetched nothing, so it is a
+#: second claim about which work is cited rather than the key that produced the
+#: record, and it can be wrong in a way the DOI structurally cannot.
 CHECKED_FIELDS = (
     "title", "authors", "year", "container", "volume", "issue", "pages", "publisher",
+    "pmid",
 )
 
 #: Type pairs treated as the same shape of work rather than a contradiction.
@@ -530,6 +544,77 @@ def _check_doi(ctx: _Context) -> None:
         clean(ctx.primary.doi),
         note=reason
         or "the stored DOI resolved to a record registered under a different DOI",
+    )
+
+
+def _check_pmid(ctx: _Context) -> None:
+    """Flag a stored PMID that is not the one the stored DOI resolved to.
+
+    A PMID stored *beside* a DOI fetched nothing: the record in hand came back
+    under the DOI, so the two identifiers are two independent claims the entry
+    makes about which work it cites. A registry answering for the DOI under a
+    different PMID means they name different citations, which is the shape a
+    mis-transcribed — or an invented — reference takes. So this is an ordinary
+    field mismatch and fails like one, unlike :func:`_check_doi` one function
+    up, where the identifier under comparison is the key that produced the
+    record and can only ever disagree with itself.
+
+    Three situations it is structurally unable to fire on, each a refusal
+    rather than a suppression:
+
+    *Nothing to compare against.* A registry nobody asked, one that answered
+    and held nothing, and one whose answer was ambiguous all leave
+    :attr:`~bibaudit.model.Record.pmid` unset, and an absent value is read as
+    silence. The ambiguous case is PubMed answering for one DOI under more
+    than one PMID: ``registries/pubmed.py`` withholds the value there rather
+    than pick one, because an entry storing either of two PMIDs PubMed itself
+    named is not wrong. "No PMID from PubMed" must never read as "PubMed says
+    your PMID is wrong".
+
+    *The PMID was the lookup key.* With no DOI stored the reference is
+    resolved by its PMID (``audit._pmid_key``) and the record is here because
+    that PMID resolved — the ``doi`` case exactly, so it gets the ``doi``
+    treatment: not compared at all.
+
+    *A PMID naming a retraction notice.* Nothing here reads ``updated-by``,
+    ``update-to``, MEDLINE's ``RIN``/``ROF`` or any other relation, so there is
+    no direction to get backwards and no way for this check to accuse somebody
+    who cites a notice. An entry citing the Lancet's retraction of Wakefield et
+    al. stores that notice's own pair — 10.1016/S0140-6736(10)60175-4 and PMID
+    20137807 — which agree, and is silently correct. One storing the retracted
+    paper's DOI, 10.1016/S0140-6736(97)11096-0, beside the notice's PMID is
+    reported, and should be: those are two documents with two titles, twelve
+    years apart, and a reader following one identifier lands somewhere the
+    other does not.
+
+    Comparison is on :func:`~bibaudit.normalize.normalize_pmid`, so a stored
+    value that is not PMID-shaped at all — the ``PMCID: PMC5860629`` sitting
+    one line below the PMID in a Zotero ``Extra`` block — is left alone rather
+    than accused of disagreeing with a number it was never a candidate for.
+
+    :mod:`~bibaudit.benign` is not consulted, and that is the one difference
+    from every other check here. No registry defect is known that makes two
+    disagreeing PMIDs describe one work — the near miss, PubMed holding two
+    citations for a DOI, is the refusal above, where nothing is reported at all
+    rather than reported and explained away. Adding a ``field == "pmid"`` rule
+    to ``benign.CHECKS`` therefore takes a ``classify`` call here as well, or
+    it is a suppression that can never fire. Until such a case is witnessed, a
+    project that meets one adjudicates it in its own ``.bibaudit.toml``, where
+    the claim is somebody's say-so and reads as one.
+    """
+    stored = normalize_pmid(ctx.ref.pmid)
+    if not stored or not ctx.ref.doi:
+        return
+    registry_text, source = _registry_value(ctx, "pmid")
+    registry = normalize_pmid(registry_text)
+    if not registry or registry == stored:
+        return
+    ctx.add(
+        "pmid", "mismatch", "error", stored, registry, source=source,
+        note=(
+            "the stored DOI resolved to a different PubMed citation; what the "
+            "stored PMID names was not itself looked up"
+        ),
     )
 
 
@@ -1058,6 +1143,7 @@ def compare(
     _check_scalar(ctx, "publisher", "publisher", ref.publisher)
     _check_kind(ctx)
     _check_doi(ctx)
+    _check_pmid(ctx)
 
     # Every record that answered, not just the primary — and every registry that
     # could not answer at all, because ignorance about retraction is not the
