@@ -207,6 +207,12 @@ _PMCID_RE = re.compile(r"^PMC(\d+)$", re.IGNORECASE)
 #: opening the line below. The neighbouring ``PMCID`` line is safe from both
 #: directions: the label ``PMID`` does not open it, and its ``PMC``-prefixed
 #: value would fail :func:`normalize_pmid` even if it did.
+#:
+#: The label is a word of its own and never the opening of a longer token.
+#: "PMID12345678" runs the label and the number together with no separator at
+#: all, which is not how any of the conventions above writes a declaration, and
+#: reading it would resolve the entry against whatever record those digits name.
+#: Refusing it costs a lookup.
 _LABELLED_PMID_RE = re.compile(r"^PMID\b[ \t]*[:=]?[ \t]*(\d+)", re.IGNORECASE | re.MULTILINE)
 
 

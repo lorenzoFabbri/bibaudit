@@ -267,6 +267,19 @@ class TestPmidExtraction:
         """
         assert extract_pmid("PMID: 285208421234\nPMID: 20137807") is None
 
+    def test_a_label_run_together_with_the_number_declares_nothing(self) -> None:
+        """Opening the line is not enough — ``PMID`` has to end as a word too.
+
+        ``PMID12345678`` puts no separator of any kind between the label and
+        the digits, which is not how Zotero, MEDLINE, EndNote or a hand-typed
+        note writes a declaration. Read as one, whatever record those digits
+        name becomes the entry's lookup key. The separator, the indent and the
+        mid-line position are each pinned above; this is the character
+        immediately after the label, and it is the only thing the word boundary
+        decides.
+        """
+        assert extract_pmid("PMID12345678") is None
+
     def test_a_number_alone_is_not_an_identifier(self) -> None:
         """An unlabelled run of digits in a note is a grant number, an
         accession or a sample size far more often than it is a PMID.
