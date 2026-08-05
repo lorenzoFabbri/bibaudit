@@ -76,6 +76,77 @@ class TestDoiExtraction:
         assert ref.doi == "10.1234/urlonly.2019"
 
 
+class TestPmidExtraction:
+    """The two field spellings a PMID reaches a ``.bib`` file under.
+
+    Written per test rather than added to ``sample.bib``: that fixture's entry
+    count and per-entry line numbers are asserted on elsewhere, and a PMID is
+    not what it is a fixture of.
+    """
+
+    @staticmethod
+    def _pmid_of(tmp_path: pathlib.Path, *lines: str) -> str | None:
+        path = tmp_path / "pmid.bib"
+        body = "\n".join(f"  {line}," for line in lines)
+        path.write_text(f"@article{{kim2017,\n{body}\n}}\n", encoding="utf-8")
+        return read_bibtex(path)[0].pmid
+
+    def test_a_dedicated_pmid_field_is_read(self, tmp_path: pathlib.Path) -> None:
+        assert self._pmid_of(tmp_path, "pmid = {28520842}") == "28520842"
+
+    def test_eprint_is_read_when_eprinttype_says_pubmed(self, tmp_path: pathlib.Path) -> None:
+        """BibLaTeX's spelling: the number in ``eprint``, its registry in
+        ``eprinttype``.
+        """
+        pmid = self._pmid_of(tmp_path, "eprint = {28520842}", "eprinttype = {pubmed}")
+        assert pmid == "28520842"
+
+    def test_eprint_is_read_when_archiveprefix_says_pubmed(self, tmp_path: pathlib.Path) -> None:
+        """The older spelling of the same companion field, and still the one
+        most exports write.
+        """
+        pmid = self._pmid_of(tmp_path, "eprint = {28520842}", "archiveprefix = {PubMed}")
+        assert pmid == "28520842"
+
+    def test_an_eprint_from_another_repository_is_not_a_pmid(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """``eprint`` has no meaning without its type. An SSRN working-paper
+        number is as bare-numeric as a PMID, and reading it as one would send
+        the entry to PubMed under another registry's numbering — where it
+        names a different paper rather than nothing.
+        """
+        assert self._pmid_of(tmp_path, "eprint = {4573842}", "eprinttype = {ssrn}") is None
+
+    def test_an_untyped_eprint_is_not_a_pmid(self, tmp_path: pathlib.Path) -> None:
+        assert self._pmid_of(tmp_path, "eprint = {4573842}") is None
+
+    def test_the_dedicated_field_wins_over_a_typed_eprint(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        pmid = self._pmid_of(
+            tmp_path, "pmid = {28520842}", "eprint = {26320033}", "eprinttype = {pubmed}"
+        )
+        assert pmid == "28520842"
+
+    def test_a_non_numeric_pmid_field_is_refused(self, tmp_path: pathlib.Path) -> None:
+        """A placeholder must fall through as "no PMID recorded" rather than
+        become a confident-looking identifier — the same reason ``_extract_doi``
+        goes through ``extract_dois`` instead of normalising whatever it finds.
+        """
+        assert self._pmid_of(tmp_path, "pmid = {N/A}") is None
+
+    def test_an_empty_pmid_field_is_refused(self, tmp_path: pathlib.Path) -> None:
+        assert self._pmid_of(tmp_path, "pmid = {}") is None
+
+    def test_an_entry_with_neither_field_has_no_pmid(self, refs: list[Reference]) -> None:
+        """Nothing in ``sample.bib`` carries a PMID under any spelling, so
+        every reference read from it must come back with ``None`` — the state
+        that says "this bibliography does not record one".
+        """
+        assert [r.pmid for r in refs] == [None] * len(refs)
+
+
 class TestCreators:
     def test_editor_is_used_when_there_is_no_author(self, refs: list[Reference]) -> None:
         """An edited volume with no ``author`` field is correct BibTeX, not empty authors."""

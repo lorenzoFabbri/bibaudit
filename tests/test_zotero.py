@@ -207,6 +207,9 @@ _FIELD_IDS = {
     "date": 6,
     "url": 13,
     "volume": 19,
+    # Zotero's "Extra" box. The schema has no PMID field, so this column is the
+    # only place a Zotero item can carry one and the fixture needs it present.
+    "extra": 22,
     "publisher": 23,
     "ISBN": 25,
     "callNumber": 26,
@@ -377,6 +380,10 @@ def _build_library(
                 # "DOI"; see _skewed_fields_rows.
                 "callNumber": "RA645.C3",
                 "customPluginField": "papantoniou2017",
+                # Exactly what Zotero's PubMed translator leaves in Extra, two
+                # labelled lines in one column. The PMCID is not decoration:
+                # it is the neighbouring label a PMID scan must not read.
+                "extra": "PMID: 28520842\nPMCID: PMC5860629",
             },
         )
         add_creator(1, "Papantoniou", "Kyriaki")
@@ -724,6 +731,23 @@ class TestSqliteRoundTrip:
         """
         assert by_key["OTHERCOLL"].year is None
 
+    def test_a_pmid_in_extra_is_read(self, by_key: dict[str, Reference]) -> None:
+        """Zotero has no PMID field, so the identifier lives in ``Extra``.
+
+        Leaving it there unread makes a fully identified PubMed article look
+        identifier-less to everything downstream.
+        """
+        assert by_key["ARTICLE01"].pmid == "28520842"
+
+    def test_the_pmcid_on_the_next_line_is_not_read_as_the_pmid(
+        self, by_key: dict[str, Reference]
+    ) -> None:
+        """``Extra`` holds one label per line and the PMCID is usually the next
+        one. Its ``PMC5860629`` is neither a PMID nor a valid substitute for
+        one, and taking the first number in the field would produce it.
+        """
+        assert by_key["ARTICLE01"].pmid != "5860629"
+
     def test_parenthesised_doi_is_not_truncated(self, by_key: dict[str, Reference]) -> None:
         """Lancet and Elsevier DOIs contain brackets; see normalize.DOI_PATTERN."""
         assert by_key["CHILDCOLL"].doi == "10.1016/s0140-6736(03)14065-2"
@@ -753,6 +777,7 @@ class TestSqliteRoundTrip:
         """
         ref = by_key["OTHERCOLL"]
         assert ref.doi is None
+        assert ref.pmid is None
         assert ref.volume is None
         assert ref.pages is None
         assert ref.container is None
@@ -1614,6 +1639,29 @@ class TestCslJson:
         """``raw`` is CSL's fallback for a date no processor could decompose."""
         assert csl["hidalgo2015"].year == 2015
 
+    def test_the_dedicated_pmid_variable_is_read(self, csl: dict[str, Reference]) -> None:
+        """CSL carries ``PMID`` as a variable of its own, and an exporter that
+        recognised the value writes it there rather than into ``note``.
+        """
+        assert csl["papantoniou2017"].pmid == "28520842"
+
+    def test_a_pmid_written_into_the_note_is_read(self, csl: dict[str, Reference]) -> None:
+        """Everything else in a Zotero item's Extra box lands in CSL's ``note``,
+        labels and line breaks intact. A PMID typed by hand arrives that way,
+        and it is the same identifier as the one on the item next to it.
+        """
+        assert csl["ehbccg2002"].pmid == "11959894"
+
+    def test_a_note_that_only_mentions_pmid_yields_none(
+        self, csl: dict[str, Reference]
+    ) -> None:
+        """A note reading "no PMID: the volume itself is not indexed" records
+        the absence of one. Reading a number out of the prose after the label —
+        a year, an edition, a page — would invent an identifier the audit then
+        goes on to report about.
+        """
+        assert csl["hidalgo2015"].pmid is None
+
     def test_editor_substitutes_when_there_is_no_author_array(
         self, csl: dict[str, Reference]
     ) -> None:
@@ -1648,6 +1696,13 @@ class TestJsonDispatch:
             "The Endogenous Hormones and Breast Cancer Collaborative Group"
         )
 
+    def test_a_pmid_in_the_extra_field_is_read(self) -> None:
+        """Zotero's own item JSON keeps Extra as one ``extra`` string, exactly
+        as the sqlite column does, so the same two labelled lines have to give
+        the same identifier through either reader.
+        """
+        assert read_zotero(_DATA / "zotero_native_items.json")[0].pmid == "28520842"
+
     def test_attachments_and_notes_are_skipped_in_native_json_too(self) -> None:
         assert len(read_zotero(_DATA / "zotero_native_items.json")) == 1
 
@@ -1662,6 +1717,96 @@ class TestJsonDispatch:
         """
         with pytest.raises(ValueError, match="collection filtering needs a live source"):
             read_zotero(_DATA / "zotero_csl_export.json", collection="Epidemiology")
+
+
+class TestPmidGuard:
+    """What a Zotero item is allowed to have its PMID read out of.
+
+    A PMID carries no check digit, so nothing here can confirm one. All these
+    assert the other half: which values are refused rather than turned into a
+    lookup key that would be reported as a bad identifier on an entry whose
+    only defect was a placeholder someone typed years ago.
+    """
+
+    @staticmethod
+    def _pmid_of(tmp_path: pathlib.Path, item: dict[str, Any]) -> str | None:
+        path = tmp_path / "one_item.json"
+        path.write_text(
+            json.dumps([{"id": "item2017", "type": "article-journal", **item}]),
+            encoding="utf-8",
+        )
+        return read_csl_json(path)[0].pmid
+
+    def test_a_bare_pmid_is_kept_as_typed(self, tmp_path: pathlib.Path) -> None:
+        assert self._pmid_of(tmp_path, {"PMID": "28520842"}) == "28520842"
+
+    def test_surrounding_whitespace_is_dropped(self, tmp_path: pathlib.Path) -> None:
+        assert self._pmid_of(tmp_path, {"PMID": " 28520842 "}) == "28520842"
+
+    def test_a_non_numeric_value_is_refused(self, tmp_path: pathlib.Path) -> None:
+        """Reference managers write placeholders into identifier fields, and
+        ``normalize_pmid`` has to hand back nothing rather than a plausible
+        string PubMed would be asked to resolve.
+        """
+        assert self._pmid_of(tmp_path, {"PMID": "n/a"}) is None
+        assert self._pmid_of(tmp_path, {"PMID": "PMC5860629"}) is None
+
+    def test_an_empty_value_is_refused(self, tmp_path: pathlib.Path) -> None:
+        assert self._pmid_of(tmp_path, {"PMID": ""}) is None
+        assert self._pmid_of(tmp_path, {"PMID": "   "}) is None
+
+    def test_an_absent_field_is_none(self, tmp_path: pathlib.Path) -> None:
+        assert self._pmid_of(tmp_path, {"title": "An item carrying no identifier"}) is None
+
+    def test_a_number_too_wide_to_be_a_pmid_is_refused(self, tmp_path: pathlib.Path) -> None:
+        """PubMed's sequence is nowhere near ten digits. A longer number is
+        something else — an ISBN with its hyphens rubbed out, a phone number,
+        an accession — and truncating it to eight digits would name a real,
+        unrelated record.
+        """
+        assert self._pmid_of(tmp_path, {"PMID": "9780190238667"}) is None
+        assert self._pmid_of(tmp_path, {"note": "PMID: 9780190238667"}) is None
+
+    def test_a_zero_padded_number_is_refused(self, tmp_path: pathlib.Path) -> None:
+        """PubMed assigns from 1 and never pads, so a leading zero means the
+        value came out of some other system's numbering.
+        """
+        assert self._pmid_of(tmp_path, {"PMID": "00285208"}) is None
+
+    def test_digits_from_another_script_are_refused(self, tmp_path: pathlib.Path) -> None:
+        """Arabic-Indic digits satisfy ``str.isdigit()`` and ``int()`` alike,
+        so a PMID pasted out of a localised page arrives looking numeric. It
+        would resolve to nothing, and the entry would be reported for a bad
+        identifier when what it really has is an encoding problem.
+        """
+        # 28520842 in Arabic-Indic digits (U+0660..U+0669), written as escapes
+        # because the glyphs themselves are what RUF001 exists to flag.
+        arabic_indic = "\u0662\u0668\u0665\u0662\u0660\u0668\u0664\u0662"
+        assert arabic_indic.isdigit()
+        assert self._pmid_of(tmp_path, {"PMID": arabic_indic}) is None
+
+    def test_fullwidth_digits_are_the_same_pmid(self, tmp_path: pathlib.Path) -> None:
+        """The fullwidth forms are not refused, because they are not ambiguous:
+        ``clean``'s NFKC pass folds them onto the same eight ASCII digits, and
+        that is the identifier the entry meant.
+        """
+        fullwidth = "\uff12\uff18\uff15\uff12\uff10\uff18\uff14\uff12"
+        assert self._pmid_of(tmp_path, {"PMID": fullwidth}) == "28520842"
+
+    def test_the_dedicated_variable_wins_over_the_note(self, tmp_path: pathlib.Path) -> None:
+        """A note is free text that may be quoting the PMID of a correction or
+        a companion paper; the variable is the item's own.
+        """
+        item = {"PMID": "28520842", "note": "PMID: 11959894 (the earlier pooled analysis)"}
+        assert self._pmid_of(tmp_path, item) == "28520842"
+
+    def test_a_label_split_across_two_lines_takes_nothing(self, tmp_path: pathlib.Path) -> None:
+        """Extra is line-oriented. A trailing "see PMID" and a following line
+        that opens with a year are two separate notes, and pairing them would
+        file the entry under PMID 2017.
+        """
+        item = {"note": "superseded, see PMID\n2017 reanalysis in the same journal"}
+        assert self._pmid_of(tmp_path, item) is None
 
 
 class TestLocalApi:

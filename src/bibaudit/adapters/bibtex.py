@@ -37,7 +37,15 @@ from rapidfuzz import fuzz
 
 from ..model import Name, Reference
 from ..names import parse_name_list
-from ..normalize import clean, extract_dois, fold, normalize_doi, normalize_kind, parse_year
+from ..normalize import (
+    clean,
+    extract_dois,
+    fold,
+    normalize_doi,
+    normalize_kind,
+    normalize_pmid,
+    parse_year,
+)
 
 __all__ = ["duplicate_report", "entry_locator", "read_bibtex"]
 
@@ -127,6 +135,41 @@ def _extract_doi(fields: dict[str, str]) -> str | None:
     return None
 
 
+#: What ``eprinttype`` (BibLaTeX) or ``archiveprefix`` (the older spelling,
+#: still emitted by tools that predate it) says when the companion ``eprint``
+#: field holds a PMID rather than some other repository's number.
+_PUBMED_EPRINT_TYPES = frozenset({"pubmed", "pmid"})
+
+
+def _extract_pmid(fields: dict[str, str]) -> str | None:
+    """The entry's PMID, from ``pmid`` or from a PubMed-typed ``eprint``.
+
+    Both spellings reach a ``.bib`` file from ordinary tools: PubMed's own
+    "Send to > Citation manager" route arrives, once converted, as a dedicated
+    ``pmid = {28520842}``, while BibLaTeX-flavoured exports write
+    ``eprint = {28520842}`` beside ``eprinttype = {pubmed}``.
+
+    The type gate is load-bearing, not ceremony. ``eprint`` is a shared slot
+    with no meaning of its own — the same field carries an arXiv id, an SSRN
+    working-paper number or a HAL id depending on its companion — and an SSRN
+    number is exactly as bare-numeric as a PMID. Reading one as the other
+    would send a sound entry to PubMed under an identifier drawn from another
+    registry's numbering, where it resolves to a different paper or to none.
+
+    ``normalize_pmid`` (rather than the field's value as typed) is applied on
+    both routes for the reason ``_extract_doi`` uses ``extract_dois``: a
+    reference manager writing ``N/A`` or an empty pair of braces into ``pmid``
+    must fall through as "no PMID recorded", not become a confident-looking
+    identifier the audit then reports as bad.
+    """
+    pmid = normalize_pmid(fields.get("pmid"))
+    if pmid:
+        return pmid
+    if fold(fields.get("eprinttype") or fields.get("archiveprefix")) in _PUBMED_EPRINT_TYPES:
+        return normalize_pmid(fields.get("eprint"))
+    return None
+
+
 def _entry_to_reference(path: pathlib.Path, entry: Entry) -> Reference:
     """Build one Reference from a parsed bibtexparser Entry.
 
@@ -152,6 +195,7 @@ def _entry_to_reference(path: pathlib.Path, entry: Entry) -> Reference:
         locator=entry_locator(path, entry.key),
         kind=normalize_kind(entry.entry_type),
         doi=_extract_doi(fields),
+        pmid=_extract_pmid(fields),
         isbn=clean(fields["isbn"]) if fields.get("isbn") else None,
         url=clean(fields["url"]) if fields.get("url") else None,
         title=clean(fields["title"]) if fields.get("title") else None,

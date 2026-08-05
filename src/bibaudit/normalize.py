@@ -26,11 +26,13 @@ __all__ = [
     "DOI_PATTERN",
     "clean",
     "extract_dois",
+    "extract_pmid",
     "first_page",
     "fold",
     "is_article_number",
     "normalize_doi",
     "normalize_kind",
+    "normalize_pmid",
     "parse_year",
     "similarity",
 ]
@@ -153,6 +155,78 @@ def extract_dois(text: str) -> list[str]:
         if doi:
             seen.setdefault(doi, None)
     return list(seen)
+
+
+#: Digits in the widest PMID PubMed has assigned. PMIDs come out of one
+#: ascending sequence that started at 1 and had reached the 42,000,000s by
+#: 2026, so eight digits covers the whole of it with room to spare. It bounds
+#: what can be *rejected* and nothing else: a PMID has no internal structure
+#: and no check digit, so every all-digit string under the ceiling is accepted.
+_MAX_PMID_DIGITS = 8
+
+#: A PMID sitting in free text is read only in its labelled form. Zotero's
+#: convention for an identifier its own schema has no field for is a line of
+#: the item's ``Extra`` reading ``PMID: 28520842``, usually with
+#: ``PMCID: PMC5860629`` under it; BibTeX notes copy the same shape. An
+#: unlabelled run of digits in a note is a grant number, an accession or a
+#: sample size far more often than it is a PMID.
+#:
+#: The separator class is horizontal whitespace, never ``\s``: a note ending
+#: "...superseded, see PMID" whose next line opens "2017 reanalysis..." would
+#: otherwise hand back 2017 as this work's PMID. The neighbouring ``PMCID``
+#: line is safe from both directions: the label ``PMID`` does not occur inside
+#: ``PMCID``, and its ``PMC``-prefixed value would fail
+#: :func:`normalize_pmid` even if it did.
+_LABELLED_PMID_RE = re.compile(r"\bPMID\b[ \t]*[:=]?[ \t]*(\d+)", re.IGNORECASE)
+
+
+def normalize_pmid(value: object) -> str | None:
+    """*value* as a bare PMID, or ``None`` when it plainly is not one.
+
+    This rejects; it does not validate. A PMID is a positive integer with no
+    check digit, so a value that survives here is *shaped* like a PMID and
+    nothing more — unlike an ISBN, no arithmetic on it catches a transposed
+    pair of digits, and only PubMed can say whether it names a record. Three
+    shapes are refused: a string that is not plain ASCII digits once cleaned,
+    one wider than :data:`_MAX_PMID_DIGITS`, and one with a leading zero.
+
+    ``isdigit()`` alone is not the ASCII test it looks like: it is true of
+    Arabic-Indic digits (U+0660..U+0669), which ``int()`` accepts too and
+    which reach here intact — ``clean``'s NFKC pass folds the fullwidth forms
+    to ASCII, and those are the same eight digits and the same PMID, but it
+    leaves a script with no compatibility decomposition alone. Accepting one
+    would make a lookup key no record can ever match, and the entry would be
+    reported for a bad identifier when its real defect is an encoding.
+
+    A leading zero is refused rather than stripped: PubMed assigns from 1 and
+    never pads, so ``00285208`` was written by something else, and deciding
+    which digits it meant is not this function's to do.
+    """
+    text = clean(value).strip()
+    if not text or not text.isascii() or not text.isdigit():
+        return None
+    if text.startswith("0") or len(text) > _MAX_PMID_DIGITS:
+        return None
+    return text
+
+
+def extract_pmid(text: str) -> str | None:
+    """The first labelled PMID in *text*, or ``None``.
+
+    *text* is taken raw, not through :func:`clean`, because ``clean`` collapses
+    newlines into spaces and the line boundary is exactly what keeps a bare
+    ``PMID`` mention from claiming the number that opens the following line.
+
+    A labelled number that :func:`normalize_pmid` refuses does not stop the
+    scan and is never repaired: ``PMID: 285208421234`` yields ``None`` from
+    this call rather than the first eight of its digits, because a truncated
+    identifier resolves to some other paper entirely.
+    """
+    for match in _LABELLED_PMID_RE.finditer(text):
+        pmid = normalize_pmid(match.group(1))
+        if pmid:
+            return pmid
+    return None
 
 
 def parse_year(value: object) -> int | None:

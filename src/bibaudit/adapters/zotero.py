@@ -43,7 +43,14 @@ from collections import defaultdict
 from typing import Any
 
 from ..model import Name, Reference
-from ..normalize import clean, normalize_doi, normalize_kind, parse_year
+from ..normalize import (
+    clean,
+    extract_pmid,
+    normalize_doi,
+    normalize_kind,
+    normalize_pmid,
+    parse_year,
+)
 
 __all__ = ["default_zotero_paths", "read_csl_json", "read_zotero"]
 
@@ -245,6 +252,25 @@ def _json_creator_to_name(creator: dict[str, Any]) -> Name:
     return Name(family=clean(creator.get("lastName", "")), given=clean(creator.get("firstName", "")))
 
 
+def _extra_pmid(extra: object) -> str | None:
+    """The PMID out of a Zotero item's ``Extra`` field, if it holds one.
+
+    Zotero's item schema has no PMID field of its own, so the client's own
+    PubMed translator, its plugins and its users all put it in ``Extra``, one
+    labelled line per identifier::
+
+        PMID: 28520842
+        PMCID: PMC5860629
+
+    Both live readers hand that text over exactly as typed — the sqlite
+    ``extra`` column and the item JSON's ``extra`` key are the same string —
+    and ``Extra`` is equally where people keep free notes, call numbers and
+    reading reminders, so only the labelled form is read out of it. See
+    :func:`bibaudit.normalize.extract_pmid`.
+    """
+    return extract_pmid(str(extra or ""))
+
+
 def _zotero_json_item_to_reference(data: dict[str, Any]) -> Reference:
     """Build a Reference from one item's Zotero-shaped ``data`` object.
 
@@ -266,6 +292,7 @@ def _zotero_json_item_to_reference(data: dict[str, Any]) -> Reference:
         locator=f"zotero:{item_key}" if item_key else "zotero:unknown",
         kind=normalize_kind(type_name),
         doi=normalize_doi(data["DOI"]) if data.get("DOI") else None,
+        pmid=_extra_pmid(data.get("extra")),
         isbn=clean(data["ISBN"]) if data.get("ISBN") else None,
         url=clean(data["url"]) if data.get("url") else None,
         title=clean(data["title"]) if data.get("title") else None,
@@ -321,6 +348,23 @@ def _csl_year(issued: Any) -> int | None:
     return parse_year(issued.get("raw") or issued.get("literal"))
 
 
+def _csl_pmid(item: dict[str, Any]) -> str | None:
+    """A CSL item's PMID, from the ``PMID`` variable or from its ``note``.
+
+    CSL carries ``PMID`` as a variable in its own right, but an item only gets
+    one when whatever wrote the file recognised the value as that variable.
+    The rest of an item's ``Extra`` goes to CSL's ``note`` verbatim, newlines
+    and labels intact ("PMID: 11959894"), which is where a PMID typed by hand
+    into Zotero's Extra box normally lands. One library exports both shapes,
+    so reading only the dedicated key leaves the hand-typed half on the floor
+    — and those are exactly the entries nothing else has checked.
+
+    The dedicated variable wins when both are present: ``note`` is free text
+    that may also be quoting the PMID of a correction or a companion paper.
+    """
+    return normalize_pmid(item.get("PMID")) or extract_pmid(str(item.get("note") or ""))
+
+
 def _csl_item_to_reference(item: dict[str, Any]) -> Reference:
     item_id = str(item.get("id") or "") or "unknown"
     type_name = str(item.get("type") or "")
@@ -334,6 +378,7 @@ def _csl_item_to_reference(item: dict[str, Any]) -> Reference:
         locator=f"zotero:{item_id}",
         kind=normalize_kind(type_name),
         doi=normalize_doi(item["DOI"]) if item.get("DOI") else None,
+        pmid=_csl_pmid(item),
         isbn=clean(item["ISBN"]) if item.get("ISBN") else None,
         url=clean(item["URL"]) if item.get("URL") else None,
         title=clean(item["title"]) if item.get("title") else None,
@@ -614,6 +659,7 @@ def _build_reference_from_row(
         locator=f"zotero:{item_key}",
         kind=normalize_kind(type_name),
         doi=normalize_doi(fields["DOI"]) if fields.get("DOI") else None,
+        pmid=_extra_pmid(fields.get("extra")),
         isbn=clean(fields["ISBN"]) if fields.get("ISBN") else None,
         url=clean(fields["url"]) if fields.get("url") else None,
         title=clean(fields["title"]) if fields.get("title") else None,
