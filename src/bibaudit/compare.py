@@ -861,14 +861,15 @@ def _status_issues(
     ``status/not-asked`` (info)
         No registry that answered records a retraction, and a source that
         could have recorded one was never queried. A reference resolved by its
-        PMID is the case this exists for: Retraction Watch's export, Crossref's
-        ``updated-by`` and PubMed's ``ECI`` cross-reference are all keyed on a
-        DOI it does not have, so three of the four sources go unconsulted and
-        MEDLINE's own ``PT`` flag is the whole of the evidence. That entry
-        rendered as ``verdict: OK, issues: []`` — a clean bill of health issued
-        by a run that asked almost nobody, which is the one output this rule
-        forbids. ``--no-retraction-check`` and a book resolved by its ISBN
-        reach it the same way.
+        PMID is the case this exists for: Retraction Watch's export and
+        Crossref's ``updated-by`` linkage are both keyed on a DOI it does not
+        have, so two of the four sources go unconsulted and PubMed's own two —
+        MEDLINE's ``PT`` flag and its ``ECI`` cross-reference, neither of which
+        needs a key to ask about (see ``audit._with_pubmed_concern``) — are the
+        whole of the evidence. That entry rendered as ``verdict: OK, issues:
+        []`` — a clean bill of health issued by a run that asked almost nobody,
+        which is the one output this rule forbids. ``--no-retraction-check``
+        and a book resolved by its ISBN reach it the same way.
 
         Kept apart from ``retraction-unverified`` rather than folded into it
         for the reason :data:`~bibaudit.model.Consultation` keeps three states

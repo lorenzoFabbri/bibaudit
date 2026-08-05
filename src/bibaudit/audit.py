@@ -316,8 +316,9 @@ def _with_pubmed_concern(record: Record, registries: _Registries) -> Record:
     """MEDLINE's ``ECI`` folded into a record resolved by its PMID.
 
     On the DOI path this arrives through :func:`_resolve_retractions`, which
-    sits inside ``if dois:`` because the other three sources are keyed on a
-    DOI. PubMed's ``ECI`` is not — it is a line on the very citation
+    sits inside ``if dois:`` because
+    :class:`~bibaudit.registries.retractions.Retractions` answers by DOI and
+    by nothing else. PubMed's ``ECI`` needs no key — it is a line on the citation
     ``efetch`` has already returned — so a reference with no DOI can have it
     read without another request, and reading it is the difference between
     reporting a doubt and reporting nothing. PMID 23741377

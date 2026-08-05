@@ -233,7 +233,7 @@ def _print_retraction_gap(summary: Summary, style: _Style, out: TextIO) -> None:
     this tool exists to prevent, and it is worst on this field: a retracted
     paper going into a manuscript is the miss with no remedy. A bibliography of
     PMID-only entries printed the same ``PASS`` from the other direction, with
-    three of the four sources unasked on every entry in it and nothing under the
+    two of the four sources unasked on every entry in it and nothing under the
     banner that said so.
 
     Printed once per reason for the run rather than once per reference, because
