@@ -335,8 +335,26 @@ def _with_pubmed_concern(record: Record, registries: _Registries) -> Record:
     A concern is not a retraction and is never reported as one:
     ``compare._status_issues`` reads ``retraction_kind`` and raises
     ``status/expression-of-concern`` instead — see :data:`compare._CONCERN_KINDS`.
+
+    Which is why a record MEDLINE has *already* flagged keeps its flag and
+    this returns before ``ECI`` is read at all. NLM leaves the ``ECI``
+    cross-reference in place when it later adds ``PT - Retracted
+    Publication``, because a concern raised first and a retraction issued
+    afterwards is the ordinary escalation, not an exception: PMID 32450107
+    (Mehra et al., *Lancet* 2020, the Surgisphere hydroxychloroquine paper),
+    PMID 41224473 (*BMJ* 2025;391:e083382, retracted 2026-03-31) and the
+    Wakefield record in ``tests/data/compare_pubmed_wakefield_retracted.txt``
+    all carry both. Folding the concern in regardless overwrote
+    ``retraction_kind`` with the weaker kind, ``_status_issues`` sorted the
+    record out of its retracting set, and the report printed "the work
+    stands, and citing it is legitimate" about a paper NLM had withdrawn.
+    ``retractions._notice_from_pubmed`` takes the same precedence for the same
+    record on the DOI path, returning the retraction before it reads ``ECI``,
+    and ``retractions._KIND_PRIORITY`` ranks the two the same way when
+    sources disagree — so one paper cannot be described two ways by the
+    identifier a bibliography happens to store for it.
     """
-    if registries.retractions is None:
+    if registries.retractions is None or record.retracted:
         return record
     kind = concern_in(record)
     if kind is None:

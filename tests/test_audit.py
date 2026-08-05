@@ -481,6 +481,50 @@ def concern_ref() -> Reference:
     )
 
 
+#: PMID 9500320 — Wakefield et al., *The Lancet* 1998, retracted in 2010.
+#: MEDLINE gives it ``PT - Retracted Publication`` *and* an ``ECI``
+#: cross-reference, the shape a paper takes when a concern was raised before
+#: the retraction was issued. That is the ordinary escalation and it is common:
+#: PMID 32450107 (the Surgisphere *Lancet* paper) and PMID 41224473 (*BMJ*
+#: 2025;391:e083382) carry both as well.
+ESCALATED_PMID = "9500320"
+
+
+def escalated_record() -> Record:
+    """The MEDLINE citation for :data:`ESCALATED_PMID`, through the real parser.
+
+    Read from the same verbatim fixture ``tests/test_compare.py`` already
+    checks the ``PT`` reading against, for the reason :func:`concern_record`
+    gives: both tags have to be NCBI's own bytes on one record, and a
+    hand-written pair would restate the shape instead of checking it.
+    """
+    text = (
+        Path(__file__).parent / "data" / "compare_pubmed_wakefield_retracted.txt"
+    ).read_text(encoding="utf-8")
+    [fields] = pubmed_client._parse_medline_records(text)
+    return pubmed_client._record_from_medline(fields)
+
+
+def escalated_ref() -> Reference:
+    """That paper, cited by PMID alone and correct in every field."""
+    return Reference(
+        key="wakefield1998ileal",
+        locator="references.bib:11",
+        kind="article",
+        pmid=ESCALATED_PMID,
+        title=(
+            "Ileal-lymphoid-nodular hyperplasia, non-specific colitis, and pervasive "
+            "developmental disorder in children"
+        ),
+        authors=[Name(family="Wakefield", given="A J"), Name(et_al=True)],
+        year=1998,
+        container="The Lancet",
+        volume="351",
+        issue="9103",
+        pages="637-41",
+    )
+
+
 def make_pubmed_record(**overrides: object) -> Record:
     """The same work as NLM curates it: no publisher, no type string."""
     base: dict[str, object] = {
@@ -1202,6 +1246,44 @@ class TestPmidOnlyReferences:
 
         assert not [i for i in result.issues if i.kind == "expression-of-concern"]
         assert not result.fails
+
+    def test_a_retracted_paper_that_also_carries_a_concern_reports_the_retraction(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The pairing for the two tests above, and the direction that costs most.
+
+        NLM keeps the ``ECI`` cross-reference when it later adds ``PT -
+        Retracted Publication``, so the two tags sit on one record whenever a
+        concern was escalated. Reading ``ECI`` regardless overwrote the ``PT``
+        kind, and the entry reported ``FIELD-MISMATCH`` — "right work, but
+        stored metadata disagrees with the registry" — beside a note saying the
+        work stands and citing it is legitimate, about the retracted MMR paper.
+        Ignorance about retraction rendering as a different accusation, which
+        is the one output this project may never produce.
+        """
+        _install(
+            monkeypatch,
+            pubmed=_StubRegistry("pubmed", pmid_records={ESCALATED_PMID: escalated_record()}),
+        )
+
+        result = audit([escalated_ref()], _options(tmp_path))[0]
+
+        assert result.verdict == "RETRACTED"
+        assert result.fails
+        [status] = [i for i in result.issues if i.kind == "retracted"]
+        assert status.registry == "Retracted Publication"
+        assert not [i for i in result.issues if i.kind == "expression-of-concern"]
+
+    def test_that_record_really_carries_both_tags(self) -> None:
+        """The anchor. If this fails, the fixture was edited, not the code.
+
+        The test above rests entirely on one MEDLINE block holding both, so
+        the pairing is asserted rather than assumed.
+        """
+        record = escalated_record()
+
+        assert (record.retracted, record.retraction_kind) == (True, "Retracted Publication")
+        assert record.raw["ECI"]
 
     def test_a_pmid_pubmed_does_not_hold_is_a_finding(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

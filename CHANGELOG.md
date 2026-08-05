@@ -92,7 +92,10 @@ so `uv sync --all-extras` does not install it into the test environment.
   reference resolved by its **PMID**: it keeps both of PubMed's own signals —
   NLM's `PT - Retracted Publication` and its `ECI` cross-reference, fields of the
   MEDLINE record the lookup already returned, so a retraction NLM indexed fails
-  the run and a concern NLM recorded is reported as a concern — and it is asked
+  the run and a concern NLM recorded is reported as a concern, and a record
+  carrying both — the ordinary escalation, and the shape of the Wakefield and
+  Surgisphere papers — is reported as the retraction, exactly as it is when the
+  same record is reached by its DOI — and it is asked
   neither of the two that take a DOI, so the finding names `crossref,
   retraction-watch`. A book resolved by its ISBN reaches none of the four and
   names three. A run given `--no-retraction-check` names `retraction-watch`, and

@@ -134,6 +134,18 @@ tool has never seen: a source it has not heard of cannot talk it out of the
 finding. If one source records a retraction and another a concern for the same
 work, both findings are printed and the verdict is `RETRACTED`.
 
+One source recording both resolves to the retraction alone. A concern raised
+first and a retraction issued afterwards is the ordinary escalation, and NLM
+keeps the `ECI` cross-reference on the paper's own record when it adds `PT -
+Retracted Publication`: PMID 32450107, the Surgisphere *Lancet* paper, and PMID
+41224473, a *BMJ* trial retracted on 2026-03-31, both carry the pair, as does
+PMID 9500320 above. A `Record` holds one status kind and the more definitive one
+is what it holds — `retractions._notice_from_pubmed` returns the retraction
+before it reads `ECI`, `audit._with_pubmed_concern` leaves an already-flagged
+record alone, and `_KIND_PRIORITY` ranks the two the same way where sources are
+merged. Printing the concern's note beside the retraction would tell a reader in
+one report that the work has been withdrawn and that it stands.
+
 !!! note "Where a concern lands in the verdict table"
 
     A concern is an error, so the entry fails — but it currently fails under
