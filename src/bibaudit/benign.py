@@ -350,13 +350,21 @@ def _container_leading_article(field: str, stored: str, registry: str, ref: Refe
     the qualifier instead would be the wrong rule: ``(London, England)`` is
     precisely what tells two serials sharing a base title apart, and a rule
     that dropped it would merge them.
+
+    The article comes off the **stored** value only, because that is what the
+    reason printed beside the suppression says happened. Taking it off both
+    sides suppressed ``A Journal of Cancer`` against ``The Journal of Cancer``
+    — two different articles, and a difference the registry did not drop
+    anything to produce — under a sentence that is false of it. The reverse
+    direction, an entry storing ``Lancet`` against a registry's ``The
+    Lancet``, is :func:`_container_abbreviation`'s and stays there.
     """
     if field != "container":
         return None
     stored_bare = _LEADING_ARTICLE.sub("", fold(stored))
     for candidate in (registry, *rec.container_alternates):
         folded = fold(candidate)
-        if folded and _LEADING_ARTICLE.sub("", folded) == stored_bare:
+        if folded and folded == stored_bare:
             return "registry files the journal without its leading article"
     return None
 

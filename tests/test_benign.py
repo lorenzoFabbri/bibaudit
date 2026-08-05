@@ -466,6 +466,32 @@ class TestContainerLeadingArticle:
             "container", "BMJ", "Lancet (London, England)", container_alternates=["Lancet"]
         ) is None
 
+    def test_two_different_articles_are_not_one_dropped_article(self) -> None:
+        """The reason has to be true of what it suppresses.
+
+        Stripping the article from the registry's value as well made this pair
+        an artifact reading "registry files the journal without its leading
+        article", when the registry dropped nothing: the two names open with
+        different words, which is a difference like any other.
+        """
+        assert classify(
+            "container", "A Journal of Cancer", "The Journal of Cancer",
+            container_alternates=[],
+        ) is None
+
+    def test_an_article_in_the_middle_of_a_title_is_not_stripped(self) -> None:
+        """Only the *opening* word may go, which is what ``^`` in the pattern is.
+
+        Unanchored, ``re.sub`` takes every internal "the ", and *Journal of the
+        National Cancer Institute* — a real journal — becomes a documented
+        registry artifact against a name nobody publishes under, disappearing
+        from the report entirely.
+        """
+        assert classify(
+            "container", "Journal of the National Cancer Institute",
+            "Journal of National Cancer Institute", container_alternates=[],
+        ) is None
+
 
 class TestContainerSocietySubtitle:
     """MEDLINE's ``JT`` also spells out the society, after a spaced colon.

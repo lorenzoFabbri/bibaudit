@@ -686,10 +686,15 @@ registry that carries it.
 `benign._container_leading_article` covers the entry that stores the masthead
 name. It accepts a stored value that differs from `JT`, or from any title on
 `container_alternates`, by a leading `The`/`A`/`An` and by nothing else. The
-qualifier is not stripped, and deliberately: `(London, England)` is exactly
-what tells two serials sharing a base title apart, so a rule that dropped it
-would merge them. `The Lancet Oncology` against `Lancet (London, England)`
-therefore still fires, as does `BMJ`.
+article comes off the **stored** side only — that is what the printed reason
+claims happened, so `A Journal of Cancer` against `The Journal of Cancer` is a
+difference and not an artifact — and it has to be the opening word: `Journal of
+the National Cancer Institute` against `Journal of National Cancer Institute`
+still fires. The qualifier is not stripped either, and deliberately: `(London,
+England)` is exactly what tells two serials sharing a base title apart, so a
+rule that dropped it would merge them. `The Lancet Oncology` against `Lancet
+(London, England)` therefore still fires, and so does `BMJ` against that same
+record.
 
 `benign._container_society_subtitle` covers the third shape. It compares the
 stored name against the part of the registry's value **before NLM's own spaced
