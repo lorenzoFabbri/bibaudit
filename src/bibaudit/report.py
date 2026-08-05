@@ -274,15 +274,15 @@ def render_text(
     without it the report shows only what a reader must act on, which is what
     makes it readable on a 438-entry bibliography.
 
-    ``failing_verdicts`` is whatever ``--fail-on`` resolved to, and the closing
-    banner is computed from it. Computed from the default set instead — which is
-    what it did — ``bibaudit check --fail-on ''`` over a retracted citation
-    printed ``FAIL — 1 reference(s) need attention`` and exited 0: the banner
-    and ``$?`` were two different policies, both unlabelled, and a reader had no
-    way to tell which of them was answering their question. The banner now
-    states the policy in force, and separately counts the references that need
-    attention but were excluded from it, so neither number can be mistaken for
-    the other.
+    ``failing_verdicts`` is whatever ``--fail-on`` resolved to, and both the
+    closing banner and the set of groups printed are computed from it. Computed
+    from the default set instead — which is what it did — ``bibaudit check
+    --fail-on ''`` over a retracted citation printed ``FAIL — 1 reference(s)
+    need attention`` and exited 0: the banner and ``$?`` were two different
+    policies, both unlabelled, and a reader had no way to tell which of them was
+    answering their question. The banner now states the policy in force, and
+    separately counts the references that need attention but were excluded from
+    it, so neither number can be mistaken for the other.
     """
     out: TextIO = stream if stream is not None else sys.stdout
     style = _Style(_supports_colour(out))
@@ -291,7 +291,16 @@ def render_text(
     print(style.bold(f"bibaudit — {summary.total} references checked"), file=out)
     print(file=out)
 
-    interesting = set(_VERDICT_ORDER) if verbose else _ACTIONABLE_VERDICTS
+    # The standing set *plus* whatever this run was told to fail on. Both
+    # halves are needed and neither is enough: a verdict the caller excluded
+    # from ``--fail-on`` still has to be printed (the retracted citation under
+    # ``--fail-on ''`` that the banner goes on to count), and a verdict the
+    # caller added has to bring its references with it. Reading the module
+    # constant alone, ``--fail-on INCOMPLETE`` printed a FAIL banner, a summary
+    # count and not one citekey — no locator, no field, nothing to act on —
+    # while the finding it named was visible only under ``--verbose``, which
+    # fails nothing.
+    interesting = set(_VERDICT_ORDER) if verbose else _ACTIONABLE_VERDICTS | failing_verdicts
     for verdict in _VERDICT_ORDER:
         group = [r for r in results if r.verdict == verdict]
         if verdict not in interesting:

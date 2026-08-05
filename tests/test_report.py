@@ -604,6 +604,54 @@ class TestBannerAndExitCodeAgree:
         output = text_of([make_result(verdict="OK")])
         assert "--fail-on" not in output
 
+    def test_a_widened_policy_prints_the_references_it_fails_on(self) -> None:
+        """Failing a build without naming what failed it is not a report.
+
+        ``--fail-on INCOMPLETE`` is what the documentation offers as the way to
+        make the downgraded ``pmid/mismatch`` bite, and it exited 1 over a
+        summary count with no citekey, no locator and no issue line anywhere —
+        the finding was visible only under ``--verbose``, which fails nothing.
+        """
+        result = make_result(
+            key="kim2017alcohol",
+            verdict="INCOMPLETE",
+            issues=(
+                Issue(
+                    field="pmid", kind="mismatch", severity="warning",
+                    stored="12345678", registry="29309587", source="pubmed",
+                ),
+            ),
+        )
+
+        output = text_of([result], failing_verdicts=frozenset({"INCOMPLETE"}))
+
+        assert "FAIL — 1 reference(s) in the failing set" in output
+        assert "kim2017alcohol" in output
+        assert "pmid/mismatch" in output
+
+    def test_a_narrowed_policy_still_prints_what_it_no_longer_fails_on(self) -> None:
+        """The pairing. Narrowing changes the exit code and only that.
+
+        A verdict dropped from ``--fail-on`` keeps its group, its citekey and
+        its issue lines, or naming one verdict becomes a way to print a clean
+        report over a retracted citation.
+        """
+        result = make_result(
+            key="wakefield1998ileal",
+            verdict="RETRACTED",
+            issues=(
+                Issue(
+                    field="status", kind="retracted", severity="error",
+                    registry="Retracted Publication", source="pubmed",
+                ),
+            ),
+        )
+
+        output = text_of([result], failing_verdicts=frozenset({"INCOMPLETE"}))
+
+        assert "wakefield1998ileal" in output
+        assert "status/retracted" in output
+
     def test_the_banner_and_the_exit_code_never_disagree(self) -> None:
         """The property the whole class exists for, over every verdict."""
         for verdict in VERDICTS:
