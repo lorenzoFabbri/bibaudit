@@ -185,20 +185,31 @@ saying what each registry contributed. Three states, not a bool:
 :   Never queried. DataCite is only asked about DOIs Crossref did not answer for.
     On a DOI-bearing reference `--no-corroborate` drops PubMed's bibliographic
     corroboration but does not by itself put PubMed here: the retraction check
-    queries PubMed too, so that takes `--no-retraction-check` as well. On a
-    reference resolved by its PMID it does put PubMed here, and Crossref and
-    DataCite are here on every such reference in every run — neither is keyed on
-    a PMID, so neither is ever asked about one.
+    queries PubMed too, so that takes `--no-retraction-check` as well. A
+    reference resolved by its PMID does put PubMed here, and Crossref and
+    DataCite land here too — neither is keyed on a PMID, so neither is ever
+    asked about one. "Land here too", not "always": `unreachable` is run-wide
+    and outranks this, so Crossref timing out while some *other* reference was
+    being resolved is reported `unreachable` on this one as well. See the note
+    below.
 
 It was a bool once, computed as "not known to be unreachable" — so a run with
 `--no-corroborate` reported `"pubmed": true` on every reference in the file. The
 map exists to record what evidence a verdict rests on, and that version claimed a
 curated second opinion nobody had sought.
 
-Names beyond `crossref`, `datacite` and `pubmed` appear when they were involved:
-`retraction-watch` on a retraction check, `openlibrary` on a book — resolved by
-its ISBN, or searched for when it carries no identifier — and the search sources
-on an entry with no identifier.
+`crossref`, `datacite`, `pubmed` and `retraction-watch` are named on every
+reference, whatever happened. The first three are the registries; the fourth is
+there because a `consulted` map that simply stopped mentioning a retraction
+source let its absence read as nothing to report — and on a PMID-resolved entry,
+where none of the DOI-keyed sources is asked, that is exactly where it stopped
+mentioning it. Other names appear only when they were involved: `openlibrary` on
+a book — resolved by its ISBN, or searched for when it carries no identifier —
+and the search sources on an entry with no identifier.
+
+An unasked source that carries a retraction signal is also stated on the
+reference itself, as a `status/not-asked` issue, and beside the run's banner.
+[Retraction](retraction.md) has that.
 
 !!! note "`unreachable` is run-wide, on purpose"
 

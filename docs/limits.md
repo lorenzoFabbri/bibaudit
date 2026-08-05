@@ -128,7 +128,9 @@ and how they are combined; these are their edges.
   cross-reference — so an expression of concern about it is not reported at all.
   A book resolved through its **ISBN** alone is not checked for retraction in
   any way: Open Library mints no DOI, so there is nothing to ask any of them
-  about, and a clean report there is silence rather than a result.
+  about. Neither case is silence: both raise `status/not-asked`, which names the
+  sources nobody consulted and prints beside the banner exactly as an outage
+  does.
 - **Crossref's and PubMed's own flags depend on somebody having recorded the
   linkage** — a publisher deposit, or NLM's curation. A retraction nobody
   deposited and nobody indexed is invisible to them.
@@ -136,18 +138,21 @@ and how they are combined; these are their edges.
   carries what its curators have recorded and nothing else, and the parsed index
   is cached and only refetched once it is seven days old — so a retraction
   logged there in the last few days may not yet be reflected in a run.
-- **A source that could not be reached is stated, not passed over.** When a
-  registry that carries the signal was unreachable and no registry that did
-  answer records a retraction, the run prints `retraction status not
-  corroborated for N reference(s)` beside the banner, naming which source went
-  unanswered. DataCite and Open Library are deliberately excluded from that
-  notice: neither data model carries a retraction, withdrawal or concern
-  element, so an outage at either is not ignorance about retraction and saying
-  it was would put a manufactured doubt on every dataset and every book in the
-  file. A reference *no* registry answered for is `UNCHECKED`, and that gap is
-  stated by the verdict rather than by this line.
+- **A source that went unheard is stated, not passed over.** When a registry
+  that carries the signal was unreachable, or was never asked, and no registry
+  that did answer records a retraction, the run prints `retraction status not
+  corroborated for N reference(s)` beside the banner, naming the sources and
+  which of the two happened to them. Two lines, never one: a rerun may settle an
+  outage, and no rerun asks a DOI-keyed source about a reference that has no
+  DOI. DataCite and Open Library are deliberately excluded from both: neither
+  data model carries a retraction, withdrawal or concern element, so neither an
+  outage nor a decision not to ask is ignorance about retraction there, and
+  saying it was would put a manufactured doubt on every dataset and every book
+  in the file. A reference *no* registry answered for is `UNCHECKED`, and that
+  gap is stated by the verdict rather than by this line.
 - **`--no-retraction-check` turns the independent pair off.** A Crossref or
-  PubMed record that itself carries a retraction linkage still fails.
+  PubMed record that itself carries a retraction linkage still fails, and every
+  reference records `retraction-watch` as `not-asked` and carries the gap.
 
 ## Registries are sometimes wrong
 

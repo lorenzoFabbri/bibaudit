@@ -101,10 +101,11 @@ off retraction reporting. A retraction the publisher deposited in Crossref's
 `updated-by` linkage, or that MEDLINE flags with `PT  - Retracted Publication`,
 is read off the record itself and still fails as `RETRACTED`. What goes unnoticed
 is a retraction that was never deposited in either place — the gap the
-independent check exists for. No finding marks the narrower coverage: the
-`status/retraction-unverified` note fires for a source that could not be
-*reached*, not for one that was never asked. The only trace is in the JSON
-report, whose `consulted` map stops naming `retraction-watch` at all.
+independent check exists for. The narrower coverage is stated rather than left
+to be noticed: every reference carries a `status/not-asked` finding naming
+`retraction-watch`, the run prints it beside the banner, and `consulted` records
+`retraction-watch` as `not-asked`. `status/retraction-unverified` stays what it
+always was, a source that could not be *reached*.
 [Retraction](retraction.md) covers the four sources in full.
 
 **`--no-isbn`** means Open Library is never constructed, so no book is resolved

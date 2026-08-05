@@ -15,6 +15,7 @@ tests exist to catch.
 
 from __future__ import annotations
 
+import io
 import socket
 import urllib.request
 from collections.abc import Sequence
@@ -28,12 +29,12 @@ import pytest
 
 from bibaudit.adapters.bibtex import read_bibtex
 from bibaudit.audit import AuditOptions, audit, resolve
-from bibaudit.model import ANSWERED, UNREACHABLE, Name, Record, Reference
+from bibaudit.model import ANSWERED, NOT_ASKED, UNREACHABLE, Name, Record, Reference
 from bibaudit.normalize import normalize_doi
 from bibaudit.registries.http import Cache, Client, Transient
 from bibaudit.registries.pubmed import PmidAnswers
 from bibaudit.registries.retractions import RetractionNotice, RetractionStatus
-from bibaudit.report import Summary
+from bibaudit.report import Summary, render_text
 from bibaudit.suppress import Suppression, Suppressions
 
 #: The package re-exports the ``audit`` *function* as ``bibaudit.audit``, so the
@@ -1045,10 +1046,61 @@ class TestPmidOnlyReferences:
         assert result.consulted["crossref"] == "not-asked"
         assert result.consulted["datacite"] == "not-asked"
         # Retraction Watch's export is keyed on DOI, so it genuinely was not
-        # asked; MEDLINE's own `PT` flag is all this path has.
-        assert result.consulted.get("retraction-watch", "not-asked") == "not-asked"
+        # asked; MEDLINE's own `PT` flag is all this path has. Indexed, never
+        # `.get(name, "not-asked")`: that default passes whether the key says
+        # "not-asked" or is missing altogether, and missing is precisely the
+        # bug — a JSON consumer diffing `consulted` between a DOI-resolved
+        # entry and this one saw the retraction source silently vanish.
+        assert result.consulted["retraction-watch"] == NOT_ASKED
         assert stubs.crossref.by_dois_calls == []
         assert stubs.retractions.status_for_calls == []
+
+    def test_the_unasked_retraction_sources_are_stated_on_the_entry(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Three of the four sources go unconsulted, and the entry says so.
+
+        It reported ``verdict: OK, issues: []``: MEDLINE's ``PT`` flag was the
+        whole of the evidence, Retraction Watch's export, Crossref's
+        ``updated-by`` and PubMed's ``ECI`` cross-reference were never asked,
+        and nothing in the result said which. Ignorance about retraction
+        rendering as a clean bill of health is the one output this tool may not
+        produce.
+        """
+        _install(
+            monkeypatch,
+            pubmed=_StubRegistry("pubmed", pmid_records={PMID: make_pmid_only_record()}),
+        )
+
+        result = audit([make_pmid_ref()], _options(tmp_path))[0]
+
+        gap = next(i for i in result.issues if i.field == "status")
+        assert gap.kind == "not-asked"
+        assert gap.source == "crossref,retraction-watch"
+        # The gap is stated, and it still does not accuse the bibliography.
+        assert result.verdict == "OK"
+        assert not result.fails
+
+    def test_the_run_states_the_gap_beside_the_banner(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """``info`` is filtered out of the default report, so the banner carries it.
+
+        Exactly as an outage already reaches a reader who passes no flags. A
+        ``PASS`` with nothing under it is what a bibliography of PMID-only
+        entries printed.
+        """
+        _install(
+            monkeypatch,
+            pubmed=_StubRegistry("pubmed", pmid_records={PMID: make_pmid_only_record()}),
+        )
+
+        results = audit([make_pmid_ref()], _options(tmp_path))
+        out = io.StringIO()
+        render_text(results, stream=out)
+
+        assert "retraction status not corroborated for 1 reference(s): " \
+            "crossref, retraction-watch not asked" in out.getvalue()
 
     def test_a_pmid_pubmed_does_not_hold_is_a_finding(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1295,6 +1347,11 @@ class TestRetractionCorroboration:
         assert stubs.retractions.constructions == 0
         assert stubs.retractions.status_for_calls == []
         assert result.verdict == "OK"
+        # ...and the narrower coverage is a finding, not something a reader has
+        # to notice by a key going missing from `consulted`. Turning the check
+        # off is the caller's decision; what it costs is the run's to state.
+        gap = next(i for i in result.issues if i.field == "status")
+        assert (gap.kind, gap.source) == ("not-asked", "retraction-watch")
 
     def test_retraction_status_reuses_the_pubmed_corroboration_batch(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1514,8 +1571,14 @@ class TestReferencesWithoutAnIdentifier:
         assert not result.fails
         assert Summary([result]).exit_code() == 0
         # Nothing was asked, and the report must say so rather than imply an
-        # answer: OpenLibrary is `not-asked`, never `answered`.
-        assert result.consulted.get("openlibrary", "not-asked") == "not-asked"
+        # answer. Open Library is outside both rosters `consulted` states
+        # unconditionally, so the map does not name it at all; what carries the
+        # statement is the verdict and its own issue. Asserted by indexing and
+        # by absence rather than through `.get(name, "not-asked")`, which
+        # passes whichever of the two is true and so pins neither.
+        assert "openlibrary" not in result.consulted
+        assert all(state == NOT_ASKED for state in result.consulted.values())
+        assert [i.kind for i in result.issues] == ["not-asked"]
         assert stubs.openlibrary.by_isbns_calls == []
 
     def test_a_retraction_watch_outage_does_not_clear_fabricated_dois(

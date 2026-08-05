@@ -207,44 +207,57 @@ def _format_issue(issue: Issue, style: _Style, indent: str = "      ") -> list[s
     return lines
 
 
-#: The ``Issue.kind`` ``compare`` stamps when no registry that answered records
-#: a retraction *and* a registry that could have recorded one was unreachable.
-_RETRACTION_GAP = "retraction-unverified"
+#: The two ``Issue.kind`` values ``compare`` stamps when no registry that
+#: answered records a retraction and a source that could have recorded one
+#: contributed nothing — mapped to the word that says *why* it contributed
+#: nothing. Reported as two lines rather than one because the reader's next
+#: move differs: an outage may be gone by the next run, an unasked source is a
+#: standing property of how these references resolved. Matched on the field as
+#: well as the kind, because ``identifier/not-asked`` is an unrelated finding —
+#: a book whose ISBN ``--no-isbn`` left unresolved — that would otherwise be
+#: counted here as a retraction gap.
+_RETRACTION_GAPS = {"retraction-unverified": "unreachable", "not-asked": "not asked"}
 
 
 def _print_retraction_gap(summary: Summary, style: _Style, out: TextIO) -> None:
     """State beside the banner that retraction status could not be corroborated.
 
-    ``compare`` raises this per reference at ``info`` severity, which is right —
-    an outage is not a defect in anybody's bibliography, and promoting it would
-    relabel every correct entry in the file. But ``info`` is filtered out of the
-    default terminal report, so during an NCBI outage the whole run printed
+    ``compare`` raises these per reference at ``info`` severity, which is right —
+    neither an outage nor an identifier that no retraction source is keyed on is
+    a defect in anybody's bibliography, and promoting either would relabel every
+    correct entry in the file. But ``info`` is filtered out of the default
+    terminal report, so during an NCBI outage the whole run printed
     ``PASS — no reference in the failing set`` with nothing anywhere to say that
     the one separately-curated retraction source had not been asked. A clean
     report that reads cleaner than the evidence supports is the failure mode
     this tool exists to prevent, and it is worst on this field: a retracted
-    paper going into a manuscript is the miss with no remedy.
+    paper going into a manuscript is the miss with no remedy. A bibliography of
+    PMID-only entries printed the same ``PASS`` from the other direction, with
+    three of the four sources unasked on every entry in it and nothing under the
+    banner that said so.
 
-    Printed once for the run rather than once per reference, because with a
-    registry down it applies to every entry and 438 identical lines are not a
-    warning, they are wallpaper. It does not touch the exit code.
+    Printed once per reason for the run rather than once per reference, because
+    with a source down or unasked it applies to every entry and 438 identical
+    lines are not a warning, they are wallpaper. It does not touch the exit
+    code.
     """
-    blind: set[str] = set()
-    affected = 0
-    for result in summary.results:
-        sources = {i.source for i in result.issues if i.kind == _RETRACTION_GAP}
-        if sources:
-            affected += 1
-            blind.update(name for source in sources for name in source.split(","))
-    if not affected:
-        return
-    print(
-        style.yellow(
-            f"  retraction status not corroborated for {affected} reference(s): "
-            f"{', '.join(sorted(blind))} unreachable"
-        ),
-        file=out,
-    )
+    for kind, reason in _RETRACTION_GAPS.items():
+        sources: set[str] = set()
+        affected = 0
+        for result in summary.results:
+            found = {i.source for i in result.issues if i.kind == kind and i.field == "status"}
+            if found:
+                affected += 1
+                sources.update(name for source in found for name in source.split(","))
+        if not affected:
+            continue
+        print(
+            style.yellow(
+                f"  retraction status not corroborated for {affected} reference(s): "
+                f"{', '.join(sorted(sources))} {reason}"
+            ),
+            file=out,
+        )
 
 
 def render_text(

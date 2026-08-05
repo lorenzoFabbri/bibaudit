@@ -27,13 +27,25 @@ keyed on that PMID. ``efetch`` answers for a PMID directly, so the lookup costs
 one request where a DOI's costs three — the ``esearch``/``esummary`` pair
 exists to *find* a PMID, and this reference brought its own. Crossref is never
 asked, because a PMID is not a Crossref key, and ``Result.consulted`` records
-that as ``not-asked`` rather than as an answer nobody obtained. Precedence is
+that as ``not-asked`` rather than as an answer nobody obtained — unless Crossref
+was unreachable while some *other* reference was being resolved, because
+``unreachable`` is a run-wide set and outranks ``asked`` there on purpose (see
+``compare._consultations``). Precedence is
 :attr:`~bibaudit.model.Reference.identifier`'s own — DOI, then PMID, then ISBN
 — so an entry carrying a DOI as well is resolved by the DOI and issues no
-PubMed request beyond the corroboration one it already made. Retraction Watch's
-export is keyed on DOI, so a reference resolved this way is checked for
-retraction against MEDLINE's own ``PT`` flag alone and ``retraction-watch``
-reports as ``not-asked``: a stated gap, never a clean bill of health.
+PubMed request beyond the corroboration one it already made.
+
+Every retraction source but MEDLINE's own ``PT`` flag is keyed on a DOI, so
+three of the four go unconsulted on such a reference. That is stated twice
+rather than left to be inferred: ``retraction-watch`` is in
+:data:`~bibaudit.model.STATUS_SOURCES`, so ``consulted`` names it ``not-asked``
+on every reference rather than dropping the key, and ``compare`` raises
+``status/not-asked`` on the reference itself, which the terminal report prints
+beside the banner exactly as it prints an outage. MEDLINE's ``AID`` list does
+carry the work's DOI on most modern records, and using it as a second lookup
+key would restore the other three — a widening of coverage, and its own
+change; ``docs/retraction.md`` records what it would cost and what it would
+buy.
 
 **Books** take a path of their own, keyed on ISBN rather than DOI, because
 most books never had a DOI minted at all: an entry carrying an ``isbn`` is

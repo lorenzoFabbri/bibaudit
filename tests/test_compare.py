@@ -23,7 +23,15 @@ from typing import Any
 import pytest
 
 from bibaudit.compare import Thresholds, compare, confirm_without_id, verdict_for
-from bibaudit.model import ARTIFACT_KIND, Issue, Name, Record, Reference, Result
+from bibaudit.model import (
+    ARTIFACT_KIND,
+    REGISTRIES,
+    Issue,
+    Name,
+    Record,
+    Reference,
+    Result,
+)
 from bibaudit.registries import pubmed as pubmed_client
 from bibaudit.registries.crossref import Crossref
 
@@ -780,7 +788,9 @@ class TestRetractionEvidenceIsNeverAssumed:
             make_ref(), {"crossref": make_record()}, asked={"crossref", "datacite", "pubmed"}
         )
         assert result.verdict == "OK"
-        assert not result.issues
+        # Retraction Watch really was not asked here and says so separately;
+        # what must not appear is the *outage* finding.
+        assert not any(i.kind == "retraction-unverified" for i in result.issues)
 
     def test_datacite_going_down_says_nothing_about_retraction(self) -> None:
         """DataCite's schema has no retraction element and its client sets none.
@@ -866,6 +876,101 @@ class TestRetractionEvidenceIsNeverAssumed:
         assert [i.kind for i in result.issues] == ["unreachable"]
 
 
+class TestARetractionSourceNobodyAsked:
+    """"Nobody asked" is not "nothing found", and must not read like it.
+
+    The reference resolved by its PMID is the case: every retraction source but
+    MEDLINE's own ``PT`` flag is keyed on a DOI it does not have, so three of
+    the four go unconsulted — and the entry rendered ``verdict: OK, issues:
+    []``. A clean bill of health issued by a run that asked almost nobody is
+    the one output CLAUDE.md forbids outright, and an outage was already
+    stated where this was silent.
+
+    Kept as its own ``Issue.kind`` rather than folded into
+    ``retraction-unverified``: an outage may be gone by the next run, an
+    unasked source is a standing property of how the reference resolved, and
+    ``Consultation`` keeps the same two states apart for the same reason.
+    """
+
+    def test_a_retraction_source_nobody_asked_leaves_a_stated_gap(self) -> None:
+        result = compare(
+            make_ref(),
+            {"pubmed": make_pubmed()},
+            asked={"pubmed"},
+        )
+        status = next(i for i in result.issues if i.field == "status")
+        assert status.kind == "not-asked"
+        assert status.severity == "info"
+        assert status.source == "crossref,retraction-watch"
+        assert "never asked" in status.note
+        assert "not the same as there being none" in status.note
+
+    def test_the_verdict_and_the_exit_code_do_not_move(self) -> None:
+        """Coverage a reference's own identifier denies it is not its defect."""
+        result = compare(make_ref(), {"pubmed": make_pubmed()}, asked={"pubmed"})
+        assert result.verdict == "OK"
+        assert not result.fails
+
+    def test_an_ordinary_run_that_asked_everybody_says_nothing(self) -> None:
+        """The false-alarm side, and the one that decides whether this is read.
+
+        Every source that carries the signal was asked, so there is no gap to
+        state. DataCite is unasked here and stays unnamed: its schema has no
+        retraction element, so its silence is not ignorance about retraction —
+        the same exclusion the outage note already applies.
+        """
+        result = compare(
+            make_ref(),
+            {"crossref": make_record(), "pubmed": make_pubmed()},
+            asked={"crossref", "pubmed", "retraction-watch"},
+        )
+        assert result.verdict == "OK"
+        assert not [i for i in result.issues if i.field == "status"]
+
+    def test_a_caller_that_did_not_say_is_not_quoted_as_saying_nobody_asked(self) -> None:
+        """``asked=None`` means the caller did not say, not that nobody asked.
+
+        ``_consultations`` reads it as ``not-asked`` and documents that as an
+        under-statement it is free to make about a *description*. A finding is
+        an assertion, and asserting from the same silence that nobody was asked
+        would print a gap on evidence nobody produced — the line ``compare``'s
+        ``identifier/not-asked`` branch already draws between an empty ``asked``
+        and ``None``.
+        """
+        result = compare(make_ref(), {"pubmed": make_pubmed()})
+        assert result.consulted["retraction-watch"] == "not-asked"
+        assert not [i for i in result.issues if i.field == "status"]
+
+    def test_a_recorded_retraction_outranks_the_gap(self) -> None:
+        """Nothing is unverified once a source that answered has answered it."""
+        result = compare(
+            make_ref(),
+            {"pubmed": make_pubmed(retracted=True, retraction_kind="Retracted Publication")},
+            asked={"pubmed"},
+        )
+        assert result.verdict == "RETRACTED"
+        assert [i.kind for i in result.issues if i.field == "status"] == ["retracted"]
+
+    def test_an_outage_and_an_unasked_source_are_two_findings(self) -> None:
+        """Both are true at once, and the reader's next move differs.
+
+        A rerun may settle the outage; nothing about a rerun asks Retraction
+        Watch about a reference with no DOI. One line saying "not corroborated"
+        over both would send the reader to the wrong remedy.
+        """
+        result = compare(
+            make_ref(),
+            {"pubmed": make_pubmed()},
+            unreachable={"crossref"},
+            asked={"crossref", "pubmed"},
+        )
+        kinds = [i.kind for i in result.issues if i.field == "status"]
+        assert kinds == ["retraction-unverified", "not-asked"]
+        gap = next(i for i in result.issues if i.kind == "not-asked")
+        assert gap.source == "retraction-watch"
+        assert "was never asked" in gap.note
+
+
 class TestConsulted:
     """``result.consulted`` is the record of what evidence a verdict rests on.
 
@@ -904,6 +1009,8 @@ class TestConsulted:
             "crossref": "answered",
             "datacite": "answered",
             "pubmed": "unreachable",
+            # Stated on every reference, asked or not — see `model.STATUS_SOURCES`.
+            "retraction-watch": "not-asked",
         }
 
     def test_a_registry_that_answered_and_held_nothing_still_counts_as_asked(self) -> None:
@@ -915,7 +1022,7 @@ class TestConsulted:
         """
         result = compare(make_ref(), {}, asked={"crossref", "datacite", "pubmed"})
         assert result.verdict == "BAD-ID"
-        assert set(result.consulted.values()) == {"answered"}
+        assert all(result.consulted[name] == "answered" for name in REGISTRIES)
 
     def test_not_asked_never_turns_a_bad_id_into_unchecked(self) -> None:
         """The trap: the tempting fix for the bug above is far worse than it.

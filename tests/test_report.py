@@ -679,6 +679,78 @@ class TestRetractionCouldNotBeCorroborated:
         assert Summary(results).exit_code() == 0
 
 
+class TestRetractionSourcesNobodyAsked:
+    """The other half of the same banner, and it reached the reader nowhere.
+
+    An outage was stated; a source no one asked was not. A reference resolved
+    by its PMID asks none of the three DOI-keyed retraction sources, so a whole
+    bibliography of them printed ``PASS`` with nothing under it — a report
+    reading cleaner than its evidence, on the field where that costs most.
+    """
+
+    @staticmethod
+    def _unasked(source: str = "crossref,retraction-watch") -> Issue:
+        return Issue(
+            field="status",
+            kind="not-asked",
+            severity="info",
+            source=source,
+            note="retraction status not corroborated",
+        )
+
+    def test_the_unasked_sources_are_stated_beside_the_pass_banner(self) -> None:
+        output = text_of([make_result(issues=(self._unasked(),)) for _ in range(3)])
+
+        assert "PASS" in output
+        assert (
+            "retraction status not corroborated for 3 reference(s): "
+            "crossref, retraction-watch not asked" in output
+        )
+
+    def test_an_outage_and_an_unasked_source_are_two_lines(self) -> None:
+        """Printed apart because the reader's next move differs.
+
+        A rerun may settle the outage; no rerun asks Retraction Watch about a
+        reference that has no DOI. Merged into one line, "not corroborated"
+        would send a reader to the wrong remedy for half the run.
+        """
+        outage = Issue(
+            field="status",
+            kind="retraction-unverified",
+            severity="info",
+            source="pubmed",
+            note="retraction status not corroborated",
+        )
+        output = text_of(
+            [
+                make_result(key="a", issues=(outage,)),
+                make_result(key="b", issues=(self._unasked("retraction-watch"),)),
+            ]
+        )
+
+        assert "pubmed unreachable" in output
+        assert "retraction-watch not asked" in output
+        assert output.count("retraction status not corroborated") == 2
+
+    def test_an_unresolved_identifier_is_not_counted_as_a_retraction_gap(self) -> None:
+        """``identifier/not-asked`` shares the kind and means something else.
+
+        It is what ``--no-isbn`` leaves on a book whose ISBN nobody looked up.
+        Counted here it would announce a retraction gap on an entry whose
+        retraction status was never the question.
+        """
+        identifier_gap = Issue(
+            field="identifier",
+            kind="not-asked",
+            severity="info",
+            stored="978-0-201-89683-1",
+            note="no registry was asked about this identifier; not checked",
+        )
+        output = text_of([make_result(verdict="UNCHECKED", issues=(identifier_gap,))])
+
+        assert "retraction status" not in output
+
+
 class TestJsonReport:
     def test_the_output_is_valid_json(self) -> None:
         payload = json_of([make_result(verdict="OK")])

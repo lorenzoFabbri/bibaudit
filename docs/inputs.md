@@ -331,8 +331,9 @@ The ISBN is consulted **only when neither a DOI nor a usable PMID is stored**.
 The order is `doi`, `pmid`, `isbn`, and an entry carrying more than one is
 resolved by the strongest of them, once — which also means
 a book matched by ISBN alone gets no retraction check, because Open Library
-mints no DOI for the retraction sources to be keyed on. [Retraction](retraction.md)
-states that gap in full. `--no-isbn` skips Open Library entirely, at a cost
+mints no DOI for the retraction sources to be keyed on — so the entry carries a
+`status/not-asked` finding naming them. [Retraction](retraction.md) states that
+gap in full. `--no-isbn` skips Open Library entirely, at a cost
 worth knowing before you reach for it: a book stored with only an ISBN is then
 never looked up at all, and is reported `UNCHECKED` — nothing was verified about
 it. It does not fail the run, and it is not evidence against the book; it simply

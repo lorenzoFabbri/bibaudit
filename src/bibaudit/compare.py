@@ -21,6 +21,7 @@ from .model import (
     ANSWERED,
     NOT_ASKED,
     REGISTRIES,
+    STATUS_SOURCES,
     UNREACHABLE,
     Consultation,
     Issue,
@@ -806,11 +807,14 @@ def _detail(kinds: Mapping[str, str], names: Sequence[str]) -> str:
 
 
 def _status_issues(
-    records: Mapping[str, Record], unreachable: Collection[str]
+    records: Mapping[str, Record],
+    consulted: Mapping[str, Consultation],
+    *,
+    asked_stated: bool,
 ) -> tuple[list[Issue], bool]:
     """Every ``status`` finding for one work, and whether it is *retracted*.
 
-    Three statements can be true at once about the same work and none of them is
+    Four statements can be true at once about the same work and none of them is
     a paraphrase of another, so each gets its own issue:
 
     ``status/retracted`` (error)
@@ -853,6 +857,35 @@ def _status_issues(
         which is not what happened. It reaches the reader through the JSON
         report's ``issues`` list, through ``--verbose``, and beside
         ``consulted["pubmed"] == "unreachable"``.
+
+    ``status/not-asked`` (info)
+        No registry that answered records a retraction, and a source that
+        could have recorded one was never queried. A reference resolved by its
+        PMID is the case this exists for: Retraction Watch's export, Crossref's
+        ``updated-by`` and PubMed's ``ECI`` cross-reference are all keyed on a
+        DOI it does not have, so three of the four sources go unconsulted and
+        MEDLINE's own ``PT`` flag is the whole of the evidence. That entry
+        rendered as ``verdict: OK, issues: []`` — a clean bill of health issued
+        by a run that asked almost nobody, which is the one output this rule
+        forbids. ``--no-retraction-check`` and a book resolved by its ISBN
+        reach it the same way.
+
+        Kept apart from ``retraction-unverified`` rather than folded into it
+        for the reason :data:`~bibaudit.model.Consultation` keeps three states
+        and not two: "could not be reached" is ignorance that a rerun may
+        settle, "was never asked" is a standing property of how this reference
+        resolved, and the reader's next move differs. Also ``info``, for the
+        same reason — coverage a reference's own identifier denies it is not a
+        defect in anybody's bibliography.
+
+        Raised only when *asked_stated*, i.e. when :func:`compare`'s caller
+        named the registries it queried. Without that, ``not-asked`` in
+        *consulted* is :func:`_consultations`' documented under-statement — the
+        caller did not say — and asserting from it that nobody asked would be a
+        finding printed on evidence nobody produced. Exactly the line
+        :func:`compare`'s ``identifier/not-asked`` branch already draws between
+        an empty *asked* and ``None``. The map still shows ``not-asked``
+        either way, so nothing that was visible stops being visible.
 
     Direction — whether a record *is* a retraction notice or *was* retracted —
     is decided upstream in the registry clients and read here as a plain flag.
@@ -913,7 +946,23 @@ def _status_issues(
         )
 
     if not retracting:
-        blind = _in_registry_order(set(unreachable) - _NO_RETRACTION_SIGNAL)
+        # Both halves are read off the one consultation map rather than off two
+        # sets that could disagree with it: it is what the report prints beside
+        # the verdict, so a gap stated here and a gap shown there cannot differ.
+        blind = _in_registry_order(
+            name
+            for name, state in consulted.items()
+            if state == UNREACHABLE and name not in _NO_RETRACTION_SIGNAL
+        )
+        unasked = (
+            _in_registry_order(
+                name
+                for name, state in consulted.items()
+                if state == NOT_ASKED and name not in _NO_RETRACTION_SIGNAL
+            )
+            if asked_stated
+            else []
+        )
         if blind:
             issues.append(
                 Issue(
@@ -926,6 +975,24 @@ def _status_issues(
                     note=(
                         f"retraction status not corroborated: {', '.join(blind)} "
                         "could not be reached, and no registry that did answer "
+                        "records a retraction — which is not the same as there "
+                        "being none"
+                    ),
+                )
+            )
+        if unasked:
+            issues.append(
+                Issue(
+                    field="status",
+                    kind="not-asked",
+                    severity="info",
+                    stored="",
+                    registry="",
+                    source=",".join(unasked),
+                    note=(
+                        f"retraction status not corroborated: {', '.join(unasked)} "
+                        f"{'was' if len(unasked) == 1 else 'were'} never asked "
+                        "about this reference, and no registry that did answer "
                         "records a retraction — which is not the same as there "
                         "being none"
                     ),
@@ -958,6 +1025,14 @@ def _consultations(
     that would silently turn every genuine ``BAD-ID`` into ``UNCHECKED`` — a
     fabricated DOI reported as a network problem.
 
+    :data:`~bibaudit.model.REGISTRIES` and
+    :data:`~bibaudit.model.STATUS_SOURCES` are stated on every reference, even
+    where nothing reached them; any other name appears only once something did.
+    The two rosters are the sources whose silence a reader would otherwise have
+    to infer from a missing key, and a retraction source in particular has to
+    be nameable as ``not-asked``: a reference resolved by its PMID asks none of
+    them, and a key that is simply not there reads as nothing to report.
+
     *unreachable* wins over *asked*, deliberately. It is a run-wide set today,
     so a registry that fell over while another reference was being resolved is
     reported ``unreachable`` here even if this particular DOI never reached it.
@@ -968,7 +1043,8 @@ def _consultations(
     """
     proven = set(records) | set(unreachable)
     participating = proven if asked is None else proven | set(asked)
-    names = [*REGISTRIES, *sorted(participating - set(REGISTRIES))]
+    always = (*REGISTRIES, *STATUS_SOURCES)
+    names = [*always, *sorted(participating - set(always))]
 
     out: dict[str, Consultation] = {}
     for name in names:
@@ -1236,10 +1312,11 @@ def compare(
     _check_doi(ctx)
     _check_pmid(ctx)
 
-    # Every record that answered, not just the primary — and every registry that
-    # could not answer at all, because ignorance about retraction is not the
-    # same fact as an absence of one. See _status_issues.
-    status, retracted = _status_issues(records, unreachable)
+    # Every record that answered, not just the primary — and, through the
+    # consultation map, every source that could not answer and every source
+    # nobody asked, because ignorance about retraction is not the same fact as
+    # an absence of one. See _status_issues.
+    status, retracted = _status_issues(records, result.consulted, asked_stated=asked is not None)
     ctx.issues.extend(status)
 
     result.issues = ctx.issues

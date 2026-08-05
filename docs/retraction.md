@@ -213,4 +213,50 @@ the signal, so whoever adds the next registry is counted by default and has to
 come and opt out. `retraction-watch` is deliberately not excluded: it is the one
 source that exists only to carry this signal.
 
+## When a source was never asked
+
+The same rule from the other direction, and for a long time it was the half that
+went unstated. A reference resolved by its **PMID** is asked of PubMed and of
+nobody else: the other three sources are keyed on a DOI it does not carry. The
+result was `verdict: OK, issues: []` — a clean bill of health from a run that
+consulted one source out of four, which is the output this tool exists to
+prevent. `--no-retraction-check` and a book resolved by its ISBN produce the
+same shape.
+
+`compare` raises `status/not-asked` on each such reference, at `info` severity
+and naming the sources: "retraction status not corroborated: crossref,
+retraction-watch were never asked about this reference". It reaches the reader
+by the three routes above, the banner line ending in `not asked` rather than
+`unreachable`. `consulted` states it too — `crossref`, `datacite`, `pubmed` and
+`retraction-watch` are named on every reference in every run, so a source that
+was not asked reads as `not-asked` rather than as a key that is not there.
+
+Two kinds rather than one, because the reader's next move differs: a rerun may
+settle an outage, and no rerun asks Retraction Watch about a reference with no
+DOI. `Consultation` keeps `unreachable` and `not-asked` apart for the same
+reason. Both are `info`: coverage a reference's own identifier denies it is no
+more a defect in a bibliography than a timeout is. The exclusion above applies
+unchanged, so DataCite going unasked is never named.
+
+### Reading the DOI off MEDLINE instead
+
+MEDLINE's `AID` list carries the work's own DOI on most modern records, and
+using it as a second lookup key would restore all three missing sources for a
+PMID-resolved reference. It is not done, and the reasons are worth keeping
+because the option stays open:
+
+- **It is a widening of coverage, not a statement of one.** A DOI the entry
+  never declared would become a lookup key, and the records it fetches would
+  reach the field matrix — a change to the verdict path, needing its own tests
+  and its own answer to whether a reference may be judged against a work it did
+  not name.
+- **It is not free.** The DOI arrives at no extra cost, but using it means a
+  Crossref lookup, a DataCite lookup for what Crossref lacks, and
+  `Retractions.status_for`, which runs `esearch`/`esummary`/`efetch` of its own.
+  A PMID lookup costs one request today; this would make it four.
+- **It would not close the gap, only narrow it.** `AID` is absent from older
+  records — `efetch` for PMID 13351639 (Warburg, *Science* 1956) returns a full
+  citation with no `AID` line at all. Those references would keep exactly
+  today's coverage, so the gap must be stated either way.
+
 [Limits](limits.md) states the whole boundary, of which this is one part.

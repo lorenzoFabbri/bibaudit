@@ -247,8 +247,9 @@ already returned, so a retraction NLM indexed still reports `RETRACTED`, while
 Retraction Watch's export, Crossref's `updated-by` and PubMed's own `ECI`
 cross-reference are all asked by DOI and are not asked at all. A book resolved
 through its **ISBN** alone loses all four, because Open Library mints no DOI for
-them to be keyed on; its retraction status is not checked, and a clean report
-does not claim otherwise.
+them to be keyed on. Neither entry reports a clean retraction result: both carry
+a `status/not-asked` finding naming the sources nobody consulted, and the run
+states it beside the banner.
 
 A retraction **either one source records alone is still reported**, and the
 finding names which one
@@ -259,9 +260,11 @@ expression of concern is reported too, under its own heading and never under
 the word *retracted*: the work stands, and citing it is legitimate once the
 notice has been read.
 
-If a registry that carries the signal could not be reached, the report says so
-beside the banner — *retraction status not corroborated for N reference(s)*.
-Silence from a registry nobody could reach is not a clean bill of health.
+If a registry that carries the signal could not be reached, or was never asked,
+the report says so beside the banner — *retraction status not corroborated for N
+reference(s)*, on one line per reason. Silence from a registry nobody could
+reach is not a clean bill of health, and neither is silence from one nobody
+asked.
 
 **Coverage is still not complete**, and reading a clean result as proof
 nothing here was ever retracted overstates what was checked. Crossref's and
@@ -281,7 +284,13 @@ states rather than a yes/no:
 |---|---|
 | `answered` | queried and replied — including an authoritative "I do not hold this DOI", which is the evidence that makes `BAD-ID` a fact |
 | `unreachable` | queried and could not reply: a timeout, a run of 5xx. Ignorance, never absence |
-| `not-asked` | never queried — `--no-corroborate` skips PubMed entirely, and DataCite is only asked about DOIs Crossref did not answer for |
+| `not-asked` | never queried — `--no-corroborate` skips PubMed entirely, DataCite is only asked about DOIs Crossref did not answer for, and nothing keyed on a DOI is asked about a reference resolved by its PMID or its ISBN |
+
+`crossref`, `datacite`, `pubmed` and `retraction-watch` are named on every
+reference whatever happened to them, so a source nobody asked reads as
+`not-asked` rather than as a key that is not there. Where the unasked source
+carries a retraction signal the reference also gets a `status/not-asked`
+finding, and the run states it beside the banner.
 
 It used to be a bool computed as "not known to be unreachable", so a run with
 `--no-corroborate` reported `"pubmed": true` on every reference in the file.

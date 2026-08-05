@@ -26,6 +26,17 @@ Severity = Literal["error", "warning", "info"]
 #: checkable against one canonical roster.
 REGISTRIES = ("crossref", "datacite", "pubmed")
 
+#: Sources consulted for post-publication status alone. They hold no
+#: bibliographic record and can never resolve an identifier, so they are not
+#: registries in :data:`REGISTRIES`' sense — but :attr:`Result.consulted` states
+#: one for every reference, asked or not, and that is what this roster is for.
+#: A source named only where something happened to reach it leaves the reader of
+#: two entries side by side with a key present on one and absent on the other,
+#: and absence is the one thing ignorance about retraction may never look like.
+#: A reference resolved by its PMID asks none of these, so on that path the
+#: whole of the difference from a DOI-resolved entry would be a missing key.
+STATUS_SOURCES = ("retraction-watch",)
+
 #: What one registry contributed to one reference's verdict. Three states,
 #: because three things actually happen and only two of them used to be
 #: representable:
@@ -39,8 +50,11 @@ REGISTRIES = ("crossref", "datacite", "pubmed")
 #:     Ignorance, never absence. See ``Transient``.
 #: ``not-asked``
 #:     The registry was never queried at all: ``--no-corroborate`` skips PubMed
-#:     entirely, and DataCite is only asked about DOIs Crossref did not answer
-#:     for.
+#:     entirely, DataCite is only asked about DOIs Crossref did not answer for,
+#:     and nothing keyed on a DOI is asked about a reference resolved by its
+#:     PMID or its ISBN. Where the unasked source carries a retraction signal,
+#:     ``compare`` states the gap as an issue as well — see
+#:     :data:`STATUS_SOURCES`.
 #:
 #: The bool this replaced was computed as "not known to be unreachable", so a
 #: run with ``--no-corroborate`` reported ``"pubmed": true`` on every single
