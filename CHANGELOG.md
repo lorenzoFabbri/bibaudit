@@ -47,11 +47,16 @@ so `uv sync --all-extras` does not install it into the test environment.
   them. `TA` is carried as an alternate title, so an entry storing `Lancet` gets
   an `info` note naming PubMed as the registry that holds it; a stored value
   whose opening `The`/`A`/`An` is the whole of the difference is a
-  `REGISTRY-ARTIFACT`, and so is one matching everything before the
-  subtitle. Neither is a prefix test — `Cancer Epidemiology` is a different
+  `REGISTRY-ARTIFACT`, and so is one matching everything before the subtitle,
+  with or without an article NLM kept and the masthead does not — `The Journal
+  of adolescent health : official publication of the Society for Adolescent
+  Medicine` against a stored *Journal of Adolescent Health*. Neither is a
+  prefix test — `Cancer Epidemiology` is a different
   journal and still fires — and the parenthetical qualifier is never stripped,
   because `(London, England)` is what tells two serials sharing a base title
-  apart. Dates the same way: `DP` is the issue a citation is filed under and
+  apart; where NLM writes a spaced colon *inside* one of those, as in `ASAIO
+  journal (American Society for Artificial Internal Organs : 1992)`, it is not
+  read as the subtitle separator. Dates the same way: `DP` is the issue a citation is filed under and
   `DEP` the day the work went online, and both reach `Record.years`, so an entry
   citing the online-first year of a paper printed the following year is accepted
   exactly as Crossref's `published-online` already was.
@@ -176,6 +181,14 @@ so `uv sync --all-extras` does not install it into the test environment.
   identifier resolved to a different work. It is now read as truncation on all
   three routes, which voids the length comparison and nothing else — a wrong
   first author beside the marker still fires.
+- **A wrong year on an entry no Crossref record answered for is reported
+  again.** The deposit-timestamp suppression excuses a registry year three or
+  more years later than the stored one when no print date corroborates it, and
+  Crossref is the only registry that writes a print date at all — so on a
+  PubMed, DataCite, Open Library or search-confirmed record the condition held
+  vacuously and every such entry three or more years early was filed as a
+  registry defect and dropped out of the default report. The rule now applies
+  to Crossref records only.
 - A Retraction Watch outage is now reported instead of passed over. The bulk
   export failing was absorbed and returned as a bare `dict`, so nothing reached
   the run's unreachable set, `compare` could not raise `retraction-unverified`,
