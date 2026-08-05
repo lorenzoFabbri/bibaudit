@@ -298,10 +298,14 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
     retracted, retraction_kind = _retraction(fields)
 
     # NLM files a serial under a title of its own making: the leading article
-    # dropped, and a place-of-publication qualifier appended wherever the base
-    # title would otherwise be ambiguous. ``JT`` is "Lancet (London, England)",
-    # "BMJ (Clinical research ed.)", "Science (New York, N.Y.)"; ``TA`` is the
-    # abbreviation, which for those three is the journal's plain name. On the
+    # dropped, a place-of-publication qualifier appended wherever the base title
+    # would otherwise be ambiguous, and the sponsoring society spelled out after
+    # a spaced colon. ``JT`` is "Lancet (London, England)", "BMJ (Clinical
+    # research ed.)", "Science (New York, N.Y.)", "Cancer epidemiology,
+    # biomarkers & prevention : a publication of the American Association for
+    # Cancer Research, cosponsored by ..."; ``TA`` is the abbreviation, which
+    # for the first three is the journal's plain name and for the fourth is not
+    # (``benign._container_society_subtitle`` is what reaches that one). On the
     # PMID path PubMed is the only registry there is, so ``JT`` would be the
     # only container an entry could match, and no bibliography stores it.
     journal = _first(fields.get("JT"))
