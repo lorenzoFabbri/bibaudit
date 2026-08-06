@@ -267,7 +267,9 @@ carries no retraction linkage" is a different message from "recorded by
 crossref, pubmed", and the first is also a bug report for the publisher. An
 expression of concern is reported too, under its own heading and never under
 the word *retracted*: the work stands, and citing it is legitimate once the
-notice has been read.
+notice has been read. A **correction** gets a third heading and does not fail
+the build at all — the work stands and has been amended, and the finding is
+there so a reader takes the numbers off the corrected version.
 
 If a registry that carries the signal could not be reached, or was never asked,
 the report says so beside the banner — *retraction status not corroborated for N

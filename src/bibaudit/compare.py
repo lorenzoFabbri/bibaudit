@@ -788,10 +788,29 @@ _NO_RESOLUTION_SIGNAL = frozenset({"retraction-watch"})
 #: of expression of concern", and resolving a concern is as often a retraction
 #: as an exoneration — so a substring test would let a registry that reports a
 #: *retraction* in wording that mentions a concern be downgraded to a doubt.
-#: Anything not listed here, ``retraction_kind=None`` included, counts as a
-#: retraction: a registry this module has never heard of cannot talk it out of
-#: the finding.
+#: Anything not listed here or in :data:`_CORRECTION_KINDS`,
+#: ``retraction_kind=None`` included, counts as a retraction: a registry this
+#: module has never heard of cannot talk it out of the finding.
 _CONCERN_KINDS = frozenset({"expression of concern"})
+
+#: The other kind that is not a retraction, and the milder of the two: the work
+#: stands, unamended in nothing but the part the notice corrects.
+#:
+#: ``retractions._RW_KIND_MAP`` mints this value from Retraction Watch's
+#: ``RetractionNature`` column, so it is a kind this project produces rather
+#: than one an unfamiliar registry might send — the "cannot talk it out of the
+#: finding" default above is for the second, and reading a correction as a
+#: retraction was that default catching one of the first. Retraction Watch
+#: logs a 2004 ``Correction`` for 10.3390/nano14090769 (*Nanomaterials*), and
+#: an entry citing it printed ``RETRACTED — the cited work has itself been
+#: retracted`` with the word ``correction`` in the registry column and exited
+#: 1: a false statement about a named work, made with the tool's full
+#: authority, which is the output :data:`_CONCERN_KINDS` was introduced to
+#: prevent and which arrived a second time by this route.
+#:
+#: Same exact-fold membership rule, for the same reason: a notice titled
+#: "Retraction and correction" is a retraction.
+_CORRECTION_KINDS = frozenset({"correction"})
 
 
 def _detail(kinds: Mapping[str, str], names: Sequence[str]) -> str:
@@ -814,7 +833,7 @@ def _status_issues(
 ) -> tuple[list[Issue], bool]:
     """Every ``status`` finding for one work, and whether it is *retracted*.
 
-    Four statements can be true at once about the same work and none of them is
+    Five statements can be true at once about the same work and none of them is
     a paraphrase of another, so each gets its own issue:
 
     ``status/retracted`` (error)
@@ -832,12 +851,26 @@ def _status_issues(
         second is also a bug report for the publisher.
 
     ``status/expression-of-concern`` (error)
-        A registry records a concern and *nobody* records a retraction. Reported
-        with the same weight — an author who cites a paper under an expression
-        of concern needs to know before submission — but never under the word
-        "retracted". See :data:`_CONCERN_KINDS` for the paper this was found on.
-        It stays an error, so an entry that failed before this distinction
-        existed still fails: the finding is re-labelled, never relaxed.
+        A registry records a concern. Reported with the same weight — an author
+        who cites a paper under an expression of concern needs to know before
+        submission — but never under the word "retracted". See
+        :data:`_CONCERN_KINDS` for the paper this was found on. It stays an
+        error, so an entry that failed before this distinction existed still
+        fails: the finding is re-labelled, never relaxed.
+
+    ``status/correction`` (info)
+        A registry records a correction. The work stands and citing it is
+        correct; what a reader may want is the corrected version's numbers
+        rather than the original's. See :data:`_CORRECTION_KINDS` for the
+        notice that forced the distinction.
+
+        ``info``, and so the verdict does not move — a corrected paper is
+        perfectly citable, and failing a build over one is the false alarm
+        this project's third rule is about. It is stated rather than dropped
+        because Retraction Watch supplied it and this module's job is to say
+        what the sources said: the same treatment ``year/alternate-date``
+        gets, and it reaches the reader through the JSON report and
+        ``--verbose``.
 
     ``status/retraction-unverified`` (info)
         No registry that answered records a retraction, but a registry that
@@ -890,25 +923,29 @@ def _status_issues(
 
     Direction — whether a record *is* a retraction notice or *was* retracted —
     is decided upstream in the registry clients and read here as a plain flag.
-    ``retraction_kind`` is inspected only to separate a concern from a
-    retraction, by exact equality on a closed set that contains no
-    retraction-shaped string; nothing here can turn a retracted paper into a
-    clean one, and no title, type or notice wording is sniffed at all.
+    ``retraction_kind`` is inspected only to separate a concern and a
+    correction from a retraction, by exact equality on two closed sets that
+    contain no retraction-shaped string; nothing here can turn a retracted
+    paper into a clean one, and no title, type or notice wording is sniffed at
+    all.
     """
     asserting = _in_registry_order(
         name for name, record in records.items() if record.retracted
     )
     kinds = {name: records[name].retraction_kind or "retracted" for name in asserting}
     concerned = [name for name in asserting if fold(kinds[name]) in _CONCERN_KINDS]
-    retracting = [name for name in asserting if name not in set(concerned)]
+    corrected = [name for name in asserting if fold(kinds[name]) in _CORRECTION_KINDS]
+    milder = set(concerned) | set(corrected)
+    retracting = [name for name in asserting if name not in milder]
 
     issues: list[Issue] = []
 
     if retracting:
         # Only a registry that answered and recorded *nothing* dissents. One
-        # that recorded a concern has not contradicted the retraction, and
-        # listing it as carrying "no retraction linkage" would read as a second
-        # opinion against the finding when it is corroboration of a weaker one.
+        # that recorded a concern or a correction has not contradicted the
+        # retraction, and listing it as carrying "no retraction linkage" would
+        # read as a second opinion against the finding when it is corroboration
+        # of a weaker one.
         silent = _in_registry_order(set(records) - set(asserting))
         note = f"the cited work has been retracted; recorded by {', '.join(retracting)}"
         if silent:
@@ -942,6 +979,24 @@ def _status_issues(
                     f"work; recorded by {', '.join(concerned)}. That is a stated "
                     "doubt, not a retraction: the work stands, and citing it is "
                     "legitimate once the notice has been read"
+                ),
+            )
+        )
+
+    if corrected:
+        issues.append(
+            Issue(
+                field="status",
+                kind="correction",
+                severity="info",
+                stored="",
+                registry=_detail(kinds, corrected),
+                source=",".join(corrected),
+                note=(
+                    "a correction has been published for the cited work; "
+                    f"recorded by {', '.join(corrected)}. The work stands and "
+                    "citing it is correct; the corrected version is the one to "
+                    "read the numbers off"
                 ),
             )
         )

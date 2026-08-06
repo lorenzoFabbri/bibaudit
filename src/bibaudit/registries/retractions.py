@@ -162,7 +162,15 @@ _RW_KIND_MAP = {
 #: source this module reads (RW's live vocabulary has no such category; see
 #: ``_RW_KIND_MAP``), but are ranked here so a future RW category needs only
 #: a new ``_RW_KIND_MAP`` entry, not a change to this ordering.
-_KIND_PRIORITY = ("retraction", "withdrawal", "removal", "correction", "expression-of-concern")
+#:
+#: ``correction`` ranks last, below ``expression-of-concern``, because it is
+#: the one kind here that asserts *less* about the work than a concern does: a
+#: correction leaves the paper standing and amended, a concern leaves it
+#: standing and doubted. Ranked above, it softened a finding rather than
+#: strengthening one — a DOI Retraction Watch logs a ``Correction`` for and
+#: NLM carries an ``ECI`` against merged to ``correction``, and the concern
+#: NLM recorded went unreported.
+_KIND_PRIORITY = ("retraction", "withdrawal", "removal", "expression-of-concern", "correction")
 
 #: `M/D/Y H:MM` is every witnessed value's shape (71,306 of 71,496 rows) —
 #: confirmed month-first, not day-first: 41,661 rows have a day > 12, which

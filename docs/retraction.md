@@ -146,6 +146,39 @@ record alone, and `_KIND_PRIORITY` ranks the two the same way where sources are
 merged. Printing the concern's note beside the retraction would tell a reader in
 one report that the work has been withdrawn and that it stands.
 
+## A correction is neither
+
+Retraction Watch's export carries a `RetractionNature` of `Correction` as well
+as `Retraction`, `Expression of concern` and `Reinstatement`, and
+`registries/retractions.py` maps it onto a notice kind of its own. A correction
+says the work stands and has been amended — the mildest of the three things a
+notice can say, milder than a concern, which leaves the work standing and
+doubted.
+
+It is reported as `status/correction` at `info` severity, so the verdict does
+not move and the entry can still be `OK`. Failing a build because a cited paper
+was corrected is the false alarm this tool's third rule is about. What the
+finding is for is the reader who wants the corrected version's numbers rather
+than the original's, and it reaches them through the JSON report and
+`--verbose`, the same routes `year/alternate-date` and `doi/alias` take. There
+is no `--fail-on` switch that makes it bite: `--fail-on` selects verdicts, and
+a correction produces none of its own.
+
+Anything not in the concern or the correction vocabulary is still a retraction,
+kind included when this tool has never seen it. The two sets are for kinds this
+project *mints* — both come out of `_RW_KIND_MAP` — and neither widens the
+"a registry I have not heard of cannot talk me out of the finding" default. A
+correction reaching `compare` untagged is how 10.3390/nano14090769
+(*Nanomaterials*), for which Retraction Watch logs a correction and nothing
+else, came to print `RETRACTED — the cited work has itself been retracted` and
+exit 1.
+
+Where two sources disagree about the same DOI, `_KIND_PRIORITY` keeps the more
+definitive kind, and a correction is last: retraction, withdrawal, removal,
+expression of concern, correction. Ranked above the concern it *softened* a
+finding — a DOI Retraction Watch logs a correction for and NLM carries an `ECI`
+against merged to the correction, and the concern went unreported.
+
 !!! note "Where a concern lands in the verdict table"
 
     A concern is an error, so the entry fails — but it currently fails under
