@@ -25,6 +25,7 @@ from bibaudit.compare import compare
 from bibaudit.model import Name, Record, Reference, Result
 from bibaudit.names import parse_name_list
 from bibaudit.normalize import clean
+from bibaudit.registries import pubmed as pubmed_client
 
 TITLE = "Shift work and colorectal cancer risk in the MCC-Spain case-control study"
 
@@ -61,6 +62,20 @@ def crossref_authors(case: str) -> list[Name]:
         Name(family=clean(person.get("family", "")), given=clean(person.get("given", "")))
         for person in work["author"]
     ]
+
+
+def medline_journal(fixture: str) -> tuple[str, list[str]]:
+    """``JT`` and ``TA`` as ``registries.pubmed`` reads them from a saved ``efetch`` body.
+
+    Parsing NCBI's own bytes rather than retyping the two lines is what keeps a
+    container suppression auditable: the qualifier, its inner punctuation and
+    its spacing are the whole of what these rules turn on, and a transcription
+    of them proves only that the test agrees with itself.
+    """
+    text = (_DATA / fixture).read_text(encoding="utf-8")
+    [fields] = pubmed_client._parse_medline_records(text)
+    record = pubmed_client._record_from_medline(fields)
+    return record.container, list(record.container_alternates)
 
 
 def make_ref(**overrides: object) -> Reference:
@@ -452,12 +467,12 @@ class TestContainerLeadingArticle:
         """With no ``TA`` on the record there is no title to match, and none is invented.
 
         This rule reads the titles the registry supplies and strips one opening
-        article from the *stored* value; it never edits the registry's. What a
-        rule may take off the registry side is decided next door, in
-        :class:`TestContainerMedlineSubtitle`, which cuts the subtitle NLM
-        writes after its own spaced colon and deliberately leaves ``(London,
-        England)`` alone — the qualifier is
-        exactly what tells two serials sharing a base title apart.
+        article from the *stored* value; it never edits the registry's. What
+        may come off the registry side is decided next door, in
+        :class:`TestContainerMedlineSubtitle` and
+        :class:`TestContainerMedlineQualifier` — and neither of those reaches
+        this pairing either, because both strip an article from the registry's
+        side alone and here it is the stored value that carries one.
         """
         assert classify(
             "container", "The Lancet", "Lancet (London, England)", container_alternates=[]
@@ -618,13 +633,15 @@ class TestContainerMedlineSubtitle:
 
         NLM writes its spaced colon inside the qualifier where the body named
         there needs a date to be unambiguous, so the first one in ``JT`` is not
-        always the separator. Splitting on it leaves a base ending mid-qualifier
-        — and the qualifier is the whole of what tells two serials of the same
-        name apart.
+        always the separator. Splitting on it leaves a base ending
+        mid-qualifier, which is not a name to compare a stored value against.
+        A stored value that *is* that fragment is the only thing the guard has
+        to hold off, and it holds; the journal's own name reaches
+        :class:`TestContainerMedlineQualifier`, which takes the qualifier off
+        whole.
         """
-        jt = "ASAIO journal (American Society for Artificial Internal Organs : 1992)"
+        jt, _ = medline_journal("pubmed_qualifier_inner_colon.txt")
 
-        assert classify("container", "ASAIO Journal", jt) is None
         assert classify("container", jt.partition(" : ")[0], jt) is None
 
     def test_a_journal_sharing_the_opening_words_still_fires(self) -> None:
@@ -643,20 +660,155 @@ class TestContainerMedlineSubtitle:
             "container", "Clinical Cancer Research", self.JT, container_alternates=list(self.TA)
         ) is None
 
-    def test_a_place_qualifier_is_not_a_medline_subtitle(self) -> None:
-        """The shape the rule refuses to touch, and the cost of refusing it.
 
-        ``Annals of medicine and surgery (2012)`` (``TA - Ann Med Surg
-        (Lond)``) is a correct entry reported as a `container/mismatch`,
-        because the qualifier is what tells that serial from the earlier one of
-        the same name and a rule that dropped it would merge the two. The false
-        alarm is the deliberately chosen half of that trade — see
-        ``docs/registry-artifacts.md``.
+class TestContainerMedlineQualifier:
+    """``JT`` also carries a parenthetical qualifier, and it comes off.
+
+    NLM appends one — a place, a founding year, the issuing body, or several
+    at once — wherever a bare title would be ambiguous in its catalogue, on
+    2,697 of the 37,979 serials in ``J_Medline.txt``. In a catalogue that
+    qualifier is exactly what tells two serials of the same base name apart,
+    which is the objection this rule has to answer; in *this* comparison
+    nothing is being looked up. ``compare`` reaches ``container`` only after
+    the work has been pinned — by its identifier, or by the title, author and
+    year ``confirm_without_id`` demanded — and a work appears in exactly one
+    serial, so the ``JT`` in hand is by construction that serial's.
+
+    The residual exposure is a citation naming a journal that shares a base
+    title with the right one *and* being wrong about it: ``The neurologist``
+    (NlmId 9503763) beside ``The neurologist (Hyderabad, India)`` (NlmId
+    101719078) is a real such pair. It requires the entry to be wrong in the
+    one field the identifier already settled.
+    """
+
+    def test_a_founding_year_qualifier_is_an_artifact(self) -> None:
+        """PMID 42555391, ``tests/data/pubmed_qualifier_year.txt``.
+
+        ``TA`` is a real abbreviation carrying a qualifier of its own, so the
+        alternate-title route does not reach the entry either, and without
+        this rule a correct citation of the journal's own name fails the
+        build.
+        """
+        jt, ta = medline_journal("pubmed_qualifier_year.txt")
+
+        assert (jt, ta) == ("Annals of medicine and surgery (2012)", ["Ann Med Surg (Lond)"])
+        assert classify(
+            "container", "Annals of Medicine and Surgery", jt, container_alternates=ta
+        ) == "registry appends a parenthetical qualifier to the journal name"
+
+    def test_a_qualifier_carrying_its_own_colon_comes_off_whole(self) -> None:
+        """PMID 42552576, ``tests/data/pubmed_qualifier_inner_colon.txt``.
+
+        ``ASAIO journal (American Society for Artificial Internal Organs :
+        1992)``. The parenthetical is matched from its closing bracket back to
+        the one that opens it, so NLM's inner colon never splits it and the
+        base left behind is the journal's whole name rather than the head of a
+        qualifier.
+        """
+        jt, ta = medline_journal("pubmed_qualifier_inner_colon.txt")
+
+        assert jt == "ASAIO journal (American Society for Artificial Internal Organs : 1992)"
+        assert classify("container", "ASAIO Journal", jt, container_alternates=ta) == (
+            "registry appends a parenthetical qualifier to the journal name"
+        )
+
+    def test_a_nested_qualifier_comes_off_in_one_piece(self) -> None:
+        """PMID 42546669: ``Clinical oncology (Royal College of Radiologists
+        (Great Britain))``.
+
+        Forty-nine serials name a body that itself needs a country, and the
+        outer bracket is the one that closes the qualifier. A pattern matching
+        only bracket-free contents would leave ``Clinical oncology (Royal
+        College of Radiologists`` and suppress nothing.
+        """
+        jt = "Clinical oncology (Royal College of Radiologists (Great Britain))"
+
+        assert classify("container", "Clinical Oncology", jt) == (
+            "registry appends a parenthetical qualifier to the journal name"
+        )
+
+    def test_a_leading_article_before_the_qualifier_is_the_same_defect(self) -> None:
+        """PMID 30151503, ``tests/data/pubmed_qualifier_leading_article.txt``.
+
+        NLM keeps the article on ten of the qualified serials and drops it on
+        the rest, so it comes off the registry's remainder exactly as it does
+        after the spaced colon next door. Which of the two happened is what the
+        returned reason says, because a suppression whose stated cause is not
+        the actual one cannot be argued with.
+        """
+        jt, ta = medline_journal("pubmed_qualifier_leading_article.txt")
+
+        assert (jt, ta) == ("The neurologist (Hyderabad, India)", ["Neurologist (Hyderabad)"])
+        assert classify("container", "Neurologist", jt, container_alternates=ta) == (
+            "registry files the journal under a leading article and a qualifier"
+        )
+
+    def test_a_qualifier_left_unclosed_is_refused(self) -> None:
+        """NlmId 101745449: ``Interventional radiology (Higashimatsuyama-shi (Japan)``.
+
+        One of four titles in NLM's serial list whose final bracket does not
+        close the qualifier. Stripping from it leaves ``Interventional
+        radiology (Higashimatsuyama-shi``, a fragment of a name, and comparing
+        a stored value against a fragment is what the balance check exists to
+        stop.
+
+        The same walk answers the question from the other side. A bracket that
+        nothing opens is not in NLM's list, but it is what that same title
+        looks like after an export has eaten the opening ones, and there is no
+        qualifier there to remove.
+        """
+        jt = "Interventional radiology (Higashimatsuyama-shi (Japan)"
+
+        assert classify("container", "Interventional Radiology", jt) is None
+        assert classify("container", "Interventional radiology (Higashimatsuyama-shi", jt) is None
+        assert classify(
+            "container", "Interventional Radiology",
+            "Interventional radiology Higashimatsuyama-shi Japan)",
+        ) is None
+
+    def test_a_journal_differing_by_a_word_still_fires(self) -> None:
+        """The pairing. The remainder has to equal the stored name outright.
+
+        *Annals of Surgery* is a different journal from *Annals of Medicine and
+        Surgery*, and a prefix or substring test over the remainder would
+        explain away exactly the sibling-journal error the container check
+        exists to report.
+        """
+        jt, ta = medline_journal("pubmed_qualifier_year.txt")
+
+        assert classify("container", "Annals of Surgery", jt, container_alternates=ta) is None
+        result = compare(
+            make_ref(container="Annals of Surgery"),
+            {"pubmed": make_record(source="pubmed", container=jt, container_alternates=ta)},
+        )
+        assert errors(result, "container") == ["mismatch"]
+
+    def test_an_unrelated_journal_still_fires(self) -> None:
+        jt, ta = medline_journal("pubmed_qualifier_leading_article.txt")
+
+        assert classify("container", "Neurology", jt, container_alternates=ta) is None
+
+    def test_a_different_article_on_the_stored_side_still_fires(self) -> None:
+        """Only one side is ever stripped, so *A* is not *The*.
+
+        Taking the article off both would suppress two journals whose names
+        differ by exactly the word that distinguishes them, under a sentence
+        blaming the registry for a difference it did not make.
         """
         assert classify(
-            "container", "Annals of Medicine and Surgery",
-            "Annals of medicine and surgery (2012)",
-            container_alternates=["Ann Med Surg (Lond)"],
+            "container", "A Journal of Cancer", "The Journal of Cancer (Basel, Switzerland)"
+        ) is None
+
+    def test_the_stored_side_keeps_its_own_qualifier(self) -> None:
+        """The registry's value is the only one edited.
+
+        An entry exported from PubMed stores the qualifier, and the reason
+        printed says the registry appended it; a rule stripping the stored side
+        too would say that of an entry the registry appended nothing to, and
+        would drop a qualifier from each of two serials in the one comparison.
+        """
+        assert classify(
+            "container", "Annals of Medicine and Surgery (2012)", "Annals of medicine and surgery"
         ) is None
 
 
@@ -761,6 +913,16 @@ class TestRuleScoping:
             (
                 "title", "Vitamin D", "Vitamin D : a review of the evidence",
                 {}, "_container_medline_subtitle",
+            ),
+            # _container_medline_qualifier accepts a stored value equal to the
+            # registry's minus a trailing parenthetical. Unscoped, an entry
+            # titled "Vitamin D" is explained against a registry title of
+            # "Vitamin D (second edition)" — a different document, and the
+            # parenthesis in a title is the publisher's, not a catalogue's
+            # disambiguator.
+            (
+                "title", "Vitamin D", "Vitamin D (second edition)",
+                {}, "_container_medline_qualifier",
             ),
             # _pmid_pmc_accession compares a stored number against the record's
             # own PMC line. Unscoped, any field whose value happens to equal

@@ -1,0 +1,93 @@
+
+PMID- 42555391
+OWN - NLM
+STAT- PubMed-not-MEDLINE
+DCOM- 20260805
+LR  - 20260805
+IS  - 2049-0801 (Print)
+IS  - 2049-0801 (Linking)
+VI  - 88
+IP  - 7
+DP  - 2026 Jul
+TI  - Short versus long myotomy during peroral endoscopic myotomy for achalasia: a 
+      systematic review and meta-analysis.
+PG  - 4448-4456
+LID - 10.1097/MS9.0000000000005074 [doi]
+AB  - BACKGROUND: Peroral endoscopic myotomy (POEM) is an established treatment 
+      modality for achalasia. This meta-analysis aimed to compare the clinically 
+      relevant outcomes of short and long myotomy during POEM for achalasia. METHODS: 
+      PubMed, Cochrane Central, and ScienceDirect were systematically searched from 
+      inception to February 2025. The risk ratios (RRs) and mean differences (MDs) were 
+      pooled using the random-effects model in Review Manager. Quality assessment was 
+      conducted using the Cochrane Risk of Bias (RoB 2.0) tool and the Newcastle-Ottawa 
+      Scale. RESULTS: Seven studies, pooling a total of 737 patients, were included in 
+      the analysis. The short myotomy showed no significant difference in clinical 
+      success [RR: 1.02; 95% CI: (0.99-1.05); P = 0.19], Eckardt score (P = 0.45), or 
+      lower esophageal sphincter pressure (P = 0.72) compared to the long myotomy. 
+      Similarly, the integrated relaxation pressures (P = 0.73), duration of 
+      hospitalization (P = 0.67), and the risk of erosive esophagitis (P = 0.13) were 
+      comparable between the two arms. The short myotomy arm significantly reduced 
+      overall procedural duration [MD: -15.84; 95% CI: (-21.05 to -10.63); P 
+      < 0.00001]. Short myotomy was also associated with a significantly lower risk of 
+      abnormal esophageal acid exposure [RR: 0.64; 95% CI: (0.43-0.95); P = 0.03]. 
+      CONCLUSION: Short myotomy was associated with a significant reduction in 
+      procedural time and risk of abnormal esophageal acid exposure, whereas the 
+      remaining efficacy and safety endpoints were comparable between the two 
+      techniques.
+CI  - Copyright (c) 2026 The Author(s). Published by Wolters Kluwer Health, Inc.
+FAU - Ul Abideen, Zain
+AU  - Ul Abideen Z
+AD  - King Edward Medical University, Lahore, Pakistan.
+FAU - Waseem, Muhammad Hassan
+AU  - Waseem MH
+AD  - Allama Iqbal Medical College, Lahore, Pakistan.
+FAU - Ali, Rimmel
+AU  - Ali R
+AD  - Dow Medical College, Karachi, Pakistan.
+FAU - Chu, Avan
+AU  - Chu A
+AD  - Wayne State University School of Medicine, Detroit, MI, USA.
+FAU - Hameed, Muhammad Sheraz
+AU  - Hameed MS
+AD  - Rawalpindi Medical University, Rawalpindi, Pakistan.
+FAU - Abdullah
+AU  - Abdullah
+AD  - Rawalpindi Medical University, Rawalpindi, Pakistan.
+FAU - Ramzan, Noor-Ul-Huda
+AU  - Ramzan NU
+AD  - UT Southwestern Medical Center, Dallas, TX, USA.
+FAU - Thada, Pawan Kumar
+AU  - Thada PK
+AUID- ORCID: 0000-0002-2085-8739
+AD  - Sotang Primary Hospital, Solukhumbu, Nepal.
+FAU - Kumar Jalal, Prasun
+AU  - Kumar Jalal P
+AD  - Baylor College of Medicine, TX, USA.
+LA  - eng
+PT  - Journal Article
+DEP - 20260515
+PL  - England
+TA  - Ann Med Surg (Lond)
+JT  - Annals of medicine and surgery (2012)
+JID - 101616869
+PMC - PMC13354361
+OTO - NOTNLM
+OT  - achalasia
+OT  - esophagus
+OT  - meta-analysis
+OT  - myotomy
+OT  - peroral endoscopic myotomy
+COIS- The authors declare that they have no conflicts of interest.
+EDAT- 2026/08/05 18:38
+MHDA- 2026/08/05 18:39
+CRDT- 2026/08/05 12:46
+PHST- 2026/08/05 18:39 [medline]
+PHST- 2026/08/05 18:38 [pubmed]
+PHST- 2025/10/19 00:00 [received]
+PHST- 2026/04/04 00:00 [accepted]
+PHST- 2026/08/05 12:46 [entrez]
+AID - AMSU-D-25-03175 [pii]
+AID - 10.1097/MS9.0000000000005074 [doi]
+PST - epublish
+SO  - Ann Med Surg (Lond). 2026 May 15;88(7):4448-4456. doi: 
+      10.1097/MS9.0000000000005074. eCollection 2026 Jul.

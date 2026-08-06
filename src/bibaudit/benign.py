@@ -375,10 +375,11 @@ def _container_leading_article(field: str, stored: str, registry: str, ref: Refe
 
     Only an opening ``The``/``A``/``An`` may differ, and only against a title
     **the record itself carries** — ``TA`` reaches
-    :attr:`~bibaudit.model.Record.container_alternates` for this. Stripping
-    the qualifier instead would be the wrong rule: ``(London, England)`` is
-    precisely what tells two serials sharing a base title apart, and a rule
-    that dropped it would merge them.
+    :attr:`~bibaudit.model.Record.container_alternates` for this. This rule
+    reads whole titles and edits neither side beyond that one word; the
+    parenthetical qualifier comes off in
+    :func:`_container_medline_qualifier`, which is where the case for removing
+    it is made.
 
     The article comes off the **stored** value only, because that is what the
     reason printed beside the suppression says happened. Taking it off both
@@ -434,21 +435,19 @@ def _container_medline_subtitle(field: str, stored: str, registry: str, ref: Ref
     Only the text before NLM's own :data:`_MEDLINE_SUBTITLE` separator is
     compared, and it has to equal the stored name outright: *Cancer
     Epidemiology* — a different journal — differs from the base title by a
-    word, so it still fires. A **parenthetical** qualifier is deliberately not
-    treated this way: ``(London, England)``, ``(Clinical research ed.)``,
-    ``(2012)`` are what tell two serials sharing a base title apart, and
-    dropping one would merge them. Those are reached instead through ``TA``,
-    which for such journals is the plain name — see
-    :func:`_container_leading_article`.
+    word, so it still fires. A **parenthetical** qualifier is the other shape
+    NLM's filing titles take, and it is removed by
+    :func:`_container_medline_qualifier`; this rule reads the colon and
+    nothing else.
 
-    So the *first* spaced colon in ``JT`` is not always NLM's own separator:
-    it writes one **inside** a parenthetical qualifier where the body named
-    there needs a date of its own to be unambiguous — ``ASAIO journal
-    (American Society for Artificial Internal Organs : 1992)``, PMID 42552576.
-    Splitting on that colon leaves a base ending mid-qualifier, and comparing a
-    stored name against half a qualifier is exactly the merge the paragraph
-    above refuses to make. An unclosed parenthesis in the base is what that
-    looks like, and it is refused.
+    The *first* spaced colon in ``JT`` is not always NLM's own separator: it
+    writes one **inside** a parenthetical qualifier where the body named there
+    needs a date of its own to be unambiguous — ``ASAIO journal (American
+    Society for Artificial Internal Organs : 1992)``, PMID 42552576. Splitting
+    on that colon leaves a base ending mid-qualifier, and half a qualifier is
+    not a name any stored value should be compared against. An unclosed
+    parenthesis in the base is what that looks like, and it is refused — the
+    rule next door then takes the qualifier off whole.
 
     NLM drops a serial's leading article on most titles and keeps it on some,
     so the article has to come off the **registry's** base for the second
@@ -479,6 +478,111 @@ def _container_medline_subtitle(field: str, stored: str, registry: str, ref: Ref
         return "registry appends its own subtitle to the journal name"
     if _LEADING_ARTICLE.sub("", folded_base) == folded_stored:
         return "registry files the journal under a leading article and a subtitle"
+    return None
+
+
+def _without_trailing_qualifier(title: str) -> str | None:
+    """*title* with one trailing balanced parenthetical removed, or ``None``.
+
+    Matched from the closing parenthesis back to the ``(`` that balances it,
+    rather than by a pattern over the qualifier's contents, because NLM writes
+    both a spaced colon and a nested parenthetical inside one: ``ASAIO journal
+    (American Society for Artificial Internal Organs : 1992)`` (PMID 42552576)
+    and ``Clinical oncology (Royal College of Radiologists (Great Britain))``
+    (PMID 42546669) each lose their qualifier whole.
+
+    ``None`` when there is no trailing parenthetical, when nothing opens it, or
+    when what is left still holds an unclosed ``(``: four titles in NLM's own
+    serial list end on a parenthesis that does not close the qualifier —
+    ``Interventional radiology (Higashimatsuyama-shi (Japan)``, NlmId
+    101745449, is one — and the remainder there is a fragment of a name rather
+    than a name. Callers must treat ``None`` as "no comparison to make".
+    """
+    if not title.endswith(")"):
+        return None
+    depth = 0
+    for index in range(len(title) - 1, -1, -1):
+        char = title[index]
+        if char == ")":
+            depth += 1
+        elif char == "(":
+            depth -= 1
+            if depth:
+                continue
+            remainder = title[:index].rstrip()
+            if not remainder or remainder.count("(") != remainder.count(")"):
+                return None
+            return remainder
+    return None
+
+
+def _container_medline_qualifier(field: str, stored: str, registry: str, ref: Reference, rec: Record) -> str | None:
+    """Stored name is the journal's; the registry adds a parenthetical qualifier to it.
+
+    Instances: PMID 42555391, ``JT - Annals of medicine and surgery (2012)``
+    beside ``TA - Ann Med Surg (Lond)``, recorded verbatim in
+    ``tests/data/pubmed_qualifier_year.txt``, and PMID 42552576, ``JT - ASAIO
+    journal (American Society for Artificial Internal Organs : 1992)`` beside
+    ``TA - ASAIO J``, in ``tests/data/pubmed_qualifier_inner_colon.txt``. NLM
+    appends a qualifier — a place, a founding year, the issuing body, or
+    several at once — wherever a bare title would be ambiguous in its
+    catalogue, on 2,697 of the 37,979 serials in its own list,
+    ``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``. The masthead, Crossref and
+    the bibliography carry the bare title, and where ``TA`` is a real
+    abbreviation rather than the plain name nothing else reaches the entry:
+    :func:`_container_abbreviation` needs the stored tokens to reach ``JT``'s
+    last one, which is inside the qualifier, and
+    :func:`_container_leading_article` compares against the whole of ``JT``.
+
+    **Why the qualifier may be dropped**, when in a catalogue it is exactly
+    what tells two serials sharing a base title apart: that is a fact about
+    looking a journal up, and nothing here looks one up. By the time
+    :func:`~bibaudit.compare.compare` reaches ``container`` the work is already
+    pinned — by its DOI or PMID, or, for an entry carrying neither, by the
+    title, first author and year :func:`~bibaudit.compare.confirm_without_id`
+    demanded before any record was adopted — and a work appears in exactly one
+    serial. The registry's ``JT`` is by construction the serial *this* work
+    appeared in, so there is one serial in play and nothing to merge. What the
+    rule accepts is ``Lancet`` for a work published in ``Lancet (London,
+    England)``, which is correct.
+
+    **What it costs**, stated so it can be argued with: for this to be a miss,
+    a citation would have to name a journal sharing a base title with the right
+    one *and* be wrong about it. Such pairs exist — ``The neurologist`` (NlmId
+    9503763) beside ``The neurologist (Hyderabad, India)`` (NlmId 101719078),
+    and 316 qualified titles whose base is some other serial's full name — so
+    an entry resolved by PMID 30151503 and naming the journal *The Neurologist*
+    is accepted. That is the whole of the exposure: it needs the citation to be
+    wrong in the one field the identifier has already settled, and every other
+    field of the entry is still compared against the record.
+
+    NLM drops a serial's leading article on most titles and keeps it on some,
+    so one opening ``The``/``A``/``An`` comes off the **registry's** remainder
+    too, exactly as :func:`_container_medline_subtitle` does after its colon.
+    ``The neurologist (Hyderabad, India)``, ``TA - Neurologist (Hyderabad)``
+    (PMID 30151503, ``tests/data/pubmed_qualifier_leading_article.txt``) is the
+    shape: ten of the qualified serials keep an article, and it is the only one
+    whose remainder is a plain journal name. The **stored** side is never
+    stripped, so at most one article is dropped in any comparison and ``A
+    Journal of Cancer`` against ``The Journal of Cancer (Basel, Switzerland)``
+    stays a difference. Which of the two happened is what the returned reason
+    says.
+
+    Never a prefix or a substring test: the remainder has to equal the stored
+    name outright. *Cancer Epidemiology* against *Cancer Epidemiology,
+    Biomarkers & Prevention* differs by a word rather than by a qualifier, and
+    fires here for the same reason it fires next door.
+    """
+    if field != "container":
+        return None
+    base = _without_trailing_qualifier(registry)
+    if base is None:
+        return None
+    folded_base, folded_stored = fold(base), fold(stored)
+    if folded_base == folded_stored:
+        return "registry appends a parenthetical qualifier to the journal name"
+    if _LEADING_ARTICLE.sub("", folded_base) == folded_stored:
+        return "registry files the journal under a leading article and a qualifier"
     return None
 
 
@@ -536,6 +640,7 @@ CHECKS: tuple[ArtifactCheck, ...] = (
     _container_abbreviation,
     _container_leading_article,
     _container_medline_subtitle,
+    _container_medline_qualifier,
     _doi_redirecting_prefix,
     _pmid_pmc_accession,
 )

@@ -1,0 +1,75 @@
+
+PMID- 42552576
+OWN - NLM
+STAT- Publisher
+LR  - 20260805
+IS  - 1538-943X (Electronic)
+IS  - 1058-2916 (Linking)
+DP  - 2026 Aug 5
+TI  - Novel Explantation Protocol for Cardiac Recovery and Device Weaning Post-Left 
+      Ventricular Assist Device Therapy: A Single-Center Experience.
+LID - 10.1097/MAT.0000000000002689 [doi]
+AB  - Although some patients may exhibit significant myocardial improvement after the 
+      placement of a durable left ventricular assist device (LVAD), there are no 
+      established guidelines on determining patients who may be eligible for 
+      explantation. In this single-center case series, three patients were evaluated 
+      for LVAD explantation 8-24 months after implantation using a rigorous 
+      multimodality protocol along with multidisciplinary team discussions to assess 
+      appropriateness for explantation. Although two of the patients have remained 
+      successful device-free, the third patient ultimately underwent heart 
+      transplantation 2 months post-explantation. We propose evaluating this protocol 
+      more broadly in patients with durable LVADs who demonstrate improved left 
+      ventricular function with the goal of ultimately developing standardized 
+      guidelines to assess appropriateness for LVAD explantation.
+CI  - Copyright (c) ASAIO 2026.
+FAU - Kumar, Aarti
+AU  - Kumar A
+AD  - From the Department of Internal Medicine, University of California, Los Angeles, 
+      California.
+FAU - Mitchell, Ashley J
+AU  - Mitchell AJ
+AD  - Department of Medicine, Cedars-Sinai Kidney Transplant Program, Los Angeles, 
+      California.
+FAU - Shahandeh, Negeen
+AU  - Shahandeh N
+AD  - Division of Cardiology, University of California, Los Angeles, California.
+FAU - Vucicevic, Darko
+AU  - Vucicevic D
+AD  - Division of Cardiology, University of California, Los Angeles, California.
+FAU - Kwon, Murray H
+AU  - Kwon MH
+AD  - Division of Cardiac Surgery, University of California, Los Angeles, California.
+FAU - Srivastava, Pratyaksh K
+AU  - Srivastava PK
+AD  - Division of Cardiology, University of California, Los Angeles, California.
+FAU - Nsair, Ali
+AU  - Nsair A
+AD  - Division of Cardiology, University of California, Los Angeles, California.
+FAU - Kamath, Megan Y
+AU  - Kamath MY
+AUID- ORCID: 0000-0002-6585-7561
+AD  - Division of Cardiology, University of California, Los Angeles, California.
+LA  - eng
+PT  - Journal Article
+DEP - 20260805
+PL  - United States
+TA  - ASAIO J
+JT  - ASAIO journal (American Society for Artificial Internal Organs : 1992)
+JID - 9204109
+SB  - IM
+OTO - NOTNLM
+OT  - cardiac recovery
+OT  - durable left ventricular assist device
+OT  - heart failure
+OT  - mechanical circulatory support
+COIS- Disclosure: The authors have no conflicts of interest to report.
+EDAT- 2026/08/05 06:42
+MHDA- 2026/08/05 06:42
+CRDT- 2026/08/05 00:31
+PHST- 2026/08/05 06:42 [medline]
+PHST- 2026/08/05 06:42 [pubmed]
+PHST- 2026/08/05 00:31 [entrez]
+AID - 00002480-990000000-01034 [pii]
+AID - 10.1097/MAT.0000000000002689 [doi]
+PST - aheadofprint
+SO  - ASAIO J. 2026 Aug 5. doi: 10.1097/MAT.0000000000002689.

@@ -50,13 +50,17 @@ so `uv sync --all-extras` does not install it into the test environment.
   `REGISTRY-ARTIFACT`, and so is one matching everything before the subtitle,
   with or without an article NLM kept and the masthead does not — `The Journal
   of adolescent health : official publication of the Society for Adolescent
-  Medicine` against a stored *Journal of Adolescent Health*. Neither is a
-  prefix test — `Cancer Epidemiology` is a different
-  journal and still fires — and the parenthetical qualifier is never stripped,
-  because `(London, England)` is what tells two serials sharing a base title
-  apart; where NLM writes a spaced colon *inside* one of those, as in `ASAIO
-  journal (American Society for Artificial Internal Organs : 1992)`, it is not
-  read as the subtitle separator. Dates the same way: `DP` is the issue a citation is filed under and
+  Medicine` against a stored *Journal of Adolescent Health*. The qualifier is
+  a `REGISTRY-ARTIFACT` on the same terms — `Annals of Medicine and Surgery`
+  against `Annals of medicine and surgery (2012)` — because `compare` reaches
+  the journal name only after the work has been pinned by its identifier, and
+  a work appears in one serial: the qualifier disambiguates a catalogue, and
+  no catalogue is being searched here. It comes off from its closing bracket
+  back to the one that balances it, so a colon NLM writes *inside* one, as in
+  `ASAIO journal (American Society for Artificial Internal Organs : 1992)`, is
+  neither read as the subtitle separator nor split on. None of it is a prefix
+  test: `Cancer Epidemiology` is a different journal and still fires. Dates
+  the same way: `DP` is the issue a citation is filed under and
   `DEP` the day the work went online, and both reach `Record.years`, so an entry
   citing the online-first year of a paper printed the following year is accepted
   exactly as Crossref's `published-online` already was.

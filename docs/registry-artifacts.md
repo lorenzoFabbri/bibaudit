@@ -706,7 +706,8 @@ PubMed is the only registry consulted and its `JT` is the only container value
 there is: every correct Lancet, BMJ, Science or Cancer Epidemiology, Biomarkers
 & Prevention entry resolved by PMID was a `FIELD-MISMATCH`, and the run exited 1.
 
-**Handling, in three places.**
+**Handling, in three places** — a fourth, for the parenthetical qualifier, is
+the section after this one.
 
 `registries/pubmed._record_from_medline` puts `TA` on the record's
 `container_alternates` as well as its `container_short`. Both are titles PubMed
@@ -722,11 +723,12 @@ comes off the **stored** side only — that is what the printed reason claims
 happened, so `A Journal of Cancer` against `The Journal of Cancer` is a
 difference and not an artifact — and it has to be the opening word: `Journal of
 the National Cancer Institute` against `Journal of National Cancer Institute`
-still fires. The qualifier is not stripped either, and deliberately: `(London,
-England)` is exactly what tells two serials sharing a base title apart, so a
-rule that dropped it would merge them. `The Lancet Oncology` against `Lancet
-(London, England)` therefore still fires — strip its article and what is left
-matches neither title that record carries.
+still fires. The qualifier is not stripped here at all — this rule compares
+whole titles, and what may come off the registry's side is decided by the two
+rules below. `The Lancet Oncology` against `Lancet (London, England)`
+therefore still fires under all three: strip its article and what is left
+matches neither title that record carries, and take the qualifier off and
+`Lancet` is still not `The Lancet Oncology`.
 
 The `BMJ` record is worth spelling out, because the two spellings a bibliography
 uses reach the same destination by different routes. Against `JT` `BMJ (Clinical
@@ -758,19 +760,84 @@ comparison and `A Journal of Cancer` against `The Journal of Cancer : …`
 remains a `container/mismatch` — two journals differing by exactly the word
 that distinguishes them.
 
-Only the colon form is stripped, never the parenthetical one, and the
-difference is not cosmetic. The subtitle is part of the same serial's own
-title; the parenthetical qualifier exists precisely to tell two serials
-sharing a base title apart. NLM writes a spaced colon *inside* one of those
-qualifiers where the body named there needs a date of its own — `ASAIO journal
-(American Society for Artificial Internal Organs : 1992)`, PMID 42552576 — so
-the first spaced colon in `JT` is not always the separator, and a base left
-holding an unclosed parenthesis is refused rather than compared against. A
-journal whose `JT` carries a qualifier *and*
-whose `TA` is a real abbreviation — `Annals of medicine and surgery (2012)`,
-`TA - Ann Med Surg (Lond)` — therefore still reports a `container/mismatch`
-against an entry storing the masthead name. That is a known false alarm, kept
-deliberately in preference to a rule that would merge two journals.
+That rule reads the colon and nothing else. NLM writes a spaced colon *inside*
+a parenthetical qualifier where the body named there needs a date of its own —
+`ASAIO journal (American Society for Artificial Internal Organs : 1992)`,
+PMID 42552576 — so the first spaced colon in `JT` is not always the separator,
+and a base left holding an unclosed parenthesis is refused rather than compared
+against: half a qualifier is not a name. The qualifier itself is the fourth
+shape, and it has its own rule below.
+
+---
+
+## Parenthetical qualifiers in a MEDLINE filing title
+
+**What happens.** NLM appends a qualifier in parentheses wherever a bare title
+would be ambiguous in its catalogue — a place (`Lancet (London, England)`), an
+edition (`BMJ (Clinical research ed.)`), a founding year (`Annals of medicine
+and surgery (2012)`), the issuing body, or several at once. It is on 2,697 of
+the 37,979 serials in NLM's own list,
+[`J_Medline.txt`](https://ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt). The
+masthead, Crossref and the bibliography all carry the bare title.
+
+**Observed.** PMID 42555391, `JT - Annals of medicine and surgery (2012)` with
+`TA - Ann Med Surg (Lond)`, recorded verbatim in
+`tests/data/pubmed_qualifier_year.txt`; PMID 42552576, `JT - ASAIO journal
+(American Society for Artificial Internal Organs : 1992)` with `TA - ASAIO J`,
+in `tests/data/pubmed_qualifier_inner_colon.txt`; and PMID 30151503, `JT - The
+neurologist (Hyderabad, India)` with `TA - Neurologist (Hyderabad)`, in
+`tests/data/pubmed_qualifier_leading_article.txt`. Where `TA` is not the
+journal's plain name — and for none of the three is it — nothing else reaches
+the entry: `_container_abbreviation` needs the stored tokens to reach `JT`'s
+last one, which is inside the qualifier, and `_container_leading_article`
+compares against the whole of `JT`. On the PMID path `JT` is the only container
+there is, so an entry citing the journal's own name has nothing else to be
+compared against, and without the rule below it reports `container/mismatch`.
+
+**Detection.** `benign._container_medline_qualifier` removes one trailing
+balanced parenthetical from the **registry's** value and requires what is left
+to equal the stored name outright, or to equal it after one opening
+`The`/`A`/`An` comes off that same remainder. Never a prefix and never a
+substring: *Annals of Surgery* against `Annals of medicine and surgery (2012)`
+differs by more than a qualifier and still reports `container/mismatch`, as
+*Cancer Epidemiology* does against *Cancer Epidemiology, Biomarkers &
+Prevention* next door.
+
+**Why the qualifier may be dropped, when in a catalogue it is exactly what
+tells two serials apart.** That objection is about looking a journal up, and
+nothing in this comparison looks one up. By the time `compare` reaches
+`container`, the work has already been pinned — by its DOI or PMID, or, for an
+entry carrying neither, by the title, first author and year that
+`compare.confirm_without_id` demanded before any record was adopted — and a
+work appears in exactly one serial. The registry's `JT` is therefore, by
+construction, the serial *this* work appeared in: there is one serial in play
+and nothing to merge. What the rule accepts is `Lancet` for a work published in
+`Lancet (London, England)`, which is correct.
+
+**What it costs.** For this to be a miss, a citation would have to name a
+journal that shares a base title with the right one *and* be wrong about it.
+Such pairs are real: `The neurologist` (NlmId 9503763) beside `The neurologist
+(Hyderabad, India)` (NlmId 101719078), and 316 qualified titles whose base is
+some other serial's full name. So an entry resolved by PMID 30151503 and naming
+the journal *The Neurologist* is accepted. That is the whole of the exposure:
+it needs the entry to be wrong in the one field the identifier has already
+settled, and every other field of that entry is still compared against the
+record.
+
+**Two details of the stripping.** The parenthetical is matched from its closing
+bracket back to the one that balances it, not by a pattern over its contents,
+so NLM's inner colon never splits it and a nested qualifier comes off in one
+piece — `Clinical oncology (Royal College of Radiologists (Great Britain))`
+(PMID 42546669) is one of forty-nine serials naming a body that itself needs a
+country. And a remainder still holding an unclosed `(` is refused: four titles
+in NLM's list end on a bracket that does not close the qualifier —
+`Interventional radiology (Higashimatsuyama-shi (Japan)`, NlmId 101745449 — and
+what is left of one of those is a fragment of a name rather than a name.
+
+The **stored** side is never stripped. At most one article is dropped in any
+comparison, so `A Journal of Cancer` against `The Journal of Cancer (Basel,
+Switzerland)` stays a `container/mismatch`, and an entry that stores the
+qualifier itself is compared as it was written.
 
 ---
 

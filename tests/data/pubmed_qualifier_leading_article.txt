@@ -1,0 +1,63 @@
+
+PMID- 30151503
+OWN - NLM
+STAT- PubMed-not-MEDLINE
+LR  - 20200929
+VI  - 1
+IP  - 1
+DP  - 2017
+TI  - Distinct neuroimaging features define Parkinson's disease and welding-related 
+      neurotoxicity.
+LID - e102 [pii]
+FAU - Lee, Eun-Young
+AU  - Lee EY
+AD  - Department of Neurology, Pennsylvania State University-Milton S. Hershey Medical 
+      Center, Hershey PA 17033, USA.
+FAU - Lewis, Mechelle M
+AU  - Lewis MM
+AD  - Department of Neurology, Pennsylvania State University-Milton S. Hershey Medical 
+      Center, Hershey PA 17033, USA.
+AD  - Department of Pharmacology, Pennsylvania State University-Milton S. Hershey 
+      Medical Center, Hershey PA 17033, USA.
+FAU - Mailman, Richard B
+AU  - Mailman RB
+AD  - Department of Neurology, Pennsylvania State University-Milton S. Hershey Medical 
+      Center, Hershey PA 17033, USA.
+AD  - Department of Pharmacology, Pennsylvania State University-Milton S. Hershey 
+      Medical Center, Hershey PA 17033, USA.
+FAU - Huang, Xuemei
+AU  - Huang X
+AD  - Department of Neurology, Pennsylvania State University-Milton S. Hershey Medical 
+      Center, Hershey PA 17033, USA.
+AD  - Department of Pharmacology, Pennsylvania State University-Milton S. Hershey 
+      Medical Center, Hershey PA 17033, USA.
+AD  - Department of Radiology, Pennsylvania State University-Milton S. Hershey Medical 
+      Center, Hershey PA 17033, USA.
+AD  - Department of Neurosurgery, Pennsylvania State University-Milton S. Hershey 
+      Medical Center, Hershey PA 17033, USA.
+AD  - Department of Department of Kinesiology, Pennsylvania State University-Milton S. 
+      Hershey Medical Center, Hershey PA 17033, USA.
+LA  - eng
+GR  - R01 ES019672/ES/NIEHS NIH HHS/United States
+GR  - U01 NS082151/NS/NINDS NIH HHS/United States
+GR  - UL1 RR033184/RR/NCRR NIH HHS/United States
+GR  - UL1 TR000127/TR/NCATS NIH HHS/United States
+PT  - Journal Article
+DEP - 20170925
+PL  - India
+TA  - Neurologist (Hyderabad)
+JT  - The neurologist (Hyderabad, India)
+JID - 101719078
+PMC - PMC6108171
+MID - NIHMS932328
+EDAT- 2017/01/01 00:00
+MHDA- 2017/01/01 00:01
+PMCR- 2018/09/25
+CRDT- 2018/08/29 06:00
+PHST- 2018/08/29 06:00 [entrez]
+PHST- 2017/01/01 00:00 [pubmed]
+PHST- 2017/01/01 00:01 [medline]
+PHST- 2018/09/25 00:00 [pmc-release]
+AID - e102 [pii]
+PST - ppublish
+SO  - Neurologist (Hyderabad). 2017;1(1):e102. Epub 2017 Sep 25.
