@@ -6,12 +6,13 @@ as `REGISTRY-ARTIFACT` rather than as defects, and none of them ever causes a
 value to be adopted.
 
 A few sections below describe defects handled **outside** `benign.py` — in
-`names.py`, in `registries/crossref.py` or in `compare.py` — because they are
-about the shape of a list or the direction of a relation rather than about two
-strings disagreeing. Each says where it lives. Two of them
-(*Online-first versus print year*, *Container titles*) are not suppressions at
-all: nothing there is defective, and the entry stays `OK` with an `info` note
-saying which of the registry's own values matched.
+`names.py`, in `normalize.py`, in `registries/crossref.py`, in
+`registries/pubmed.py` or in `compare.py` — because they are about the shape of
+a list, the direction of a relation or the spelling of a number rather than
+about two strings disagreeing. Each says where it lives. *Online-first versus
+print year* and *Container titles* are not suppressions at all: nothing there
+is defective, and the entry stays `OK` with an `info` note saying which of the
+registry's own values matched.
 
 The list is deliberately short. A "tolerance" that is really just "this check is
 noisy" belongs in a threshold or in a project's own `.bibaudit.toml`, not here.
@@ -49,9 +50,13 @@ the same position and says so in its own words.
 **NO WITNESSED INSTANCE** in the source is not marked in its section here, so
 the two cannot drift.
 
-One section documents no defect at all. *The PMID check is one-sided, and warns
-rather than fails* records why a comparison's severity is what it is, and it is
-here because [why field-level](why.md) sends a reader looking for exactly that.
+Not every section documents a defect, and the ones that do not say so in their
+own opening lines: *Registries disagreeing with each other* and *Open Library*
+describe how a difference nobody's record caused is kept from reading as one.
+*The PMID check is one-sided, and warns rather than fails* documents no
+difference at all — it records why a comparison carries the severity it does,
+and it is here because [why field-level](why.md) sends a reader looking for
+exactly that.
 
 ---
 
