@@ -168,9 +168,23 @@ class _Context:
         )
 
     def add_artifact(
-        self, field: str, stored: object, registry: object, reason: str
+        self,
+        field: str,
+        stored: object,
+        registry: object,
+        reason: str,
+        *,
+        source: str = "",
     ) -> None:
-        """Record a difference attributable to a known registry defect."""
+        """Record a difference attributable to a known registry defect.
+
+        *source* is the registry the right-hand value came from, which is not
+        always the primary one — :func:`_registry_value` lets the corroborator
+        fill a field the primary left empty. "Registry files the journal
+        without its leading article" printed beside the name of a registry
+        that supplied no journal name names the wrong witness for a claim the
+        reader is being invited to check.
+        """
         self.suppressed.append(
             Issue(
                 field=field,
@@ -178,40 +192,42 @@ class _Context:
                 severity="info",
                 stored=clean(stored),
                 registry=clean(registry),
-                source=self.primary.source,
+                source=source or self.primary.source,
                 note=reason,
             )
         )
 
 
-def _registry_value(ctx: _Context, attr: str) -> tuple[str, str]:
-    """Value for *attr* and the registry it came from.
+def _registry_source_record(ctx: _Context, attr: str) -> Record | None:
+    """The record the comparison reads *attr* from, or ``None`` if neither has it.
 
     The primary registry wins; the corroborator fills gaps. Filling a gap is not
     arbitration — it only happens when the primary has nothing to say.
-    """
-    value = getattr(ctx.primary, attr, None)
-    if value:
-        return clean(value), ctx.primary.source
-    if ctx.corroborator:
-        alt = getattr(ctx.corroborator, attr, None)
-        if alt:
-            return clean(alt), ctx.corroborator.source
-    return "", ""
 
-
-def _registry_source_record(ctx: _Context, attr: str) -> Record | None:
-    """The record :func:`_registry_value` would read *attr* from, or ``None``.
-
-    Same precedence, and it exists because a check whose suppression rule
-    reads the *rest* of that record — ``benign._pmid_pmc_accession`` wants
-    MEDLINE's ``PMC`` line — cannot work from a value and a registry name.
+    A record rather than a registry name, because the *rest* of it decides
+    things. :func:`benign.classify` judges a difference partly on the record
+    the right-hand value came from — ``_container_leading_article`` reads
+    MEDLINE's ``TA``, ``_pmid_pmc_accession`` its ``PMC`` line,
+    ``_container_abbreviation`` Crossref's ``short-container-title`` — and
+    every DOI-resolved reference has Crossref or DataCite as its primary with
+    PubMed corroborating. So a Crossref deposit carrying no ``container-title``
+    leaves PubMed's ``JT`` on the right-hand side while a Crossref record that
+    holds neither ``JT`` nor ``TA`` is asked to explain it, and a correct entry
+    citing *The Lancet* fails the build.
     """
     if getattr(ctx.primary, attr, None):
         return ctx.primary
     if ctx.corroborator and getattr(ctx.corroborator, attr, None):
         return ctx.corroborator
     return None
+
+
+def _registry_value(ctx: _Context, attr: str) -> tuple[str, Record | None]:
+    """Value for *attr* and the record it came from, by the precedence above."""
+    holder = _registry_source_record(ctx, attr)
+    if holder is None:
+        return "", None
+    return clean(getattr(holder, attr)), holder
 
 
 def _alternate_containers(ctx: _Context) -> list[tuple[str, str]]:
@@ -271,10 +287,11 @@ def _check_scalar(
     plain scalar field and cannot go through this function.
     """
     stored_text = clean(stored)
-    registry_text, source = _registry_value(ctx, attr)
+    registry_text, holder = _registry_value(ctx, attr)
 
-    if not registry_text:
+    if holder is None or not registry_text:
         return
+    source = holder.source
 
     if not stored_text:
         if normalize_kind(ctx.ref.kind) in optional_for_kinds:
@@ -291,7 +308,7 @@ def _check_scalar(
             ctx.add(field, "cosmetic", "info", stored_text, registry_text, source=source)
         return
 
-    for accepted, holder in also_accepted:
+    for accepted, carrier in also_accepted:
         if fold(stored_text) != fold(accepted):
             continue
         # Stated rather than passed over in silence. The registry's *first*
@@ -304,7 +321,7 @@ def _check_scalar(
         ctx.add(
             field, "alternate-title", "info", stored_text, registry_text,
             source=source,
-            note=f"{holder} also carries {accepted!r} for this work",
+            note=f"{carrier} also carries {accepted!r} for this work",
         )
         return
 
@@ -332,9 +349,9 @@ def _check_scalar(
         )
         return
 
-    reason = benign.classify(field, stored_text, registry_text, ctx.ref, ctx.primary)
+    reason = benign.classify(field, stored_text, registry_text, ctx.ref, holder)
     if reason:
-        ctx.add_artifact(field, stored_text, registry_text, reason)
+        ctx.add_artifact(field, stored_text, registry_text, reason, source=source)
         return
 
     ctx.add(field, "mismatch", "error", stored_text, registry_text, source=source)
@@ -348,19 +365,23 @@ def _check_title(ctx: _Context) -> float | None:
     of them is describing the right paper.
     """
     stored = clean(ctx.ref.title)
-    candidates = [(clean(ctx.primary.title), ctx.primary.source)]
+    candidates = [(clean(ctx.primary.title), ctx.primary)]
     if ctx.corroborator and ctx.corroborator.title:
-        candidates.append((clean(ctx.corroborator.title), ctx.corroborator.source))
-    candidates = [(text, src) for text, src in candidates if text]
+        candidates.append((clean(ctx.corroborator.title), ctx.corroborator))
+    candidates = [(text, rec) for text, rec in candidates if text]
 
     if not stored:
         if candidates:
-            ctx.add("title", "missing", "error", "", candidates[0][0], source=candidates[0][1])
+            ctx.add(
+                "title", "missing", "error", "",
+                candidates[0][0], source=candidates[0][1].source,
+            )
         return None
     if not candidates:
         return None
 
-    best_text, best_source = max(candidates, key=lambda c: similarity(stored, c[0]))
+    best_text, best_record = max(candidates, key=lambda c: similarity(stored, c[0]))
+    best_source = best_record.source
     score = similarity(stored, best_text)
     wrong_work, mismatch = ctx.thresholds.title_bands(normalize_kind(ctx.ref.kind))
 
@@ -371,9 +392,9 @@ def _check_title(ctx: _Context) -> float | None:
             ctx.add("title", "cosmetic", "info", stored, best_text, source=best_source)
         return score
 
-    reason = benign.classify("title", stored, best_text, ctx.ref, ctx.primary)
+    reason = benign.classify("title", stored, best_text, ctx.ref, best_record)
     if reason:
-        ctx.add_artifact("title", stored, best_text, reason)
+        ctx.add_artifact("title", stored, best_text, reason, source=best_source)
         return score
 
     if score >= ctx.thresholds.title_ok:
@@ -517,12 +538,13 @@ def _note_alternate_date(
         return
     reason = benign.classify("year", stored, preferred, ctx.ref, ctx.primary)
     if not reason:
-        # ``benign`` is only ever shown the primary record, so it cannot explain
-        # a year that only the *corroborating* registry carries — MEDLINE's
-        # ``DP`` against Crossref's ``issued`` is a routine disagreement. Name
-        # the slot from `accepted`, whose corroborator keys are already
-        # qualified ("pubmed:issued"), rather than asserting the primary holds a
-        # date it does not.
+        # The year on the right-hand side is the primary registry's preferred
+        # one, so that is the record ``benign`` is shown, and it cannot explain
+        # a year only the *corroborating* registry carries — MEDLINE's ``DP``
+        # against Crossref's ``issued`` is a routine disagreement. Name the
+        # slot from `accepted`, whose corroborator keys are already qualified
+        # ("pubmed:issued"), rather than asserting the primary holds a date it
+        # does not.
         holders = [key for key, value in sorted(accepted.items()) if value == stored]
         reason = (
             f"cites the {', '.join(holders)} date; "
@@ -679,9 +701,10 @@ def _check_pages(ctx: _Context) -> None:
     a real disagreement.
     """
     stored = clean(ctx.ref.pages)
-    registry, source = _registry_value(ctx, "pages")
-    if not registry:
+    registry, holder = _registry_value(ctx, "pages")
+    if holder is None or not registry:
         return
+    source = holder.source
     if not stored:
         if normalize_kind(ctx.ref.kind) == "book":
             return
@@ -699,9 +722,9 @@ def _check_pages(ctx: _Context) -> None:
         )
         return
 
-    reason = benign.classify("pages", stored, registry, ctx.ref, ctx.primary)
+    reason = benign.classify("pages", stored, registry, ctx.ref, holder)
     if reason:
-        ctx.add_artifact("pages", stored, registry, reason)
+        ctx.add_artifact("pages", stored, registry, reason, source=source)
         return
 
     ctx.add("pages", "mismatch", "error", stored, registry, source=source)

@@ -1628,6 +1628,51 @@ class TestAlternateContainerWitness:
         assert note.source == "crossref"
 
 
+class TestTheRecordThatSuppliedTheValueIsTheOneJudged:
+    """A benign rule is shown the record the compared value came from.
+
+    The primary registry is Crossref or DataCite on every DOI-resolved
+    reference and PubMed is the corroborator, so a Crossref deposit carrying
+    no ``container-title`` puts PubMed's ``JT`` on the right-hand side. Judging
+    that against Crossref's record asks a registry holding neither ``JT`` nor
+    ``TA`` to explain a MEDLINE filing title, and *The Lancet* — correct, and
+    named by both the masthead and Crossref — failed the build.
+    """
+
+    def _result(self, container: str) -> Result:
+        return compare(
+            make_ref(container=container),
+            {
+                "crossref": make_record(container=None),
+                "pubmed": make_pubmed(
+                    container="Lancet (London, England)",
+                    container_alternates=["Lancet"],
+                ),
+            },
+        )
+
+    def test_the_corroborators_own_alternate_explains_its_own_value(self) -> None:
+        result = self._result("The Lancet")
+
+        assert not result.fails
+        assert not [i for i in result.issues if i.field == "container"]
+        assert [i.note for i in result.suppressed if i.field == "container"] == [
+            "registry files the journal without its leading article"
+        ]
+
+    def test_the_suppression_names_the_registry_whose_value_it_explains(self) -> None:
+        [artifact] = [i for i in self._result("The Lancet").suppressed if i.field == "container"]
+
+        assert artifact.source == "pubmed"
+
+    def test_a_different_journal_still_fails(self) -> None:
+        """*The Lancet Oncology* is another journal in the same family."""
+        result = self._result("The Lancet Oncology")
+
+        assert result.verdict == "FIELD-MISMATCH"
+        assert [i.kind for i in result.issues if i.field == "container"] == ["mismatch"]
+
+
 class TestMedlineSocietyExpansionOnThePmidPath:
     """``JT`` also spells out the society, and ``TA`` does not always rescue it.
 

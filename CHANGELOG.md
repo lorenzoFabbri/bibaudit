@@ -169,6 +169,16 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A registry defect is judged against the record that supplied the value.**
+  `compare` lets the corroborating registry fill a field the primary left
+  empty, but handed `benign.classify` the primary's record regardless — so a
+  Crossref deposit carrying no `container-title` put PubMed's `JT` on the
+  right-hand side while a Crossref record holding neither `JT` nor `TA` was
+  asked to explain it. `The Lancet` against `Lancet (London, England)` reported
+  `container/mismatch` and failed the build on every DOI-resolved entry, the
+  case `_container_leading_article` exists to prevent. The suppression's
+  `source` column names that registry too, rather than the primary that
+  supplied nothing.
 - **`--fail-on` now decides which reference groups are printed, not only the
   banner.** The group filter read the default failing set rather than the policy
   in force, so a run told to fail on a verdict outside that set exited 1 over a

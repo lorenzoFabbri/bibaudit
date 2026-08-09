@@ -709,6 +709,12 @@ there is: every correct Lancet, BMJ, Science or Cancer Epidemiology, Biomarkers
 **Handling, in three places** — a fourth, for the parenthetical qualifier, is
 the section after this one.
 
+All four read `JT`, `TA` and `container_short` off **the record the compared
+value came from**, which on a DOI-resolved entry is the corroborating PubMed
+record whenever Crossref deposited no `container-title` at all. Judging that
+value against the primary's record asks Crossref to account for a MEDLINE
+filing title, and the answer is always that it cannot.
+
 `registries/pubmed._record_from_medline` puts `TA` on the record's
 `container_alternates` as well as its `container_short`. Both are titles PubMed
 itself names for the same journal, so this is the chapter case above by another
