@@ -513,6 +513,100 @@ alternative is printing a claim the registry's own record contradicts.
 
 ---
 
+## Forenames the two sides write differently
+
+**What this is, and why it is not a suppression.** Like the section above, this
+is a check that fails the build, written up here because everything it *excuses*
+is a difference the registries produce constantly and legitimately, and a reader
+meeting one wants to know it was seen and passed over deliberately. The check
+itself is the narrower half: a creator whose surname the registry confirms and
+whose forename it contradicts is `authors/forename`, at error severity, one line
+naming both spellings.
+
+**What fires.** An **incompatible** forename under an agreeing surname:
+`Kenneth` against `Margaret`, `K` against `M`. Nothing else. The comparison is
+the **first initial and only the first initial**, on both sides, and only where
+both sides supply one.
+
+**What does not fire, and why each is left alone.** Registries disagree about
+forenames far more often than they disagree about people, and every one of these
+had to survive or the check would be a false-alarm machine:
+
+- **an initial against the name** — `K P` against `Kenneth P`, `E` against
+  `Esther M.` A registry that gave a letter cannot be asked for more than the
+  letter;
+- **a middle initial one side omits** — `Frits H M` against `Frits`. Only the
+  first initial is compared, so what follows it is free to differ;
+- **initials run together against initials separated** — `KP` against `K P`.
+  `fold` leaves those as one token and as two, and both begin with `k`;
+- **hyphenation and accents** — `Jean-Pierre`, `Jean Pierre` and `J.-P.` all
+  initial on `j`, because `fold` turns a hyphen into a space and strips the
+  diacritic;
+- **mojibake.** `names._forename_initials` offers both the raw reading and the
+  `demojibake` repair, and one agreeing is enough, so a forename whose first
+  letter the registry's own bytes destroyed is not read as a different person.
+  *Émile* mis-decoded arrives as `Ã\x89mile`, and the lead byte `Ã` folds to
+  `a`. **NO WITNESSED INSTANCE** of the first letter being the damaged one: the
+  deposit this module's mojibake handling is built on (`10.5271/sjweh.3626`)
+  carries four mis-decoded forenames — `InÃ©s`, `JosÃ© AndrÃ©s`, `AndrÃ©s`,
+  `Benito MirÃ³n` — and all four open on an ASCII letter, and 3,963 live
+  MEDLINE/Crossref pairs carried no mis-decoded forename at all. It is kept
+  rather than deleted because it can only make the tool complain *less* about a
+  string that is provably mis-decoded UTF-8, and the names it protects — *Ángel*,
+  *Émile*, *Øystein*, *Ólafur*, *Åsa* — are ordinary in these bylines;
+- **another script or another transliteration.** A forename `fold` discards
+  entirely — `健太`, `Владимир`, `الحسن` — yields no initial on that side, and
+  absence is ignorance, not disagreement. The check stands down;
+- **a compound surname the two sides divide differently.** Crossref's deposit
+  for `10.1016/0002-9378(83)90252-1` (PMID 6650633) files *A. López Bernal* as
+  `"family":"Bernal","given":"López"` against MEDLINE's
+  `FAU - Lopez Bernal, A`. The surnames still agree — *Compound surnames
+  shortened to their final element*, above — but one `given` field is then
+  holding surname, and comparing it against `A` accuses a correct citation.
+  `names._forename_is_a_surname_element` stands the check down whenever *every*
+  token of one side's forename is a token of the other side's surname.
+
+**Detection.** `names._forenames_are_incompatible`, called from
+`names.names_agree` **ahead of** every surname rule — a mojibake repair, a
+particle filing or a shortened compound decides that two surnames name one
+family, and none of them looks at which member of it. `compare_author_lists`
+then routes the position to `AuthorDiff.miscredited` before the *Author lists in
+a different order* escape can reach it: substituting a forename leaves both
+bylines holding the same surnames counted, so that escape would otherwise excuse
+every one of these as a creator who moved, while the surname sits exactly where
+the entry put it.
+
+**Measured, over 3,963 MEDLINE/Crossref pairs of the same work** fetched live
+(51 publication years, 1975–2025). Comparing the two registries' own bylines
+against each other, **3 of 3,876** pairs with a byline on both sides gain a
+finding — 0.077%, and the same 3 in either direction. One is a false alarm:
+PMID 990943, `Edgerton, V R` against Crossref's `Edgerton, Reggie`, one person
+recorded by the middle name he went by. The other two are the registries
+genuinely disagreeing about who is credited, each confirmed against a third
+source: PMID 414278 (`Shih, R M` against `Shih, Tsung-Ming`, and Springer's own
+deposit says Tsung-Ming), and PMID 37689523 (`Perez Arqueros, Valeska` against
+`Arqueros, María`, whose ORCID 0000-0001-5649-3404 records *María Arqueros*).
+Against that, replacing one creator's forename with an incompatible one is
+reported on **3,652 of 3,693** entries (98.89%), where it was reported on none.
+
+**The residual, stated.** Two of them.
+
+A person recorded by a middle name they go by is reported, as PMID 990943 is.
+The alternative was measured rather than argued: admitting the *whole* initial
+string of a side written entirely as initials — so `Reggie` may answer the `R`
+in `V R` — costs 11 caught mutations to buy back that 1 false alarm. Eleven
+misses per false alarm is the wrong direction for the one check whose miss is
+crediting the wrong person, and the narrow rule ships.
+
+A forename substituted at a position the two bylines *order* differently is not
+seen: the surnames disagree there, so the pair is a reordering and never reaches
+this check. That is 41 of 3,693 in the same battery, 1.11%.
+
+Two forenames sharing an initial are accepted — `Kenneth` against `Karl` — which
+is the direct price of the first exception above.
+
+---
+
 ## Author comparisons with nothing to compare
 
 **What happens.** Four situations let a position pass without either side being

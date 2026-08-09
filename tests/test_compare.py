@@ -245,6 +245,43 @@ class TestAnInventedCoauthorAppendedToTheByline:
         assert not result.fails
 
 
+class TestACitationCreditingADifferentPersonOfTheSameName:
+    """The miss this comparison exists to catch, arriving inside the name.
+
+    `names.compare_author_lists` compared surname keys and stopped there, so an
+    entry crediting `Wade, Zbigniew` where the registry names `Wade, Nicholas`
+    came back `OK` with nothing recorded at any verbosity — not even a
+    suppressed line `--show-suppressed` could recover. The exceptions the check
+    has to survive are in `tests/test_names.py`; what is pinned here is the
+    issue a reader gets.
+    """
+
+    def _miscredited(self) -> Result:
+        wrong = [Name(family="Molina-Montes", given="Zbigniew"), *make_record().authors[1:]]
+        return compare(make_ref(authors=wrong), {"crossref": make_record()})
+
+    def test_it_fails_the_build(self) -> None:
+        result = self._miscredited()
+
+        assert result.verdict == "FIELD-MISMATCH"
+        assert result.fails
+
+    def test_it_is_a_kind_of_its_own_naming_both_people(self) -> None:
+        """`mismatch` says the registry names somebody else at this position;
+        this says the registry names this family and a different member of it —
+        and a project that has decided to live with its registries' forenames
+        can adjudicate one in `.bibaudit.toml` without silencing the other."""
+        [issue] = [i for i in self._miscredited().issues if i.field == "authors"]
+
+        assert (issue.kind, issue.severity) == ("forename", "error")
+        assert issue.stored == "#1 Molina-Montes, Zbigniew"
+        assert issue.registry == "#1 Molina-Montes, E"
+        assert issue.note == "the surnames agree and the forename initials do not"
+
+    def test_the_same_byline_with_the_forename_the_registry_holds_is_ok(self) -> None:
+        assert compare(make_ref(), {"crossref": make_record()}).verdict == "OK"
+
+
 class TestIdentifierProblems:
     def test_unresolvable_doi_is_bad_id(self) -> None:
         result = compare(make_ref(), {})

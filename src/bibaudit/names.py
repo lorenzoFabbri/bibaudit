@@ -364,9 +364,121 @@ def family_key(name: Name, *, drop_particles: bool = False) -> str:
     return key
 
 
+def _initials_of(given: str) -> str:
+    """First letter of each token of *given*, folded — ``"J. M."`` -> ``"jm"``."""
+    return "".join(t[0] for t in fold(given).split() if t)
+
+
 def _given_initials(name: Name) -> str:
     """First letter of each forename token, folded — ``"J. M."`` -> ``"jm"``."""
-    return "".join(t[0] for t in fold(name.given).split() if t)
+    return _initials_of(name.given)
+
+
+def _forename_initials(name: Name) -> frozenset[str]:
+    """Every first initial *name*'s forename can honestly be read as carrying.
+
+    A set rather than one character, because a registry's own bytes may be
+    damaged and the repaired spelling is as good a reading of the same deposit
+    as the raw one. *Émile* deposited in UTF-8 and read as Latin-1 arrives as
+    ``Ã\\x89mile``, and the lead byte ``Ã`` folds to ``a``: the raw reading
+    initials on ``a`` where the creator initials on ``e``. Both readings are
+    offered and :func:`_forenames_are_incompatible` needs only one of them to
+    agree.
+
+    **NO WITNESSED INSTANCE** of a forename whose *first* letter the damage
+    reached. The deposit this module's mojibake handling is built on
+    (10.5271/sjweh.3626, ``tests/data/names_crossref_mojibake_author_list.json``)
+    carries four mis-decoded forenames — ``InÃ©s``, ``JosÃ© AndrÃ©s``,
+    ``AndrÃ©s``, ``Benito MirÃ³n`` — and every one of them opens on an ASCII
+    letter, so the repair changes no initial there. 3,963 MEDLINE/Crossref pairs
+    fetched live carried no mis-decoded forename at all. The branch is kept
+    rather than deleted because it can only ever make the tool complain *less*
+    about a string that is provably mis-decoded UTF-8, and the names it protects
+    — *Ángel*, *Émile*, *Øystein*, *Ólafur*, *Åsa* — are ordinary in the
+    bylines this tool reads.
+
+    Empty when the creator carries no forename at all, and empty when the
+    forename is written in a script :func:`fold` discards — ``健太``,
+    ``Владимир``, ``الحسن``. Both are ignorance, not disagreement, and the
+    caller treats them as such.
+    """
+    readings = {name.given}
+    repaired, was_mojibake = demojibake(name.given)
+    if was_mojibake:
+        readings.add(repaired)
+    return frozenset(
+        initial
+        for reading in readings
+        if (initial := _initials_of(reading)[:1])
+    )
+
+
+def _forename_is_a_surname_element(name: Name, other: Name) -> bool:
+    """True if what *name* files as a forename is a token of *other*'s surname.
+
+    A Spanish or Portuguese byline carries two surnames, and registries disagree
+    about where the boundary falls. Crossref's deposit for
+    10.1016/0002-9378(83)90252-1 (PMID 6650633) files *A. López Bernal* as
+    ``"family":"Bernal","given":"López"``, against MEDLINE's
+    ``FAU - Lopez Bernal, A``. The two surnames still agree —
+    :data:`Reason.COMPOUND_SHORTENED` closes ``bernal`` against
+    ``lopez bernal`` — but the ``given`` field on one side then holds the
+    surname element the other side kept, and comparing it against an initial
+    reports a correct citation as crediting somebody else.
+
+    So the forename comparison stands down whenever *every* token of one side's
+    forename is a token of the other side's surname: that field is carrying
+    surname, not forename, and there is nothing left in it to compare. Requiring
+    every token, rather than any, keeps a genuine forename that merely collides
+    with a surname element — ``Lopez Bernal, Lopez Miguel`` — in scope.
+    """
+    given = set(fold(name.given).split())
+    return bool(given) and given <= set(family_key(other).split())
+
+
+def _forenames_are_incompatible(stored: Name, registry: Name) -> bool:
+    """True if two forenames standing under one surname name different people.
+
+    This is the whole of the forename comparison, and it is deliberately the
+    narrowest signal that can carry the claim: **the first initial, and only
+    when both sides supply one.** Registries disagree about forenames
+    constantly and legitimately, and every one of those disagreements has to
+    survive here or the check is a false-alarm machine:
+
+    * one gives an initial where the other gives the name — ``K P`` against
+      ``Kenneth P``, ``E`` against ``Esther M.`` — and the initial is the same;
+    * one gives a middle initial the other omits — ``Frits H M`` against
+      ``Frits`` — which changes the initials past the first and not the first;
+    * initials run together against initials separated — ``KP`` against
+      ``K P`` — which :func:`fold` leaves as one token and two, sharing a first
+      letter either way;
+    * hyphenation and accents, which ``fold`` already flattens: ``Jean-Pierre``,
+      ``Jean Pierre`` and ``J.-P.`` all initial on ``j``;
+    * mojibake, which :func:`_forename_initials` reads both ways;
+    * a name in another script or another transliteration, where one side folds
+      to nothing and this returns ``False`` rather than guessing;
+    * a compound surname the two sides divide differently, where one ``given``
+      field is holding surname — :func:`_forename_is_a_surname_element`.
+
+    What is left to fire on is an incompatible forename: ``Kenneth`` against
+    ``Margaret``, ``K`` against ``M``. Absence on either side is not evidence
+    and never fires; agreement on the first initial is agreement, whatever the
+    two sides do afterwards.
+
+    It does **not** separate ``Kenneth`` from ``Karl``. Two forenames sharing an
+    initial are accepted, which is the price of the exceptions above: a registry
+    that supplies ``K.`` where the entry supplies ``Kenneth`` is the ordinary
+    case, and no rule can demand more of it than the letter it gave.
+    """
+    stored_initials = _forename_initials(stored)
+    registry_initials = _forename_initials(registry)
+    if not stored_initials or not registry_initials:
+        return False
+    if _forename_is_a_surname_element(stored, registry) or _forename_is_a_surname_element(
+        registry, stored
+    ):
+        return False
+    return stored_initials.isdisjoint(registry_initials)
 
 
 def _surname_text(name: Name) -> str:
@@ -571,10 +683,16 @@ def names_agree(stored: Name, registry: Name) -> tuple[bool, Reason | None]:
 
     Returns the decision and a short reason, which the report uses to explain
     why an apparent mismatch was accepted. ``None`` is not a reason: it means the
-    two surname keys matched outright and there is nothing to explain. Forenames
-    are compared only by initial: registries record "E", "Esther" and "Esther M."
-    for one person, and demanding equality there invents mismatches on nearly
-    every entry.
+    two surname keys matched outright and there is nothing to explain.
+
+    Both halves of a name are compared, and they are compared differently. The
+    surname carries the escapes below. The forename is compared by its first
+    initial and by nothing else — registries record "E", "Esther" and
+    "Esther M." for one person, and demanding equality there invents mismatches
+    on nearly every entry — and it is compared *first*, because a surname escape
+    that clears ``Wade`` against ``Wade`` says nothing about whether the entry
+    credits Nicholas or Zbigniew. See :func:`_forenames_are_incompatible` for
+    what that leaves accepted, which is most of what registries disagree about.
 
     A reason whose :attr:`Reason.counts_as_alignment` is false means "accepted
     for want of anything to compare", not "shown to be the same person". Callers
@@ -588,6 +706,13 @@ def names_agree(stored: Name, registry: Name) -> tuple[bool, Reason | None]:
 
     if not stored_key or not registry_key:
         return _agree_without_a_comparison_key(stored, registry)
+
+    # Ahead of every surname rule below, not after them. Each of those decides
+    # that two surnames denote one family; none of them looks at which member of
+    # it, so a mojibake repair, a particle filing or a shortened compound would
+    # otherwise hand back agreement over two different people.
+    if _forenames_are_incompatible(stored, registry):
+        return False, None
 
     if stored_key == registry_key:
         return True, None
@@ -1068,6 +1193,14 @@ class AuthorDiff:
     mismatches:
         ``(position, stored, registry, )`` triples, 1-based, for creators that do
         not denote the same person.
+    miscredited:
+        The same triples for the subset where the *surname* agrees and the
+        forename does not — one family, two members. Kept apart from
+        ``mismatches`` because it is a different report and a different thing to
+        argue with: nobody is asking whether the registry lists this creator,
+        only which of them it lists, and a project that has decided to live with
+        its registries' forenames can silence ``authors/forename`` without also
+        silencing a substituted surname.
     uncorroborated:
         ``(position, stored)`` pairs, 1-based, for creators the entry names past
         the registry's last — compared against nothing, and no registry record
@@ -1087,12 +1220,13 @@ class AuthorDiff:
     """
 
     __slots__ = (
-        "_reasons", "_view", "mismatches", "registry_count", "stored_count",
-        "truncated", "uncorroborated",
+        "_reasons", "_view", "miscredited", "mismatches", "registry_count",
+        "stored_count", "truncated", "uncorroborated",
     )
 
     def __init__(self) -> None:
         self.mismatches: list[tuple[int, str, str]] = []
+        self.miscredited: list[tuple[int, str, str]] = []
         self.uncorroborated: list[tuple[int, str]] = []
         self.stored_count: int = 0
         self.registry_count: int = 0
@@ -1183,7 +1317,12 @@ class AuthorDiff:
 
     @property
     def clean(self) -> bool:
-        return not self.mismatches and not self.uncorroborated and not self.count_differs
+        return not (
+            self.mismatches
+            or self.miscredited
+            or self.uncorroborated
+            or self.count_differs
+        )
 
 
 def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff:
@@ -1194,6 +1333,11 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
     apart. Where a positional pair disagrees but both names appear elsewhere in
     the other list, the difference is recorded as a reordering rather than a
     substitution.
+
+    A pair whose *surname* agrees and whose forename does not is neither, and
+    goes to :attr:`AuthorDiff.miscredited` before the reordering escape can
+    reach it: the surname is still standing where the entry put it, so nothing
+    moved, and the two bylines trivially hold the same surnames counted.
 
     Four escapes exist, in the order they are tried, and every one of them makes
     the tool report *less*, so each is written to the narrowest shape that
@@ -1314,6 +1458,15 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
             diff.note(index + 1, Reason.MOJIBAKE_TRUNCATED)
             continue
         left_key, right_key = family_key(left), family_key(right)
+        # One surname and two members of it. Ahead of the reordering escape,
+        # which would otherwise absorb every one of these: substituting a
+        # forename leaves both bylines holding the same surnames counted, so
+        # `reordering` is true, and the position would be excused as a creator
+        # who moved — while the surname sits exactly where it always was and it
+        # is the person under it who changed.
+        if left_key and left_key == right_key:
+            diff.miscredited.append((index + 1, str(left), str(right)))
+            continue
         # Both sides need a key of their own. ``family_key`` returns "" for a
         # creator with no surname *and* for every surname written outside the
         # comparison alphabet, so a byline of those counts equal against any

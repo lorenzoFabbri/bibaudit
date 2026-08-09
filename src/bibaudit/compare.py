@@ -463,6 +463,16 @@ def _check_authors(ctx: _Context) -> bool:
     compared against nothing. Those come back as ``authors/uncorroborated``,
     one line per creator, because a count line names nobody and the reader's
     question is *which* name no record carries.
+
+    "Full" also reaches inside the name. A creator whose surname the registry
+    confirms and whose forename it contradicts comes back as
+    ``authors/forename`` rather than ``authors/mismatch``: the registry does
+    name somebody at that position and does agree about the family, and what is
+    in dispute is which member of it the entry credits. It fails the build like
+    any other error — crediting the wrong person is the failure this comparison
+    exists to catch — but it is a ``kind`` of its own so that a project can
+    adjudicate it in ``.bibaudit.toml`` without also silencing a substituted
+    surname.
     """
     stored = ctx.ref.authors
     registry = ctx.primary.authors or (
@@ -505,6 +515,13 @@ def _check_authors(ctx: _Context) -> bool:
         ctx.add(
             "authors", "mismatch", "error", f"#{position} {left}", f"#{position} {right}",
             source=source,
+        )
+
+    for position, left, right in diff.miscredited:
+        ctx.add(
+            "authors", "forename", "error", f"#{position} {left}", f"#{position} {right}",
+            source=source,
+            note="the surnames agree and the forename initials do not",
         )
 
     for position, name in diff.uncorroborated:

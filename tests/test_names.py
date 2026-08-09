@@ -1465,3 +1465,189 @@ class TestOnlyDocumentedReasonsReachAReport:
         """The mapping is the report's only source for why a difference was excused."""
         with pytest.raises(TypeError):
             AuthorDiff().reasons[1] = "a reason nobody documented"  # type: ignore[index]
+
+
+class TestForenamesUnderAnAgreeingSurname:
+    """One surname, two people.
+
+    The comparison used to stop at the surname key, so `Wade, Nicholas` against
+    `Wade, Zbigniew` was `(True, None)` — agreement, with nothing recorded at
+    any verbosity, on a citation crediting somebody who did not write the paper.
+    Measured over 3,963 live MEDLINE/Crossref pairs of the same work: replacing
+    one creator's forename with an incompatible one was reported on none of
+    3,693 entries before and on 3,652 after, while the two registries'
+    unmutated bylines gained a finding on 3 of 3,876.
+
+    Both directions are pinned here, and the exceptions matter more than the
+    check: everything in `TestForenameDifferencesRegistriesProduce` is a
+    disagreement two registries reach honestly about one person, and a rule
+    that fires on any of them is worse than the miss it closes.
+    """
+
+    def test_a_different_forename_under_one_surname_is_reported(self) -> None:
+        agreed, reason = names_agree(
+            Name(family="Wade", given="Nicholas"), Name(family="Wade", given="Zbigniew")
+        )
+        assert not agreed, reason
+
+    def test_a_different_initial_under_one_surname_is_reported(self) -> None:
+        """PMID 414278's shape: `Shih, R M` where Crossref deposits `Tsung-Ming`."""
+        agreed, reason = names_agree(
+            Name(family="Orci", given="L"), Name(family="Orci", given="Q")
+        )
+        assert not agreed, reason
+
+    def test_the_report_names_both_people(self) -> None:
+        """A count line names nobody; the reader's question is *which* creator."""
+        diff = compare_author_lists(
+            parse_name_list("Wade, Nicholas and Malats, N"),
+            [Name(family="Wade", given="Zbigniew"), Name(family="Malats", given="N")],
+        )
+        assert diff.miscredited == [(1, "Wade, Nicholas", "Wade, Zbigniew")]
+        assert not diff.mismatches
+        assert not diff.clean
+
+    def test_a_reordering_cannot_absorb_a_substituted_forename(self) -> None:
+        """The escape that would have swallowed the whole check.
+
+        Substituting a forename leaves both bylines holding the same surnames
+        counted, so `reordering` is true at every position. Routed through it,
+        the difference came back suppressed as a creator who moved — while the
+        surname sits exactly where the entry put it.
+        """
+        stored = parse_name_list("Wade, Nicholas and Malats, Nuria")
+        registry = [Name(family="Wade", given="Zbigniew"), Name(family="Malats", given="Nuria")]
+        diff = compare_author_lists(stored, registry)
+        assert diff.miscredited
+        assert Reason.REORDERED not in diff.reasons.values()
+
+    def test_two_unreadable_surnames_are_a_substitution_and_not_a_forename(self) -> None:
+        """`family_key` returns nothing for either, and nothing equals nothing.
+
+        Without the emptiness guard, 王 against 李 — two surnames `fold`
+        discards — files as one family with two members, which is neither what
+        happened nor what a reader can act on.
+        """
+        diff = compare_author_lists(
+            [Name(family="王", given="Lei")], [Name(family="李", given="Ming")]
+        )
+        assert diff.mismatches
+        assert not diff.miscredited
+
+    def test_a_byline_carrying_only_a_forename_difference_is_not_clean(self) -> None:
+        diff = AuthorDiff()
+        diff.stored_count = diff.registry_count = 1
+        diff.miscredited.append((1, "Wade, Nicholas", "Wade, Zbigniew"))
+        assert not diff.clean
+
+    @pytest.mark.parametrize(
+        ("surname_stored", "surname_registry"),
+        [
+            # Every surname rule in `names_agree` decides that two spellings name
+            # one *family*, and not one of them looks at which member of it.
+            ("Aragonés", "AragonÃ©s"),          # registry mojibake
+            ("van Eijck", "Eijck"),             # particle filing
+            ("Clavel-Chapelon", "Chapelon"),    # compound shortened
+            ("Papantoniou", "Papantoniu"),      # spelling variant
+        ],
+    )
+    def test_no_surname_escape_hands_back_agreement_over_two_people(
+        self, surname_stored: str, surname_registry: str
+    ) -> None:
+        agreed, reason = names_agree(
+            Name(family=surname_stored, given="Kenneth"),
+            Name(family=surname_registry, given="Margaret"),
+        )
+        assert not agreed, reason
+
+
+class TestForenameDifferencesRegistriesProduce:
+    """The exceptions, which are the reason this was left alone for so long.
+
+    Each is two registries recording one person, and each was live before the
+    check went in. A rule that fires on any of them is a false-alarm machine.
+    """
+
+    @pytest.mark.parametrize(
+        ("stored", "registry"),
+        [
+            ("Kenneth P", "K P"),        # the name against the initial
+            ("K P", "Kenneth P"),        # and the other way round
+            ("Frits H M", "Frits"),      # a middle initial one side omits
+            ("Frits", "Frits H M"),
+            ("KP", "K P"),               # initials run together, and separated
+            ("K P", "KP"),
+            ("Jean-Pierre", "Jean Pierre"),   # hyphenation
+            ("Jean-Pierre", "J.-P."),
+            ("José", "Jose"),                 # an accent `fold` flattens
+            ("Esther", "E"),
+        ],
+    )
+    def test_one_person_recorded_two_ways_still_agrees(
+        self, stored: str, registry: str
+    ) -> None:
+        agreed, reason = names_agree(
+            Name(family="Molina-Montes", given=stored),
+            Name(family="Molina-Montes", given=registry),
+        )
+        assert agreed, reason
+
+    def test_a_forename_the_registrys_own_bytes_destroyed_is_read_both_ways(self) -> None:
+        """`Émile` mis-decoded arrives as `Ã\x89mile`, whose lead byte folds to `a`.
+
+        The surname rules already repair mojibake — the deposit they are built
+        on carries `InÃ©s` and `AndrÃ©s` beside the damaged surnames — so
+        without the same reading on the forename, a byline that is *provably*
+        byte-damaged fails on any creator whose damage reached the first letter.
+        `Ángel` is not this test: `Ã` and `Á` both fold to `a`, so the raw
+        reading already agrees and the repair proves nothing.
+        """
+        agreed, reason = names_agree(
+            Name(family="Molina-Montes", given="Émile"),
+            Name(family="Molina-Montes", given="Ã\x89mile"),
+        )
+        assert agreed, reason
+
+    @pytest.mark.parametrize("given", ["健太", "Владимир", "الحسن"])
+    def test_a_forename_outside_the_comparison_alphabet_is_not_a_disagreement(
+        self, given: str
+    ) -> None:
+        """Absence of evidence, and the check stands down rather than guessing."""
+        agreed, reason = names_agree(
+            Name(family="Yamada", given=given), Name(family="Yamada", given="Taro")
+        )
+        assert agreed, reason
+
+    @pytest.mark.parametrize("side", ["stored", "registry"])
+    def test_a_registry_or_an_entry_that_gives_no_forename_supplies_no_evidence(
+        self, side: str
+    ) -> None:
+        names = {"stored": "Esther", "registry": "Margaret"}
+        names[side] = ""
+        agreed, reason = names_agree(
+            Name(family="Molina-Montes", given=names["stored"]),
+            Name(family="Molina-Montes", given=names["registry"]),
+        )
+        assert agreed, reason
+
+    def test_a_compound_surname_the_registry_divides_differently(self) -> None:
+        """Crossref on 10.1016/0002-9378(83)90252-1 (PMID 6650633).
+
+        The deposit files *A. López Bernal* as `"family":"Bernal"`,
+        `"given":"López"`. The surnames still agree — a compound shortened to
+        its final element — but the `given` field is then holding surname, and
+        comparing it against `A` accuses a correct citation.
+        """
+        agreed, reason = names_agree(
+            Name(family="Lopez Bernal", given="A"), Name(family="Bernal", given="López")
+        )
+        assert agreed, reason
+        assert reason == "compound surname shortened"
+
+    def test_a_forename_that_merely_collides_with_a_surname_element_still_fires(self) -> None:
+        """Every token, not any: `Lopez Miguel` is a forename that is not surname."""
+        agreed, reason = names_agree(
+            Name(family="Lopez Bernal", given="A"),
+            Name(family="Bernal", given="Lopez Miguel"),
+        )
+        assert not agreed, reason

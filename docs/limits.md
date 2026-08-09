@@ -176,6 +176,23 @@ and how they are combined; these are their edges.
   says `answered` and no `not-asked` line names it. [Retraction](retraction.md)
   says why there is no fourth consultation state for it.
 
+## A person recorded by the name they go by
+
+Forenames are compared by their first initial, so an entry holding `Edgerton,
+V R` and a registry holding `Edgerton, Reggie` disagree — and they are one
+person, *V. Reggie Edgerton*, recorded by his middle name on the deposit and by
+his initials in MEDLINE. PMID 990943 is the live instance, and it was the one
+false alarm the check produced over 3,963 MEDLINE/Crossref pairs of the same
+work.
+
+The obvious repair is to let a side written entirely as initials answer with any
+of them, so `Reggie` may match the `R` in `V R`. Measured on the same sample,
+that buys back the one false alarm and costs **11** caught forename
+substitutions. Eleven misses per false alarm avoided is the wrong direction for
+the one check whose miss is crediting the wrong person, so the narrow rule ships
+and this stays a stated limit. A run that hits it prints both forenames in full;
+`kind = "forename"` in a project's `.bibaudit.toml` adjudicates it.
+
 ## One registry romanises a byline and the other does not
 
 MEDLINE writes an author's surname in ASCII; Crossref deposits it as the author

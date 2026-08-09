@@ -155,6 +155,23 @@ so `uv sync --all-extras` does not install it into the test environment.
   personal byline stays unread, 26 of those 30 sampled citations: the position
   it belongs at is what a comparison would need, and the record does not carry
   one.
+- **A citation crediting a different person of the same surname now fails.**
+  The byline comparison stopped at the surname key, so `Wade, Zbigniew` against
+  a registry's `Wade, Nicholas` was agreement, with nothing recorded at any
+  verbosity — `--show-suppressed` could not recover it, because nothing was
+  suppressed. Forenames are now compared, by their first initial and only where
+  both sides supply one, and a disagreement is `authors/forename` at error
+  severity, naming both people. Measured over 3,963 MEDLINE/Crossref pairs of
+  the same work fetched live across 51 publication years: replacing one
+  creator's forename with an incompatible one is reported on 3,652 of 3,693
+  entries, against none before, and the two registries' own unmutated bylines
+  gain a finding on 3 of 3,876 (0.077%) — one of them a false alarm, the other
+  two the registries genuinely disagreeing about who is credited. Everything
+  registries disagree about legitimately is excused and written up in
+  [registry defects](registry-artifacts.md): an initial against the name, a
+  middle initial one side omits, initials run together against initials
+  separated, hyphenation and accents, mojibake, a forename in a script `fold`
+  discards, and a compound surname the two sides divide differently.
 - `CONTRIBUTING.md`, `SECURITY.md`, a Dependabot configuration, a coverage floor
   (`fail_under = 92`, with branch coverage on), and a tag-triggered release
   workflow using PyPI Trusted Publishing.

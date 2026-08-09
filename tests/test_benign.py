@@ -1710,6 +1710,40 @@ class TestRuleScoping:
         missing = [r for r in names.ARTIFACT_REASONS if f"`{_documented(r)}`" not in prose]
         assert missing == []
 
+    def test_the_forename_check_carries_its_exceptions_in_the_same_file(self) -> None:
+        """The one author rule that owes a section and emits no ``Reason``.
+
+        Every other author escape reaches the documentation through
+        ``ARTIFACT_REASONS``, because it *suppresses* and a suppression prints a
+        reason. The forename comparison is the opposite shape: it fires, and
+        what it excuses — an initial against a name, a middle initial one side
+        omits, initials run together, mojibake, a forename in a script ``fold``
+        discards, a compound surname divided differently — is passed over in
+        silence, since printing an artifact line for each would put one on
+        nearly every entry there is. Nothing derived from the source would
+        notice if that section were deleted, and it is the only way a reader can
+        challenge either half of the rule.
+        """
+        prose = ARTIFACT_DOCS.read_text(encoding="utf-8")
+        section = next(
+            (s for s in prose.split("\n## ") if s.startswith("Forenames the two sides")), ""
+        )
+
+        assert section, "docs/registry-artifacts.md has no section on the forename check"
+        assert "`authors/forename`" in section
+        for exception in (
+            "_forename_is_a_surname_element",
+            "demojibake",
+            "Frits",
+            "KP",
+        ):
+            assert exception in section, f"the section no longer states {exception}"
+        # The one branch of the rule with nothing behind it says so here as it
+        # does in the source, on the same terms as every unwitnessed check in
+        # `benign.CHECKS`.
+        assert _UNWITNESSED in section
+        assert _UNWITNESSED in (names._forename_initials.__doc__ or "")
+
     def test_no_reason_is_an_alias_for_another(self) -> None:
         """Documenting the list proves nothing unless the list is complete.
 
