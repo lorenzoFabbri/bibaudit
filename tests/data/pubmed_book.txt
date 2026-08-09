@@ -1,0 +1,51 @@
+
+PMID- 20301295
+STAT- Publisher
+PB  - University of Washington, Seattle
+DP  - 1993
+BTI - GeneReviews((R))
+AB  - GeneReviews, an international point-of-care resource for busy clinicians, 
+      provides clinically relevant and medically actionable information for inherited 
+      conditions in a standardized journal-style format, covering diagnosis, 
+      management, and genetic counseling for patients and their families. Each chapter 
+      in GeneReviews is written by one or more experts on the specific condition or 
+      disease and goes through a rigorous editing and peer review process before being 
+      published online. GeneReviews currently comprises more than 900 chapters and has 
+      more than 15 million users annually. The two general formats for GeneReviews are: 
+      chapters focused on a single gene or phenotype (~95%) and overviews summarizing 
+      causes of common genetic conditions (e.g., genetic hearing loss, Alzheimer 
+      disease) (~5%). To ensure continuing relevant and medically actionable content, 
+      each GeneReviews chapter is updated every four to five years (or as needed) by 
+      the author(s) in a formal and comprehensive process curated by the GeneReviews 
+      editors. Additional revisions may occur more frequently as needed to reflect 
+      significant changes in clinically relevant information. Genetic counseling and 
+      testing terms used in GeneReviews are hyperlinked to definitions in the 
+      GeneReviews Glossary. Resource Materials include additional information on key 
+      genetics concepts used in GeneReviews. GeneReviews are indexed in PubMed. 
+      Additionally, the primary author (first or last author) of a GeneReview may 
+      receive MOC Part 4 credit from the American Board of Medical Genetics and 
+      Genomics. See For Current/Prospective Authors for more information. Note: For a 
+      variety of reasons, GeneReviews occasionally removes chapters from the active 
+      website. Click here for a list of retired chapters.
+CI  - Copyright (c) 1993-2026, University of Washington, Seattle. GeneReviews is a 
+      registered trademark of the University of Washington, Seattle. All rights 
+      reserved. Test.
+FED - Adam, Margaret P
+ED  - Adam MP
+FED - Bick, Sarah
+ED  - Bick S
+FED - Mirzaa, Ghayda M
+ED  - Mirzaa GM
+FED - Pagon, Roberta A
+ED  - Pagon RA
+FED - Wallace, Stephanie E
+ED  - Wallace SE
+FED - Amemiya, Anne
+ED  - Amemiya A
+LA  - eng
+PT  - Review
+PT  - Book
+PL  - Seattle (WA)
+EDAT- 1993/01/01 00:00
+CRDT- 1993/01/01 00:00
+AID - NBK1116 [bookaccession]

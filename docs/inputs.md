@@ -321,6 +321,16 @@ about another record settles nothing about this one. PubMed being unreachable,
 or `--no-corroborate` having removed the only registry that could answer, is
 `UNCHECKED` as well, exactly as everywhere else in this tool.
 
+A PMID resolving to a **book** or a book chapter is compared like any other
+citation. NLM files those under different tags — the volume's title in `BTI`
+rather than `TI`, its editors in `FED`/`ED` rather than `FAU`/`AU`, and the
+date the contribution was filed and last revised in `CTDT` and `DRDT` beside
+the series' own `DP`. A chapter keeps its own `TI` and gains the volume as its
+container; a whole volume's record has `BTI` as its title and no container,
+because a work does not appear inside itself. `PB` is read by nothing: MEDLINE
+writes the place of publication into it where a bibliography writes the house,
+and there is no rule anywhere to absorb the difference.
+
 An entry carrying a PMID **and** a DOI is resolved by the DOI, and the same
 MEDLINE record is fetched once rather than twice under two keys. The PMID then
 has a different job: it looked nothing up, so it is a second, independent claim

@@ -40,7 +40,14 @@ from typing import Any
 
 from ..model import Name, Record
 from ..names import parse_name
-from ..normalize import clean, fold, normalize_doi, normalize_pmid, parse_year
+from ..normalize import (
+    clean,
+    fold,
+    normalize_doi,
+    normalize_kind,
+    normalize_pmid,
+    parse_year,
+)
 from .http import Client
 
 __all__ = ["PmidAnswers", "PubMed"]
@@ -172,13 +179,77 @@ def _parse_au_fallback(raw: str) -> Name:
     return parse_name(f"{surname}, {initials}")
 
 
-def _authors_from(fields: dict[str, list[str]]) -> list[Name]:
-    """``FAU`` when present, else ``AU`` — see :func:`_parse_au_fallback`."""
+def _authors_from(fields: dict[str, list[str]]) -> tuple[list[Name], bool]:
+    """The record's creators, and whether they came from the editor tags.
+
+    ``FAU`` when present, else ``AU`` — see :func:`_parse_au_fallback`. A
+    record with neither falls back to ``FED``/``ED``, MEDLINE's editor tags, in
+    that same order and for the reason ``crossref._authors`` falls back to
+    ``editor``: an edited volume's byline *is* its editors, and comparing an
+    empty list against the entry's compares nothing. PMID 20301295, the
+    *GeneReviews* book record, carries six ``FED`` lines and no ``FAU`` or
+    ``AU`` at all; 111 of 200 records in a live sample of ``pubmed books[sb]``
+    have the same shape. The flag reaches ``Record.raw`` so a reader can tell
+    which list they are looking at.
+    """
     full = fields.get("FAU")
     if full:
-        return [parse_name(value) for value in full if value]
-    abbreviated = fields.get("AU", [])
-    return [_parse_au_fallback(value) for value in abbreviated if value]
+        return [parse_name(value) for value in full if value], False
+    abbreviated = fields.get("AU")
+    if abbreviated:
+        return [_parse_au_fallback(value) for value in abbreviated if value], False
+    editors_full = fields.get("FED")
+    if editors_full:
+        return [parse_name(value) for value in editors_full if value], True
+    editors = fields.get("ED", [])
+    return [_parse_au_fallback(value) for value in editors if value], bool(editors)
+
+
+def _book_title(fields: dict[str, list[str]]) -> str | None:
+    """The citation's own title: ``TI``, or ``BTI`` on a whole-book record.
+
+    MEDLINE gives a book chapter both — ``TI`` the chapter, ``BTI`` the volume
+    it sits in — and gives the volume's own record ``BTI`` alone. PMID
+    20301295 is that second shape, and with only ``TI`` read the record
+    carried no title at all, so ``compare._check_title`` returned before
+    comparing anything and a fabricated title passed. One of 200 records in a
+    live sample of ``pubmed books[sb]`` lacks ``TI``; 196 carry ``BTI``.
+    """
+    return _first(fields.get("TI")) or _first(fields.get("BTI"))
+
+
+def _container_book(fields: dict[str, list[str]]) -> str | None:
+    """``BTI`` as the container, but only where it is not the title itself.
+
+    The volume a chapter appears in is that chapter's container, exactly as
+    ``JT`` is an article's. On the whole-book record :func:`_book_title` has
+    already claimed ``BTI``, and a work is not its own container.
+    """
+    if not _first(fields.get("TI")):
+        return None
+    return _first(fields.get("BTI"))
+
+
+def _kind_from(fields: dict[str, list[str]]) -> str | None:
+    """The first ``PT`` value :func:`~bibaudit.normalize.normalize_kind` knows.
+
+    ``PT`` is a list and most of it is not a document type at all — "Review",
+    "Research Support, Non-U.S. Gov't", "English Abstract", "Randomized
+    Controlled Trial" all sit beside the structural one, and NLM writes them
+    in no order this can rely on. Taking the first *recognised* value rather
+    than the first value is what makes that harmless: an unrecognised string
+    would normalise to ``"other"``, which ``compare._check_kind`` reads as "no
+    opinion" and would silence the check on every record carrying a
+    descriptive type ahead of its structural one — PMID 20301425 is ``PT -
+    Review`` then ``PT - Book Chapter``.
+
+    Left unset when nothing is recognised, because ``None`` and ``"other"``
+    reach ``_check_kind`` the same way and an invented string would not.
+    """
+    for value in fields.get("PT", []):
+        if normalize_kind(value) != "other":
+            return clean(value)
+    return None
 
 
 def _retraction(fields: dict[str, list[str]]) -> tuple[bool, str | None]:
@@ -267,8 +338,24 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
     for the reason :attr:`bibaudit.model.Record.container_alternates` gives:
     both are titles PubMed itself names for the same journal, and an entry
     citing either is right.
+
+    A book or a book chapter is a MEDLINE citation like any other and was read
+    as though it were a journal article, which left almost nothing on the
+    record: ``BTI``, ``PB``, ``FED``/``ED``, ``PT``, ``CTDT`` and ``DRDT`` are
+    the tags NLM files those under, and none was read. PMID 20301295, the
+    *GeneReviews* book record, therefore produced a :class:`Record` with no
+    title, no authors, no container and one year, and an entry with a
+    fabricated title, a fabricated byline and a fabricated container was
+    compared against none of them and reported ``OK``. See :func:`_book_title`,
+    :func:`_authors_from` and :func:`_kind_from` for what each tag now
+    supplies. ``PB`` is deliberately still not read, and the reason is
+    ``registries/datacite``'s: ``compare`` does compare a publisher, MEDLINE
+    writes the place of publication into that field where a bibliography
+    writes the house — "University of Washington, Seattle" against
+    *University of Washington* — and :mod:`~bibaudit.benign` has no publisher
+    rule of any kind to absorb it. Reading it would fail a correct ``@book``.
     """
-    title, translated = _clean_title(_first(fields.get("TI")))
+    title, translated = _clean_title(_book_title(fields))
 
     years: dict[str, int] = {}
     year = parse_year(_first(fields.get("DP")))
@@ -290,10 +377,27 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
     online = parse_year(_first(fields.get("DEP")))
     if online is not None:
         years["online"] = online
+    # A book record's ``DP`` is the *series*' start year — 1993 for every
+    # *GeneReviews* chapter, whenever it was written — while ``CTDT`` is the
+    # date the contribution itself was filed and ``DRDT`` the date it was last
+    # revised. PMID 20301425 carries ``DP - 1993``, ``CTDT - 19980904`` and
+    # ``DRDT - 20260325``, and NCBI's own recommended citation for it names
+    # neither 1993 nor 1998. Any year the registry itself carries is
+    # acceptable, so an entry citing the revision it actually read is not
+    # reported as wrong for it; reading ``DP`` alone left the series year as
+    # the only one that passed.
+    for tag, slot in (("CTDT", "contributed"), ("DRDT", "revised")):
+        stamped = parse_year(_first(fields.get(tag)))
+        if stamped is not None:
+            years[slot] = stamped
+
+    authors, from_editors = _authors_from(fields)
 
     raw: dict[str, Any] = dict(fields)
     if translated:
         raw["translated"] = True
+    if from_editors:
+        raw["authors_source"] = "editor"
 
     retracted, retraction_kind = _retraction(fields)
 
@@ -309,7 +413,7 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
     # (``benign._container_medline_subtitle`` is what reaches that one). On the
     # PMID path PubMed is the only registry there is, so ``JT`` would be the
     # only container an entry could match, and no bibliography stores it.
-    journal = _first(fields.get("JT"))
+    journal = _first(fields.get("JT")) or _container_book(fields)
     abbreviation = _first(fields.get("TA"))
     alternates = (
         [abbreviation] if abbreviation and fold(abbreviation) != fold(journal) else []
@@ -319,7 +423,7 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
         source="pubmed",
         pmid=_first(fields.get("PMID")),
         title=title,
-        authors=_authors_from(fields),
+        authors=authors,
         years=years,
         container=journal,
         container_short=abbreviation,
@@ -327,6 +431,7 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
         volume=_first(fields.get("VI")),
         issue=_first(fields.get("IP")),
         pages=_first(fields.get("PG")),
+        kind=_kind_from(fields),
         retracted=retracted,
         retraction_kind=retraction_kind,
         raw=raw,

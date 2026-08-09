@@ -744,6 +744,117 @@ class TestPublicationDates:
         assert self._record().year == 2026
 
 
+class TestBookRecords:
+    """A MEDLINE book is a citation too, and it was read as if it were an article.
+
+    ``tests/data/pubmed_book.txt`` is PMID 20301295 verbatim, the *GeneReviews*
+    volume itself: ``BTI`` and no ``TI``, ``FED``/``ED`` and no ``FAU``/``AU``.
+    ``pubmed_book_chapter.txt`` is PMID 20301425, one chapter of it: ``TI`` for
+    the chapter, ``BTI`` for the volume, ``FAU`` for its three authors, and
+    three dates — ``DP - 1993`` (the series' start year), ``CTDT - 19980904``
+    (when the contribution was filed) and ``DRDT - 20260325`` (when it was last
+    revised).
+
+    None of those tags was read, so the volume's record carried no title, no
+    byline and no container at all: every check in ``compare`` returns in
+    silence against an empty registry value, and an entry with a fabricated
+    title, byline, container and publisher was reported ``OK``. 196 of 200
+    records in a live sample of ``pubmed books[sb]`` carry ``BTI`` and no
+    ``JT``; 111 of 200 carry no ``FAU`` or ``AU``.
+    """
+
+    def _book(self) -> Record:
+        client = _StubClient(medline=_fixture("book"))
+        return PubMed(client).by_pmids(["20301295"]).records["20301295"]
+
+    def _chapter(self) -> Record:
+        client = _StubClient(medline=_fixture("book_chapter"))
+        return PubMed(client).by_pmids(["20301425"]).records["20301425"]
+
+    def test_a_volumes_own_title_is_the_book_title_tag(self) -> None:
+        assert self._book().title == "GeneReviews((R))"
+
+    def test_a_volume_is_not_its_own_container(self) -> None:
+        """``BTI`` is the title here, and a work does not appear inside itself."""
+        assert self._book().container is None
+
+    def test_a_chapter_keeps_its_own_title_and_gains_the_volume_as_container(
+        self,
+    ) -> None:
+        chapter = self._chapter()
+
+        assert chapter.title == (
+            "BRCA1- and BRCA2-Associated Hereditary Breast and Ovarian Cancer"
+        )
+        assert chapter.container == "GeneReviews((R))"
+
+    def test_a_volumes_editors_stand_in_for_the_byline_it_has_not_got(self) -> None:
+        """The same fallback ``crossref._authors`` makes onto ``editor``.
+
+        An edited volume's byline *is* its editors, and an empty author list
+        is not compared against the entry's at all.
+        """
+        book = self._book()
+
+        assert [str(name) for name in book.authors[:2]] == [
+            "Adam, Margaret P",
+            "Bick, Sarah",
+        ]
+        assert book.raw["authors_source"] == "editor"
+
+    def test_a_chapters_own_authors_outrank_the_volumes_editors(self) -> None:
+        """Both tag pairs are on this record, and only one of them is the byline."""
+        chapter = self._chapter()
+
+        assert [str(name) for name in chapter.authors] == [
+            "Petrucelli, Nancie",
+            "Daly, Mary B",
+            "Pal, Tuya",
+        ]
+        assert "authors_source" not in chapter.raw
+
+    def test_every_date_the_record_carries_is_kept(self) -> None:
+        """``DP`` alone is the series' start year for every chapter in it."""
+        assert self._chapter().years == {
+            "issued": 1993,
+            "contributed": 1998,
+            "revised": 2026,
+        }
+
+    def test_the_series_year_is_still_the_one_the_record_prefers(self) -> None:
+        """``Record.year`` is what a mismatch line prints; it must not reorder."""
+        assert self._chapter().year == 1993
+
+    def test_the_publication_type_reaches_the_record(self) -> None:
+        """``PT`` is a list and most of it is not a document type.
+
+        This record is ``PT - Review`` then ``PT - Book Chapter``: taking the
+        first *recognised* value rather than the first value is what keeps a
+        descriptive type from silencing ``compare._check_kind`` entirely.
+        """
+        assert self._chapter().kind == "Book Chapter"
+        assert self._book().kind == "Book"
+
+    def test_an_article_records_type_is_read_the_same_way(self) -> None:
+        """No book-shaped special case: the rule is "the first one recognised"."""
+        record = _resolve_one("wrapped_title", pmid="28338828", doi="10.1093/aje/kwx137")
+
+        assert record.kind == "Journal Article"
+
+    def test_the_publisher_is_deliberately_not_read(self) -> None:
+        """``PB`` is on both fixtures and ``compare`` does compare a publisher.
+
+        MEDLINE writes the place into it — "University of Washington, Seattle"
+        — where a bibliography writes the house, and ``benign.py`` has no
+        publisher rule of any kind to absorb the difference. Reading it would
+        turn a correct ``@book`` entry into a ``FIELD-MISMATCH``; see
+        ``registries/datacite.py`` for the same decision and what reversing it
+        needs first.
+        """
+        assert self._book().publisher is None
+        assert self._book().raw["PB"] == ["University of Washington, Seattle"]
+
+
 class TestByPmids:
     """A reference that stores its own PMID needs ``efetch`` and nothing else.
 

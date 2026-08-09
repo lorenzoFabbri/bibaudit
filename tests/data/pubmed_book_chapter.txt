@@ -1,0 +1,96 @@
+
+PMID- 20301425
+STAT- Publisher
+DRDT- 20260325
+CTDT- 19980904
+PB  - University of Washington, Seattle
+DP  - 1993
+TI  - BRCA1- and BRCA2-Associated Hereditary Breast and Ovarian Cancer.
+BTI - GeneReviews((R))
+AB  - CLINICAL CHARACTERISTICS: BRCA1- and BRCA2-associated hereditary breast and 
+      ovarian cancer (HBOC) is characterized by an increased risk for female and male 
+      breast cancer, ovarian cancer (including fallopian tube and primary peritoneal 
+      cancers), and to a lesser extent other cancers such as prostate cancer, 
+      pancreatic cancer, and melanoma primarily in individuals with a BRCA2 pathogenic 
+      variant. The risk of developing an associated cancer varies depending on whether 
+      HBOC is caused by a BRCA1 or BRCA2 pathogenic variant. DIAGNOSIS/TESTING: The 
+      diagnosis of BRCA1- and BRCA2-associated HBOC is established in a proband by 
+      identification of a heterozygous germline pathogenic variant in BRCA1 or BRCA2 on 
+      molecular genetic testing. MANAGEMENT: Treatment of manifestations: Treatment of 
+      breast cancer per oncologist with consideration of bilateral mastectomy as a 
+      primary surgical treatment of breast cancer because of elevated rate of 
+      ipsilateral and contralateral breast cancer; PARP inhibitors may be considered in 
+      BRCA1- and BRCA2-related tumors. Melanoma treatment per dermatologist and 
+      oncologist. Prevention of primary manifestations: Prophylactic bilateral 
+      mastectomy, prophylactic oophorectomy, and chemoprevention (e.g., tamoxifen) have 
+      been used for breast cancer prevention, but have not been assessed by randomized 
+      trials in high-risk women. Prophylactic salpingectomy followed by delayed 
+      oophorectomy or salpingo-oophorectomy for ovarian cancer prevention. 
+      Surveillance: Breast cancer screening in women relies on a combination of monthly 
+      breast self-examination, annual or semiannual clinical breast examination, annual 
+      mammography, and breast MRI. Annual transvaginal ultrasound and serum CA-125 
+      concentration beginning at age 35 years may be considered for ovarian cancer 
+      screening. However, this screening has not been effective in detecting 
+      early-stage ovarian cancer, either in high-risk or average-risk women. For men, 
+      breast cancer screening includes breast self-examination education and training 
+      and annual clinical breast examination beginning at age 35. Annual serum 
+      prostate-specific antigen and digital rectal exam screening should begin at age 
+      40 in men heterozygous for a BRCA2 pathogenic variant and should be considered in 
+      men heterozygous for a BRCA1 pathogenic variant. Screening for melanoma should be 
+      individualized based on the family history. Screening of asymptomatic individuals 
+      for pancreatic cancer is not generally recommended. Evaluation of relatives at 
+      risk: Once a cancer-predisposing BRCA1 or BRCA2 germline pathogenic variant has 
+      been identified in a family, testing of at-risk relatives can identify those 
+      family members who also have the familial pathogenic variant and thus need 
+      increased surveillance and specific treatments when a cancer is identified. 
+      GENETIC COUNSELING: BRCA1- and BRCA2-associated HBOC is inherited in an autosomal 
+      dominant manner. The vast majority of individuals with a BRCA1 or BRCA2 
+      pathogenic variant inherited it from a parent. However, because the penetrance of 
+      breast, ovarian, and other cancers associated with pathogenic variants in BRCA1 
+      and BRCA2 is less than 100%, not all individuals with a BRCA1 or BRCA2 pathogenic 
+      variant have a parent affected with cancer. The offspring of an individual with a 
+      BRCA1 or BRCA2 germline pathogenic variant have a 50% chance of inheriting the 
+      pathogenic variant. Once a cancer-predisposing BRCA1 or BRCA2 germline variant 
+      has been identified in a family, prenatal and preimplantation genetic testing are 
+      possible.
+CI  - Copyright (c) 1993-2026, University of Washington, Seattle. GeneReviews is a 
+      registered trademark of the University of Washington, Seattle. All rights 
+      reserved. Test.
+FED - Adam, Margaret P
+ED  - Adam MP
+FED - Bick, Sarah
+ED  - Bick S
+FED - Mirzaa, Ghayda M
+ED  - Mirzaa GM
+FED - Pagon, Roberta A
+ED  - Pagon RA
+FED - Wallace, Stephanie E
+ED  - Wallace SE
+FED - Amemiya, Anne
+ED  - Amemiya A
+FAU - Petrucelli, Nancie
+AU  - Petrucelli N
+AD  - Wayne State University School of Medicine/Detroit Medical Center;Cancer Genetic 
+      Counseling ServiceKarmanos Cancer InstituteDetroit, Michigan
+FAU - Daly, Mary B
+AU  - Daly MB
+AD  - Chair, Department of Clinical GeneticsFox Chase Cancer CenterPhiladelphia, 
+      Pennsylvania
+FAU - Pal, Tuya
+AU  - Pal T
+AD  - Vanderbilt-Ingram Cancer CenterNashville, Tennessee
+LA  - eng
+PT  - Review
+PT  - Book Chapter
+PL  - Seattle (WA)
+OTO - NLM
+OT  - BRCA1- and BRCA2-Associated HBOC
+OT  - BRCA1- and BRCA2-Associated HBOC
+OT  - Breast cancer type 1 susceptibility protein
+OT  - Breast cancer type 2 susceptibility protein
+OT  - BRCA1
+OT  - BRCA2
+OT  - BRCA1- and BRCA2-Associated Hereditary Breast and Ovarian Cancer
+EDAT- 2026/03/25 00:00
+CRDT- 2026/03/25 00:00
+AID - NBK1247 [bookaccession]

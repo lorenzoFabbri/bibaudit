@@ -169,6 +169,18 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A MEDLINE book record is compared, not skimmed.** NLM files a book's title
+  in `BTI` rather than `TI`, its editors in `FED`/`ED` rather than `FAU`/`AU`,
+  its structural type in `PT`, and the dates a chapter was contributed and last
+  revised in `CTDT` and `DRDT` beside the series' own `DP`. None was read, so
+  PMID 20301295 — the *GeneReviews* volume — produced a record with no title,
+  no byline and no container, an entry with all three fabricated was compared
+  against none of them, and the run reported `OK`. A chapter now keeps its own
+  title and gains the volume as its container, an edited volume's byline is its
+  editors (the fallback Crossref's client already makes), and any year the
+  record carries is accepted rather than the series' start year alone. `PB`
+  stays unread: `compare` does compare a publisher, MEDLINE writes the place of
+  publication into that field, and nothing in `benign.py` absorbs it.
 - **A surname is no longer split in two by a letter that does not decompose.**
   `fold` reduced a precomposed letter to its base and dropped the mark, but
   `ß`, `æ`, `ø`, `ł`, `ð`, `þ`, `đ`, `ħ` and `ı` are not a base plus a mark and
