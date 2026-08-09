@@ -193,6 +193,13 @@ so `uv sync --all-extras` does not install it into the test environment.
   are exactly the three the documentation already named. An arXiv preprint is
   still reached the way it always was, through the DOI its repository minted
   (`10.48550/arXiv.1706.03762`), which DataCite answers for.
+- **`adapters.markdown.QuartoScan` and `adapters.markdown.scan_quarto`**, two
+  aliases of `MarkdownScan` and `scan_markdown` carried in `__all__` under an
+  older, Quarto-only spelling and described as kept so that existing imports
+  would not break. Nothing could have imported them: the names appear nowhere
+  in this repository's history, no version has been released, and a first
+  release that ships a deprecation deprecates nothing. The module's public
+  names are the two functions and the one result type its docstring promises.
 
 ### Fixed
 

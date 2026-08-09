@@ -1398,17 +1398,22 @@ class TestCorpusContract:
         assert set(scan.citekeys) == {"riboli1997epic", "slimani2002calibration"}
 
 
-class TestDeprecatedAliases:
-    """The old Quarto-only names must keep working after the rename."""
+class TestTheModulesPublicNames:
+    def test_the_export_list_is_what_the_docstring_promises(self) -> None:
+        """"Two public functions and one result type", and nothing beside them.
 
-    def test_scan_quarto_is_scan_markdown(self) -> None:
-        assert md.scan_quarto is md.scan_markdown
-
-    def test_quarto_scan_is_markdown_scan(self) -> None:
-        assert md.QuartoScan is md.MarkdownScan
-
-    def test_scan_quarto_still_callable(self, tmp_path: pathlib.Path) -> None:
-        note = _write(tmp_path, "note.md", "Body [@a].\n")
-        scan = md.scan_quarto([note])
-        assert isinstance(scan, md.QuartoScan)
-        assert list(scan.citekeys) == ["a"]
+        ``__all__`` is the package's promise about what a caller may import,
+        and this module is the one place it drifted: it carried a pair of
+        aliases under an older, Quarto-only spelling, described as kept so
+        that existing imports would not break. No import could have been
+        written against them — the names appear nowhere in this repository's
+        history, the distribution has never been released, and a first release
+        that ships a deprecation deprecates nothing.
+        """
+        assert set(md.__all__) == {
+            "MarkdownScan",
+            "find_project_bibliography",
+            "scan_markdown",
+        }
+        for name in md.__all__:
+            assert hasattr(md, name)

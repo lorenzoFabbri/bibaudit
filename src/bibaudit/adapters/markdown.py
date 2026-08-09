@@ -49,14 +49,10 @@ from ..model import Reference
 from ..names import parse_name_list
 from ..normalize import DOI_PATTERN, clean, extract_dois, normalize_doi, parse_year
 
-#: "QuartoScan" and "scan_quarto" are deprecated aliases for "MarkdownScan"
-#: and "scan_markdown", kept so existing imports do not break.
 __all__ = [
     "MarkdownScan",
-    "QuartoScan",
     "find_project_bibliography",
     "scan_markdown",
-    "scan_quarto",
 ]
 
 
@@ -1075,9 +1071,3 @@ def scan_markdown(paths: Sequence[pathlib.Path]) -> MarkdownScan:
 
     return MarkdownScan(citekeys=citekeys, references=references, bibliographies=bibliographies)
 
-
-#: Deprecated aliases. This module was ``adapters/quarto.py`` (``QuartoScan``,
-#: ``scan_quarto``) before Obsidian support made "Quarto" too narrow a name;
-#: kept so an import written against the old names keeps working.
-QuartoScan = MarkdownScan
-scan_quarto = scan_markdown
