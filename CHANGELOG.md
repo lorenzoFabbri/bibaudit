@@ -169,6 +169,20 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A corrected paper is reported as corrected, not as retracted.** Retraction
+  Watch's export carries a `RetractionNature` of `Correction` beside
+  `Retraction` and `Expression of concern`, and every kind outside the concern
+  vocabulary counted as a retraction — so an entry citing
+  `10.3390/nano14090769` (*Nanomaterials*), for which Retraction Watch logs a
+  correction and nothing else, printed `RETRACTED — the cited work has itself
+  been retracted` with the word `correction` in the registry column and exited
+  1. It is now a third finding, `status/correction`, at `info` severity: the
+  work stands and has been amended, the verdict does not move, and the note
+  says the corrected version is the one to read the numbers off. It reaches the
+  reader through the JSON report and `--verbose`, and no `--fail-on` makes it
+  bite, because it produces no verdict of its own. Where two sources report on
+  one DOI a correction now ranks last, below an expression of concern it had
+  been softening.
 - **A serial's parallel title is a container the registry carries.** NLM joins
   one journal's two names in `JT` with a spaced equals sign — `Journal of
   preventive medicine and public health = Yebang Uihakhoe chi` — on 607 of the
