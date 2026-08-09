@@ -416,18 +416,19 @@ class TestAuthors:
         """NLM writes the marker: 41 citations answer ``"et al"[au]``.
 
         Every one of them carries ``FAU`` as well, so this route has no
-        witnessed instance. It asserts the behaviour rather than the guard:
-        the answer is the same either way today, because the synthetic comma
-        this function inserts is deleted again by ``fold`` before
-        ``parse_name`` looks for the marker, and the guard is what stops that
-        coincidence from being load-bearing. Read as a creator the marker adds
-        a person to the registry's byline and fails the count against a
-        bibliography that has it right.
+        witnessed instance. Being *recognised* is not what the guard buys —
+        the synthetic comma this function inserts is deleted again by ``fold``
+        before ``parse_name`` looks for the marker, so a marker reached
+        through the surname-first repair is still a marker. What the guard
+        keeps is the text: a report naming the creator a byline stopped at
+        prints ``Name.literal``, and every value shown to a reader has to be
+        the registry's own rather than one this module punctuated.
         """
         name = pubmed._parse_au_fallback("Et al")
 
         assert name.et_al
         assert (name.family, name.given) == ("", "")
+        assert str(name) == "Et al"
 
 
 class TestRetractionSignals:

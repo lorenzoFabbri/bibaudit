@@ -178,10 +178,13 @@ def _parse_au_fallback(raw: str) -> Name:
     # `et_al` is tested for the same reason and not because a case has been
     # seen: NLM does write the marker -- 41 citations answer `"et al"[au]`,
     # PMID 19420835 among them -- but every one of those carries `FAU` too, so
-    # this route has no witnessed instance. Without the test it survives only
-    # by accident, `parse_name("Et, al")` recognising the marker because
-    # `fold` deletes the comma this function inserted, and a marker read as a
-    # creator adds a person to the registry's byline and fails the count.
+    # this route has no witnessed instance. What the test changes is narrower
+    # than the collective case beside it: the marker is *recognised* either
+    # way, because `fold` deletes the synthetic comma again before
+    # `parse_name` looks for it. What it would not survive is the comma
+    # itself, which this function invented -- a report naming the creator the
+    # byline stopped at would print `Et, al`, and a value shown to a reader
+    # has to be the registry's own.
     whole = parse_name(text)
     if whole.collective or whole.et_al:
         return whole
