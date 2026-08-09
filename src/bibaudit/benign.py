@@ -740,9 +740,18 @@ def _container_acronym_prefix(field: str, stored: str, registry: str, ref: Refer
     American College of Clinical Pharmacy : JACCP`` (PMID 42522049,
     10.1002/jac5.70263, ``pubmed_acronym_prefix_subtitle.txt``). Several
     publishers put the acronym on the masthead that way and a reference
-    manager copies it whole; NLM never does. Seven of 386 entries in a live
-    sample failed on it, and on the PMID path ``JT`` is the only container
+    manager copies it whole; NLM never does. Four entries in a 386-entry live
+    sample take this shape \u2014 PMIDs 42550479, 42544784 and 42528271, all
+    *JNCI*, and 42522049 \u2014 and on the PMID path ``JT`` is the only container
     there is to be compared against.
+
+    Two more were first counted with them and are a different difference:
+    PMID 42550905 stores *Proceedings of the National Academy of Sciences*
+    against a ``JT`` that continues ``of the United States of America``, and
+    PMID 42546077 stores *Revista da Escola de Enfermagem da USP* against
+    ``JT - Revista da Escola de Enfermagem da U S P``. Neither carries an
+    acronym before a colon, neither is reached here, and both still report
+    ``container/mismatch``.
 
     ``_container_abbreviation`` cannot reach either: it requires the stored
     tokens to be in-order prefixes of the registry's, and the acronym is a

@@ -553,8 +553,16 @@ National Cancer Institute` with `TA - J Natl Cancer Inst`, in
 `tests/data/pubmed_acronym_prefix.txt`; and PMID 42522049,
 `10.1002/jac5.70263`, `JT - Journal of the American College of Clinical
 Pharmacy : JACCP` against a stored `JACCP: JOURNAL OF THE AMERICAN COLLEGE OF
-CLINICAL PHARMACY`, in `pubmed_acronym_prefix_subtitle.txt`. Seven of 386
-entries in a live sample failed on this shape. `benign._container_abbreviation`
+CLINICAL PHARMACY`, in `pubmed_acronym_prefix_subtitle.txt`. Four entries in
+a 386-entry live sample take this shape: PMIDs 42550479, 42544784 and 42528271,
+all *JNCI*, and 42522049.
+
+Two more were first counted with them and are not this shape. PMID 42550905
+stores *Proceedings of the National Academy of Sciences* against a `JT` that
+continues `of the United States of America`; PMID 42546077 stores *Revista da
+Escola de Enfermagem da USP* against `JT - Revista da Escola de Enfermagem da U
+S P`. Neither has an acronym before a colon, neither is reached by the rule,
+and both still report `container/mismatch`. `benign._container_abbreviation`
 reaches neither: it needs the stored tokens to be in-order prefixes of the
 registry's, and the acronym is a token the registry's name does not contain.
 
@@ -987,9 +995,12 @@ preventive medicine and public health = Yebang Uihakhoe chi` (PMID 42526877,
 pharmacologica Sinica` (NlmId 8100330) — and 607 of the 37,987 serials in NLM's
 own list carry at least one. Both halves are the journal's own name and a
 bibliography stores whichever its house style uses, so each is offered as an
-alternate rather than substituted for `JT`. That is what keeps the one serial
-whose half equals some other serial's whole title from merging the two: the
-entry has to match a name, and `JT` stays what the record holds.
+alternate rather than substituted for `JT`. That is what keeps the **34**
+serials whose half equals some other serial's whole title — 38 once `fold` has
+run — from merging with it: `Dong wu xue yan jiu = Zoological research` beside
+`Zoological research`, `Noshuyo byori = Brain tumor pathology` beside `Brain
+tumor pathology`, `Neirofiziologiia = Neurophysiology` beside `Neurophysiology`.
+The entry has to match a name, and `JT` stays what the record holds.
 
 `benign._container_leading_article` covers the entry that stores the masthead
 name. It accepts a stored value whose opening `The`/`A`/`An`, taken off, leaves

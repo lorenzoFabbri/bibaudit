@@ -261,7 +261,7 @@ so `uv sync --all-extras` does not install it into the test environment.
 - **A journal's own acronym written ahead of its name is a `REGISTRY-ARTIFACT`.**
   Several publishers set the masthead as `JNCI: Journal of the National Cancer
   Institute` and a reference manager copies it whole; NLM never files a serial
-  that way, so seven of 386 entries in a live sample failed on a token the
+  that way, so four entries in a 386-entry live sample failed on a token the
   registry's name does not contain. The prefix comes off only when its letters
   are word-initials of what follows, in order — so it is derivable from the
   remainder and cannot stand for another journal — and what is left must equal

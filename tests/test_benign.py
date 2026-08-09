@@ -883,7 +883,7 @@ class TestContainerMedlineQualifier:
 
     NLM appends one — a place, a founding year, the issuing body, or several
     at once — wherever a bare title would be ambiguous in its catalogue, on
-    2,697 of the 37,979 serials in ``J_Medline.txt``. In a catalogue that
+    2,698 of the 37,987 serials in ``J_Medline.txt``. In a catalogue that
     qualifier is exactly what tells two serials of the same base name apart,
     which is the objection this rule has to answer; in *this* comparison
     nothing is being looked up. ``compare`` reaches ``container`` only after

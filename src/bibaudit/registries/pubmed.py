@@ -270,10 +270,14 @@ def _container_book(fields: dict[str, list[str]]) -> str | None:
 #: language: ``Zhongguo yao li xue bao = Acta pharmacologica Sinica`` (NlmId
 #: 8100330). Both are the journal's own name and a bibliography stores
 #: whichever its house style uses. 607 of the 37,987 serials in NLM's own list,
-#: ``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``, carry one; one of those has a
-#: part equal to some other serial's whole title, which is why the parts are
-#: offered as alternates the entry may match rather than substituted for
-#: ``JT``. Spaced on both sides, and matched before
+#: ``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``, carry one; **34** of those
+#: have a part equal to some other serial's whole title, 38 once
+#: :func:`~bibaudit.normalize.fold` has run \u2014 ``Dong wu xue yan jiu =
+#: Zoological research`` beside ``Zoological research``, ``Noshuyo byori =
+#: Brain tumor pathology`` beside ``Brain tumor pathology``. That is why the
+#: parts are offered as alternates the entry may match rather than substituted
+#: for ``JT``: the entry has to name one of them, and ``JT`` stays what the
+#: record holds. Spaced on both sides, and matched before
 #: :func:`~bibaudit.normalize.fold`, which deletes the ``=``.
 _MEDLINE_PARALLEL_TITLE = " = "
 
