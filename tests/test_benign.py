@@ -44,6 +44,11 @@ def _documented(reason: str) -> str:
     return reason.rstrip().rstrip(":").rstrip()
 
 
+#: The note ``benign.py`` puts on a rule that describes a shape nothing was
+#: found doing. It is the one claim in a suppression's write-up a reader cannot
+#: check for themselves, so it has to appear where they are reading.
+_UNWITNESSED = "NO WITNESSED INSTANCE"
+
 _DATA = Path(__file__).parent / "data"
 
 
@@ -1031,6 +1036,36 @@ class TestRuleScoping:
         prose = ARTIFACT_DOCS.read_text(encoding="utf-8")
         missing = [c.__name__ for c in benign.CHECKS if f"`benign.{c.__name__}`" not in prose]
         assert missing == []
+
+    def test_a_rule_with_no_instance_says_so_where_the_reader_looks(self) -> None:
+        """``benign.py``'s note is invisible to whoever is challenging a report.
+
+        Three rules describe a shape a search of the corpus and of the live
+        registries did not find, and the docstring saying so is read by nobody
+        deciding whether to trust a ``REGISTRY-ARTIFACT`` line. The file that
+        *is* read described all three as ordinary documented defects, which
+        reads as a guarantee being honoured. This keeps the two in step in the
+        direction that matters: a rule marked in the source must be marked in
+        the section a reader can reach.
+        """
+        prose = ARTIFACT_DOCS.read_text(encoding="utf-8")
+        sections = {
+            check.__name__: section
+            for section in prose.split("\n## ")
+            for check in benign.CHECKS
+            if f"`benign.{check.__name__}`" in section
+        }
+        unmarked = [
+            name
+            for check in benign.CHECKS
+            if _UNWITNESSED in (check.__doc__ or "")
+            and (name := check.__name__)
+            and _UNWITNESSED not in sections.get(name, "")
+        ]
+        assert unmarked == [], (
+            f"{unmarked} carry a NO WITNESSED INSTANCE note in benign.py and "
+            "their section in docs/registry-artifacts.md does not."
+        )
 
     def test_every_author_escape_is_written_up_too(self) -> None:
         """The author half of the same contract.

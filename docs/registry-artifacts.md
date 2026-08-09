@@ -23,16 +23,31 @@ all. They are here because they are reported as `REGISTRY-ARTIFACT` and so owe
 the reader the same explanation — read the section before concluding that a
 registry got something wrong.
 
-**Every section's `Observed` line is the record of what was actually seen**, and
-two of them say *nothing was*. *One DOI, more than one PubMed citation* and *An
-identifier a registry answered around* document a guard against something the
-registry's responses make representable but that no probe has caught a registry
-doing. They are kept because the two outcomes are not symmetrical — adopting
-another work's record hands an entry that work's metadata and that work's
-retraction status, which no later check recovers from, while declining one costs
-a lookup — and they open by saying so, so a reader can tell a witnessed defect
-from a guarded possibility without reading to the end. Anyone who catches an
-instance should record it on that line.
+**Where a section carries an `Observed` line, that line is the record of what
+was actually seen.** Five of them say *nothing was*, and each says so in its
+first sentence, so a reader can tell a witnessed defect from a guarded
+possibility without reading to the end. Anyone who catches an instance should
+record it there.
+
+*One DOI, more than one PubMed citation* and *An identifier a registry answered
+around* guard against something the registries' responses make representable
+but that no probe has caught one doing. They are kept because the two outcomes
+are not symmetrical: adopting another work's record hands an entry that work's
+metadata and that work's retraction status, which no later check recovers from,
+while declining one costs a lookup.
+
+*Doubled tokens from mangled MathML*, *Bracketed parent title on comments and
+replies* and *Deposit timestamps recorded as publication years* are the other
+three, and they are not kept on that argument. Each is a suppression with no
+instance behind it — a hole in a check with nothing to justify it — and
+`benign.py` marks all three **NO WITNESSED INSTANCE** and names them candidates
+for deletion. What each searched, and what the search found instead, is in its
+own section. One author escape, *One-character spelling variants*, is in
+the same position and says so in its own words.
+
+`tests/test_benign.py::TestRuleScoping` fails the build when a rule marked
+**NO WITNESSED INSTANCE** in the source is not marked in its section here, so
+the two cannot drift.
 
 One section documents no defect at all. *The PMID check is one-sided, and warns
 rather than fails* records why a comparison's severity is what it is, and it is
@@ -429,30 +444,77 @@ an article number, the difference is an encoding choice, not a defect.
 `10.1001/archinte.167.22.2461` and nothing about it says article number, so the
 four-digit floor let a stored `2461` against a registry `2450-2455` be excused
 as "one article in two notations" when it is a plain page disagreement. A value
-with a non-digit prefix (`e0123456`, `A102`) needs no floor — no journal
-paginates that way.
+carrying a non-digit prefix gets a **four-character** floor rather than none at
+all, so `e0123456` and `A102` are article numbers and `e12` and `A1` are not.
+The prefix is good evidence and it is not proof: an `e12` is as easily a
+mistyped page as a numbered article, and the floor keeps the difference
+reported. That is the safe direction — a page disagreement nobody was told
+about is the loss this predicate's threshold exists to prevent.
 
 ---
 
 ## Doubled tokens from mangled MathML
 
-**What happens.** A title containing mathematical notation is deposited through
-a broken MathML conversion and an operator token is repeated, producing
-fragments like `do(x)do(x)` in the registry's title.
+**NO WITNESSED INSTANCE. Candidate for deletion.**
+
+**What it claims to happen.** A title containing mathematical notation is
+deposited through a broken MathML conversion and an operator token is repeated,
+producing fragments like `do(x)do(x)` in the registry's title.
+
+**Observed. Nothing.** Searched: all 438 corpus entries, and 17,144 Crossref
+titles from the journals where notation in a title is routine — *Journal of
+Causal Inference*, *Biometrika*, *Statistics in Medicine*, *Biometrics*, *PLOS
+ONE*. The pattern matched nothing anywhere.
+
+Doubling from mangled markup *is* real, and this rule does not catch it.
+`10.1002/(SICI)1097-0258(19980730)17:14<1601::AID-SIM870>3.0.CO;2-2` is
+deposited as "…uterine receptivity inin vitro fertilization", the word doubled
+across a lost `<i>`, and `benign._MATHML_DOUBLING` does not match that shape
+either. So the rule has neither an instance nor the instance that exists.
 
 **Detection.** `benign._title_mathml` removes the doubling and re-compares. Only
 an exact match after repair is accepted.
+
+**What to do with it.** Replace it with a rule written against a recorded
+response, or delete it. Widening it to "collapse any immediately repeated
+token" would suppress far more than one deposit defect and has no evidence
+behind it.
 
 ---
 
 ## Bracketed parent title on comments and replies
 
-**What happens.** A comment, reply or erratum is registered with the parent
-article's title in square brackets ahead of its own. The bibliography carries
-only the comment's title, correctly.
+**NO WITNESSED INSTANCE of that description. Candidate for narrowing or
+deletion.**
+
+**What it claims to happen.** A comment, reply or erratum is registered with the
+parent article's title in square brackets ahead of its own. The bibliography
+carries only the comment's title, correctly.
+
+**Observed. Not that.** Searched: all 438 corpus entries against both Crossref
+and PubMed, and PubMed's `comment[pt]`, `"published erratum"[pt]` and
+author-reply title searches. Not one registry title was a *parent article's*
+title in brackets followed by the item's own.
+
+What the search did find is a bracketed **label**: PMID 42535368,
+`10.3892/mmr.2026.13976`, titled "[Corrigendum] Identification of key
+differentially expressed genes associated with non-small cell lung cancer by
+bioinformatics analyses".
 
 **Detection.** `benign._title_bracketed_parent` strips a leading bracketed span
-of ten characters or more and re-compares.
+of ten characters or more and re-compares. That is wider than the description
+above, and the difference matters: the span on PMID 42535368 is eleven
+characters, so the rule strips `[Corrigendum]` and then accepts an entry
+storing the **parent** article's title against the **corrigendum's** DOI. That
+is arguably a real citation error being suppressed, which is the opposite of
+what this file is for.
+
+**What it gets right, and is worth keeping.** A *wholly* bracketed translated
+title — `10.1016/j.medcli.2012.01.020` is registered as "[SIDIAP database:
+electronic clinical records in primary care as a source of information for
+epidemiologic research]" for a Spanish-language article — is left alone,
+because stripping it leaves nothing to compare. The rest of the rule needs an
+instance or it needs to go.
 
 ---
 
@@ -646,8 +708,27 @@ bibliography.
 
 ## Deposit timestamps recorded as publication years
 
-**What happens.** A working-paper series re-deposits an old item and the
-`issued` date becomes the deposit date — a 2020 paper carrying 2026.
+**NO WITNESSED INSTANCE. Candidate for deletion.**
+
+**What it claims to happen.** A working-paper series re-deposits an old item and
+the `issued` date becomes the deposit date — a 2020 paper carrying 2026.
+
+**Observed. Nothing, and the named series does the opposite.** Searched: all 438
+corpus entries — four disagree with Crossref on the year and *all four run the
+other way* — and NBER, the working-paper series the description points at.
+NBER's `issued` dates are correct: `10.3386/w0001` carries `issued` 1973-06 and
+keeps its 2007-10-23 deposit stamp in `created`, a field this tool never reads.
+Crossref's `created` is where deposit timestamps live, and it does not reach
+`Record.years` at all.
+
+The *opposite* direction is a real, repeatable false positive and nothing here
+covers it. `10.1136/gutjnl-2019-319990` is an online-first BMJ-group paper with
+`online` 2020, `issued` 2020 and no print date, while the entry cites the 2021
+issue year, correctly; three more corpus entries do the same
+(`10.1093/aje/kwj364`, `10.1093/aje/kwm361`, `10.1007/s10549-007-9523-x`).
+Whoever replaces this rule should write that one instead, and will need a
+defensible bound on the gap: "the entry's year is later than anything the
+registry knows" is also what a wrong year looks like.
 
 **Detection.** `benign._year_deposit_artifact` applies only when there is no
 print date to corroborate the registry's year *and* the registry year is at

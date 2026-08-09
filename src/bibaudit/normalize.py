@@ -382,8 +382,10 @@ def first_page(value: object) -> str:
 #: ``672492`` on 10.1155/2009/672492) and excludes every page a volume-relative
 #: numbering scheme plausibly reaches.
 #:
-#: A value carrying a non-digit prefix — ``e0123456``, ``A102`` — needs no such
-#: floor: no journal paginates that way, so the prefix alone identifies it.
+#: A value carrying a non-digit prefix — ``e0123456``, ``A102`` — gets a
+#: four-character floor rather than this one, because the prefix is evidence
+#: and not proof: ``e12`` is as easily a mistyped page as a numbered article,
+#: and the floor keeps that difference reported rather than excused.
 _MIN_NUMERIC_ARTICLE_NUMBER = 6
 
 
