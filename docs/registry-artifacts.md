@@ -1135,6 +1135,30 @@ comparison, so `A Journal of Cancer` against `The Journal of Cancer (Basel,
 Switzerland)` stays a `container/mismatch`, and an entry that stores the
 qualifier itself is compared as it was written.
 
+**The rule is not scoped to a serial**, and the reason it prints says *journal*
+because that is what the container is on all but a handful of entries. Its one
+scope guard is the field: it runs on any `container`, from any registry, and a
+book's is a volume title. Two real containers reach it that way.
+
+`GeneReviews((R))` is MEDLINE's `BTI` on every chapter of it — PMID 20301425,
+`tests/data/pubmed_book_chapter.txt` — and a `booktitle = {GeneReviews}` is
+what a bibliography carries. Nothing else covers that pairing: `TA` is absent
+on a book record, so `container_alternates` is empty. Crossref's deposit for
+`10.1088/978-0-7503-3703-8ch5` (IOP, `type: book-chapter`) is
+`container-title: ["Photography (Second Edition)"]`, and an `@incollection`
+whose `booktitle` is *Photography* is suppressed against it.
+
+That second one is worth being precise about, because a book differs from a
+serial in the way the argument above turns on: a chapter can appear in two
+editions of one volume, and those are two works. What the rule accepts there is
+an entry that **omits** the parenthetical, on a work whose own identifier has
+already settled which edition it is — incompleteness, stated as a
+`REGISTRY-ARTIFACT` line rather than passed over. An entry naming the **wrong**
+edition still fires: the remainder has to equal the stored name outright, so
+`Photography (First Edition)` against `Photography (Second Edition)` is a
+`container/mismatch`, exactly as *Annals of Surgery* is against `Annals of
+medicine and surgery (2012)`.
+
 ---
 
 ## Retraction relations deposited in both directions

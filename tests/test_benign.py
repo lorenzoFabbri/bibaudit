@@ -983,6 +983,38 @@ class TestContainerMedlineQualifier:
             "Interventional radiology Higashimatsuyama-shi Japan)",
         ) is None
 
+    def test_a_volume_title_reaches_the_rule_too(self) -> None:
+        """The one scope guard is the field, and a book's container is a volume.
+
+        MEDLINE's ``BTI`` on every *GeneReviews* chapter is ``GeneReviews((R))``
+        (PMID 20301425) and a bibliography writes ``booktitle = {GeneReviews}``;
+        a book record carries no ``TA``, so ``container_alternates`` is empty
+        and nothing else reaches the pairing. Crossref's deposit for
+        10.1088/978-0-7503-3703-8ch5 is ``container-title: ["Photography
+        (Second Edition)"]`` and an ``@incollection`` naming *Photography* is
+        suppressed against it, which is the entry omitting the parenthetical on
+        a work its own identifier has already pinned.
+        """
+        assert classify(
+            "container", "GeneReviews", "GeneReviews((R))", container_alternates=[]
+        ) == "registry appends a parenthetical qualifier to the journal name"
+        assert classify(
+            "container", "Photography", "Photography (Second Edition)",
+            container_alternates=[],
+        ) == "registry appends a parenthetical qualifier to the journal name"
+
+    def test_a_volume_named_as_the_wrong_edition_still_fires(self) -> None:
+        """The pairing for a book, where two editions really are two works.
+
+        Only an *omitted* parenthetical is suppressed. The remainder has to
+        equal the stored name outright, so an entry that names an edition and
+        names the wrong one is a ``container/mismatch`` like any other.
+        """
+        assert classify(
+            "container", "Photography (First Edition)", "Photography (Second Edition)",
+            container_alternates=[],
+        ) is None
+
     def test_a_journal_differing_by_a_word_still_fires(self) -> None:
         """The pairing. The remainder has to equal the stored name outright.
 
