@@ -320,8 +320,15 @@ def _looks_like_doi(value: str) -> bool:
     return value.startswith("10.")
 
 
-def _parse_rw_csv(text: str) -> dict[str, RetractionNotice]:
-    """Index of Retraction Watch's export by the *original* paper's DOI.
+def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int]:
+    """Index of Retraction Watch's export by the *original* paper's DOI, and
+    the number of rows read with a DOI-shaped ``OriginalPaperDOI``.
+
+    The count is what :meth:`Retractions._load_index` reads to tell an export
+    it could not fetch from one it fetched: the *index* can be legitimately
+    empty — of a DOI whose only notice a reinstatement withdrew, and of an
+    export narrowed to one — while an export nobody managed to download yields
+    no row at all.
 
     Streamed row by row through :class:`csv.DictReader` rather than
     materialised as ``list(csv.DictReader(...))`` first: only the rows whose
@@ -364,11 +371,13 @@ def _parse_rw_csv(text: str) -> dict[str, RetractionNotice]:
     #: builds even where a DOI is logged many times over.
     standing: dict[str, dict[str, tuple[datetime, RetractionNotice]]] = {}
     reinstated: dict[str, datetime] = {}
+    read = 0
 
     for row in csv.DictReader(io.StringIO(text)):
         doi = normalize_doi(row.get("OriginalPaperDOI") or "")
         if not _looks_like_doi(doi):
             continue
+        read += 1
 
         nature = _fold_nature(row.get("RetractionNature") or "")
         if nature == "reinstatement":
@@ -421,7 +430,7 @@ def _parse_rw_csv(text: str) -> dict[str, RetractionNotice]:
         ]
         if live:
             index[doi] = min(live, key=lambda notice: _kind_rank(notice.kind))
-    return index
+    return index, read
 
 
 def _index_to_payload(index: Mapping[str, RetractionNotice]) -> dict[str, Any]:
@@ -700,11 +709,14 @@ class Retractions:
         clean bill of health issued over an unread database, which is the one
         output CLAUDE.md's retraction rule forbids outright.
 
-        No sanity floor decides that: the test is that the export yielded
-        nothing at all, so nothing here has to be told how big Retraction
-        Watch is. Nor is the emptiness cached — with a seven-day TTL on this
-        index (:data:`_RW_CACHE_TTL_DAYS`) it would survive a week of healthy
-        runs, and ``--refresh`` does not reach this cache.
+        No sanity floor decides that: the test is that the export yielded no
+        row this module could read at all, so nothing here has to be told how
+        big Retraction Watch is. It is the row count and not the index, because
+        an index can be legitimately empty — every notice in it withdrawn by a
+        reinstatement — where an export nobody downloaded has no row to read.
+        Nor is the emptiness cached: with a seven-day TTL on this index
+        (:data:`_RW_CACHE_TTL_DAYS`) it would survive a week of healthy runs,
+        and ``--refresh`` does not reach this cache.
         """
         if self._index is not None:
             return self._index
@@ -715,8 +727,8 @@ class Retractions:
             return self._index
 
         text = self._client.get_text(_RW_CSV_URL)
-        index = _parse_rw_csv(text) if text is not None else {}
-        if not index:
+        index, read = _parse_rw_csv(text) if text is not None else ({}, 0)
+        if not read:
             raise Transient(
                 f"{_RW_CSV_URL}: the export answered with no usable rows"
             )

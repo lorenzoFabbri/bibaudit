@@ -99,6 +99,29 @@ RW_EXPORT_WITHOUT_THIS_DOI = (
 )
 
 
+#: The columns :func:`~bibaudit.registries.retractions._parse_rw_csv` reads,
+#: in the live export's own order.
+_RW_COLUMNS = RW_EXPORT_WITHOUT_THIS_DOI.splitlines()[0]
+
+
+def _rw_rows(*rows: tuple[str, str, str, str]) -> str:
+    """An export holding exactly *rows*, each ``(doi, date, nature, notice)``.
+
+    Written out rather than extracted from the live file because the shapes
+    these exercise have no live instance: no DOI in the 2026-08-09 export
+    carries an undated notice beside a dated reinstatement, two reinstatements,
+    or a reinstatement dated the same day as the notice it withdraws. 241 rows
+    of that export carry no date at all, so the first of those is one export
+    away, and a rule with no live instance is exactly the one nothing else
+    holds in place.
+    """
+    body = "".join(
+        f"1,T,,,J,P,,A,,,{date},{notice},0,1/1/2019 0:00,{doi},0,{nature},,No,,\n"
+        for doi, date, nature, notice in rows
+    )
+    return f"{_RW_COLUMNS}\n{body}"
+
+
 def _pubmed_fixture(name: str) -> str:
     return (DATA / f"pubmed_{name}.txt").read_text(encoding="utf-8")
 
@@ -854,6 +877,24 @@ class TestAnExportThatCarriesNothing:
         later = Retractions(_client(rw_csv=_rw_sample()), cache_dir=tmp_path)
         status = later.status_for([WAKEFIELD_DOI])
         assert status.notices[WAKEFIELD_DOI.lower()].kind == "retraction"
+        assert status.unreachable == frozenset()
+
+    def test_an_export_whose_only_notice_was_withdrawn_is_an_answer(
+        self, tmp_path: Path
+    ) -> None:
+        """It is the rows read that say whether the export was downloaded, not
+        the index built from them. An index can be legitimately empty — every
+        notice in it reversed by a reinstatement — and calling that an outage
+        would report a retraction gap on a file that answered in full.
+        """
+        csv = _rw_rows(
+            ("10.1000/reversed", "1/1/2020 0:00", "Retraction", "10.1000/notice"),
+            ("10.1000/reversed", "6/1/2021 0:00", "Reinstatement", ""),
+        )
+        status = Retractions(_client(rw_csv=csv), cache_dir=tmp_path).status_for(
+            ["10.1000/reversed"]
+        )
+        assert status.notices == {}
         assert status.unreachable == frozenset()
 
     def test_an_export_with_one_row_is_an_answer(self, tmp_path: Path) -> None:
