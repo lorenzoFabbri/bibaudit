@@ -677,13 +677,40 @@ class TestContainerLeadingArticle:
     def test_the_article_the_registry_keeps_is_the_same_shape(self) -> None:
         """NLM keeps a serial's article on some titles and drops it on most.
 
-        ``The Alaska nurse``, ``Der Anaesthesist``, ``L'Auxiliaire`` are ``JT``
-        values whose ``MedAbbr`` is the name without it, and *The Lancet*
-        against a stored *Lancet* is the shape a bibliography exported from
-        PubMed or EndNote carries. Nothing is abbreviated in any of them.
+        ``The Alaska nurse`` is a ``JT`` whose ``MedAbbr`` is the name without
+        it, and *The Lancet* against a stored *Lancet* is the shape a
+        bibliography exported from PubMed or EndNote carries. Nothing is
+        abbreviated in either.
         """
         assert classify("container", "Lancet", "The Lancet", container_alternates=[]) == (
             "registry files the journal under a leading article"
+        )
+
+    @pytest.mark.parametrize(
+        ("stored", "registry"),
+        [
+            ("Anaesthesist", "Der Anaesthesist"),
+            ("Auxiliaire", "L'Auxiliaire"),
+            ("Naturwissenschaften", "Die Naturwissenschaften"),
+        ],
+    )
+    def test_an_article_in_another_language_is_not_reached_here(
+        self, stored: str, registry: str
+    ) -> None:
+        """The limit of the pattern, pinned where the source used to claim the
+        opposite.
+
+        ``der``, ``l'`` and ``die`` all fold to three characters or fewer, so
+        ``_container_abbreviation`` clears them one rule later and prints
+        ``stored name abbreviates the registry name`` — the sentence this rule
+        was placed ahead of that one to stop printing, and the sentence those
+        journals still get. The verdict is unchanged, and the set is not
+        widened because a multilingual article list is a stop-word vocabulary
+        in the verdict path. Pinned so that widening it, or claiming again that
+        this branch reaches them, has to move this test.
+        """
+        assert classify("container", stored, registry, container_alternates=[]) == (
+            "stored name abbreviates the registry name"
         )
 
     def test_a_parallel_title_half_that_opens_with_an_article_is_reachable(self) -> None:

@@ -499,9 +499,19 @@ def _container_leading_article(field: str, stored: str, registry: str, ref: Refe
     parallel titles in NLM's own list open a half with an article, and this
     branch is what reaches 62 of them: without it an entry storing the
     article-free masthead form of those 62 reports ``container/mismatch``,
-    where with it none does. NLM keeps an article on a whole ``JT`` too —
-    ``The Alaska nurse``, ``Der Anaesthesist``, ``L'Auxiliaire`` — and the same
-    branch reaches those.
+    where with it none does. It reaches a whole ``JT`` filed under one as well
+    — ``The Alaska nurse``.
+
+    :data:`_LEADING_ARTICLE` is English only, so ``Der Anaesthesist``,
+    ``L'Auxiliaire`` and ``Die Naturwissenschaften`` are *not* reached here:
+    their articles fold to three characters or fewer and
+    :func:`_container_abbreviation` swallows them one rule later, under
+    ``stored name abbreviates the registry name`` — the reason this rule was
+    put ahead of that one to stop printing, and the reason those entries are
+    still given. The set is not widened because a multilingual article list is
+    a stop-word vocabulary in the verdict path, which is exactly what
+    :data:`_MAX_SKIPPED_WORD` chose a length bound over; what is wrong for
+    those three is the sentence, not the verdict.
     """
     if field != "container":
         return None

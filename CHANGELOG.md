@@ -318,7 +318,7 @@ so `uv sync --all-extras` does not install it into the test environment.
   only, so an entry storing *Canadian Journal of Statistics* failed against
   `JT - The Canadian journal of statistics = Revue canadienne de statistique`
   (PMID 42559441) — the article-free form is what Crossref deposits and what a
-  bibliography exports, and 26 of the 63 parallel titles in NLM's list whose
+  bibliography exports, and 62 of the 63 parallel titles in NLM's list whose
   half opens with an article reported `container/mismatch` for it. One article
   now comes off one side per comparison, either side, and the reason printed
   says which; `A Journal of Cancer` against `The Journal of Cancer` is still a

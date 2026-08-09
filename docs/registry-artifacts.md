@@ -1075,9 +1075,18 @@ journal as *Canadian Journal of Statistics* — the spelling a bibliography
 exports. 63 of the 607 parallel titles in NLM's own list open a half with an
 article, and this branch is what reaches 62 of them: strip the registry side
 back out and an entry storing the article-free masthead form of those 62
-reports `container/mismatch`, where today none does. NLM keeps an article on a
-whole `JT` too: `The Alaska nurse`, `Der Anaesthesist`, `L'Auxiliaire` are
-filed with one and abbreviated without it.
+reports `container/mismatch`, where today none does. It reaches a whole `JT`
+filed under one as well: `The Alaska nurse`.
+
+`_LEADING_ARTICLE` is English only — `the`, `a`, `an`. `Der Anaesthesist`,
+`L'Auxiliaire` and `Die Naturwissenschaften` are filed with an article and
+abbreviated without one, and this rule does **not** reach them: those articles
+fold to three characters or fewer, so `_container_abbreviation` clears them one
+rule later and prints `stored name abbreviates the registry name` — the reason
+this rule was placed ahead of that one to stop printing, and the reason those
+entries are still given. The verdict is the same either way; the sentence is
+not. Widening the set would put one language's function words in the verdict
+path, which is what the skip bound above chose a length over.
 
 The qualifier is not stripped here at all — this rule compares whole titles,
 and what may come off the registry's side beyond an article is decided by the
