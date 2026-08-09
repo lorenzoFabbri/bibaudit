@@ -570,8 +570,11 @@ vocabulary would put one language's function words in the verdict path.
 What is left has to equal a name the record itself carries — `JT`, a
 `container_alternates` entry, the text before NLM's spaced colon, or the text
 before a trailing parenthetical — **outright**. Never a prefix and never a
-substring: `CEBP: Cancer Epidemiology` against *Cancer Epidemiology, Biomarkers
-& Prevention* differs by a word and still fires. The registry side is never
+substring: `CE: Cancer Epidemiology`, whose prefix *is* an initialism of what
+follows it, leaves *Cancer Epidemiology*, which differs from *Cancer
+Epidemiology, Biomarkers & Prevention* by a word and is no name that record
+carries, so the difference still fires. `CEBP:` before the same two words never
+reaches that test at all — it fails the initialism check on `B`. The registry side is never
 stripped of a leading article here, because the stored side has already been
 edited once and one edit per comparison is what keeps the printed reason true
 of what it suppresses.
