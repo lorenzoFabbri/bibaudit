@@ -2,8 +2,9 @@
 
 These run entirely offline, so they assert the *logic* rather than the state of
 any registry. Any live-registry check belongs behind the ``network`` marker
-declared in ``pyproject.toml``; no such test exists yet, so
-``uv run pytest -m network`` currently selects nothing.
+declared in ``pyproject.toml``; no such test exists yet. The one test that
+carries the marker is ``tests/test_http.py``'s own check that the default run
+deselects it.
 
 Most cases build their records by hand. The retraction ones do not: they replay
 saved registry responses through the real ``registries.crossref`` and

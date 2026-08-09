@@ -7,17 +7,10 @@ tool against it with the network on and then re-reading the cached registry
 response by hand; the fixtures in ``tests/data/audit_*.json`` are those cached
 responses, verbatim.
 
-Two kinds of test live here, and the difference matters:
-
-* **Live tests** assert behaviour the tool has today and must not lose. Several
-  of them are the "true positive still fires" half of a pair — the defect that
-  *superficially resembles* a benign case and must survive whatever suppression
-  is added for that case.
-* **``xfail`` tests** are the false alarms the run exposed, each written as the
-  assertion that will hold once the suppression exists. They are marked rather
-  than deleted so the hole stays visible and stays attached to the concrete
-  instance that revealed it. ``xfail_strict`` is off, so one turning green
-  reports as ``xpassed`` and never breaks the suite for whoever fixes it.
+Every test here asserts behaviour the tool has today and must not lose.
+Several are the "true positive still fires" half of a pair — the defect that
+*superficially resembles* a benign case and must survive whatever suppression
+was added for that case.
 """
 
 from __future__ import annotations
