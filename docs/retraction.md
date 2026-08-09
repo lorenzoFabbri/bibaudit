@@ -307,11 +307,18 @@ So where no source that answered records a retraction, `compare` raises
 `status/not-asked` on the reference, at `info` severity, naming every source
 that carries the signal and was not asked:
 
-| The reference | What the finding names |
-|---|---|
-| resolved by its PMID | `crossref, retraction-watch` |
-| a book resolved by its ISBN | `crossref, pubmed, retraction-watch` |
-| any reference under `--no-retraction-check` | `retraction-watch` |
+| The reference | What the finding names | And why they went unasked |
+|---|---|---|
+| resolved by its PMID | `crossref, retraction-watch` | take a DOI this reference does not carry |
+| a book resolved by its ISBN | `crossref, pubmed, retraction-watch` | take a DOI or a PMID this reference does not carry |
+| any reference under `--no-retraction-check` | `retraction-watch` | was not queried on this run |
+
+The third column is in the printed note, and it is there because the two
+reasons are not one. No rerun asks Retraction Watch about a reference that has
+no DOI, and the reader can do nothing about it; a source that *had* a key and
+went unasked was left out by a flag they chose, and dropping the flag is the
+whole of the remedy. A run can produce both clauses at once, and each names its
+own sources.
 
 It reaches the reader by the three routes above, the banner line ending in `not
 asked` rather than `unreachable`. An entry a source *did* report a retraction for

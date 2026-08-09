@@ -155,7 +155,10 @@ and how they are combined; these are their edges.
   corroborated for N reference(s)` beside the banner, naming the sources and
   which of the two happened to them. Two lines, never one: a rerun may settle an
   outage, and no rerun asks a DOI-keyed source about a reference that has no
-  DOI. Four sources are deliberately excluded from both, because bibaudit reads
+  DOI. The unasked line goes on to say which of *its* two reasons applied — a
+  source that takes an identifier the reference does not carry, or one that had
+  a key and was not queried on this run — because only the second has a
+  remedy. Four sources are deliberately excluded from both, because bibaudit reads
   no retraction signal from any of them and naming one would put a manufactured
   doubt on a whole class of entry. DataCite and Open Library have no retraction,
   withdrawal or concern element in their data models at all. For Europe PMC and

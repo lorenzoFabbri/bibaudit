@@ -275,7 +275,9 @@ If a registry that carries the signal could not be reached, or was never asked,
 the report says so beside the banner — *retraction status not corroborated for N
 reference(s)*, on one line per reason. Silence from a registry nobody could
 reach is not a clean bill of health, and neither is silence from one nobody
-asked.
+asked. The second line goes on to say why nobody asked: a source that takes an
+identifier the entry does not carry will not be asked by any rerun, while one
+that had a key and was left out was left out by a flag.
 
 **Coverage is still not complete**, and reading a clean result as proof
 nothing here was ever retracted overstates what was checked. Crossref's and

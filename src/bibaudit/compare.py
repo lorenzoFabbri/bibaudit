@@ -894,9 +894,59 @@ def _detail(kinds: Mapping[str, str], names: Sequence[str]) -> str:
     return "; ".join(f"{name}={kinds[name]}" for name in names)
 
 
+#: Identifiers each retraction source can be looked up by. A source missing
+#: from this map takes a DOI, which is the common case and the reason the map
+#: is written as the exception: Crossref's ``updated-by`` is on a DOI record
+#: and Retraction Watch's export is keyed on a DOI column, while PubMed answers
+#: to a PMID as readily.
+#:
+#: Read only to say *why* a source went unasked, never to decide whether it
+#: did. The two reasons need different words because the reader's next move
+#: differs: a source with no key for this reference will not be asked by any
+#: rerun, and one that had a key and was left out was left out by a flag the
+#: reader chose. "Were never asked" covered both and told them apart for
+#: neither.
+_STATUS_SOURCE_KEYS: dict[str, tuple[str, ...]] = {"pubmed": ("doi", "pmid")}
+
+
+def _why_unasked(unasked: Sequence[str], ref: Reference) -> str:
+    """The *unasked* sources, grouped by whether this reference had a key.
+
+    Both clauses name their sources, so the sentence stays checkable against
+    the ``consulted`` map beside it however the groups fall out.
+    """
+    keyless = [
+        name
+        for name in unasked
+        if not any(
+            getattr(ref, attr, None)
+            for attr in _STATUS_SOURCE_KEYS.get(name, ("doi",))
+        )
+    ]
+    skipped = [name for name in unasked if name not in keyless]
+
+    clauses = []
+    if keyless:
+        wanted = sorted(
+            {key for name in keyless for key in _STATUS_SOURCE_KEYS.get(name, ("doi",))}
+        )
+        named = " or ".join(f"a {key.upper()}" for key in wanted)
+        clauses.append(
+            f"{', '.join(keyless)} {'take' if len(keyless) > 1 else 'takes'} "
+            f"{named} this reference does not carry"
+        )
+    if skipped:
+        clauses.append(
+            f"{', '.join(skipped)} {'were' if len(skipped) > 1 else 'was'} "
+            "not queried on this run"
+        )
+    return "; ".join(clauses)
+
+
 def _status_issues(
     records: Mapping[str, Record],
     consulted: Mapping[str, Consultation],
+    ref: Reference,
     *,
     asked_stated: bool,
 ) -> tuple[list[Issue], bool]:
@@ -976,10 +1026,14 @@ def _status_issues(
         Kept apart from ``retraction-unverified`` rather than folded into it
         for the reason :data:`~bibaudit.model.Consultation` keeps three states
         and not two: "could not be reached" is ignorance that a rerun may
-        settle, "was never asked" is a standing property of how this reference
-        resolved, and the reader's next move differs. Also ``info``, for the
-        same reason — coverage a reference's own identifier denies it is not a
-        defect in anybody's bibliography.
+        settle, "was not asked" is not, and the reader's next move differs.
+        The note goes further and says which of *two* reasons applied — see
+        :func:`_why_unasked` — because "not asked" covers a source that takes
+        an identifier this reference does not carry, which no rerun changes,
+        and one that had a key and was left out by a flag, which dropping the
+        flag fixes. Also ``info``, for the same reason as its neighbour:
+        coverage a reference's own identifier denies it is not a defect in
+        anybody's bibliography.
 
         Raised only when *asked_stated*, i.e. when :func:`compare`'s caller
         named the registries it queried. Without that, ``not-asked`` in
@@ -1124,11 +1178,9 @@ def _status_issues(
                     registry="",
                     source=",".join(unasked),
                     note=(
-                        f"retraction status not corroborated: {', '.join(unasked)} "
-                        f"{'was' if len(unasked) == 1 else 'were'} never asked "
-                        "about this reference, and no registry that did answer "
-                        "records a retraction — which is not the same as there "
-                        "being none"
+                        f"retraction status not corroborated: {_why_unasked(unasked, ref)}"
+                        ", and no registry that did answer records a retraction "
+                        "— which is not the same as there being none"
                     ),
                 )
             )
@@ -1456,7 +1508,9 @@ def compare(
     # consultation map, every source that could not answer and every source
     # nobody asked, because ignorance about retraction is not the same fact as
     # an absence of one. See _status_issues.
-    status, retracted = _status_issues(records, result.consulted, asked_stated=asked is not None)
+    status, retracted = _status_issues(
+        records, result.consulted, ref, asked_stated=asked is not None
+    )
     ctx.issues.extend(status)
 
     if not any(

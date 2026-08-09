@@ -169,6 +169,13 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **`status/not-asked` says which of its two reasons applied.** "Were never
+  asked" covered a source that takes an identifier the reference does not carry
+  — which no rerun changes — and one that had a key and was left out by
+  `--no-retraction-check`, which dropping the flag fixes. The note now names
+  the sources in each group separately: `crossref, retraction-watch take a DOI
+  this reference does not carry` against `retraction-watch was not queried on
+  this run`.
 - **A volume or issue number is no longer a mismatch for its leading zero.**
   Crossref deposits `"issue": "05"` where MEDLINE writes `IP - 5` for the same
   work, so an entry exported from either failed against the other — and on the

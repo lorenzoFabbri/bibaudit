@@ -928,8 +928,28 @@ class TestARetractionSourceNobodyAsked:
         assert status.kind == "not-asked"
         assert status.severity == "info"
         assert status.source == "crossref,retraction-watch"
-        assert "never asked" in status.note
         assert "not the same as there being none" in status.note
+
+    def test_the_note_says_which_of_the_two_reasons_it_was(self) -> None:
+        """"Nobody asked" has two causes and the reader's next move differs.
+
+        Nothing a rerun does asks Retraction Watch about a reference with no
+        DOI; dropping a flag is what makes a source that *had* a key answer.
+        One sentence covering both told them apart for neither.
+        """
+        result = compare(make_ref(doi=None, pmid="9500320"), {"pubmed": make_pubmed()}, asked={"pubmed"})
+        note = next(i.note for i in result.issues if i.kind == "not-asked")
+
+        assert "crossref, retraction-watch take a DOI this reference does not carry" in note
+
+    def test_a_source_that_had_a_key_and_was_skipped_says_so_instead(self) -> None:
+        """``--no-retraction-check`` on an entry Retraction Watch could answer for."""
+        result = compare(
+            make_ref(), {"crossref": make_record()}, asked={"crossref", "datacite", "pubmed"}
+        )
+        note = next(i.note for i in result.issues if i.kind == "not-asked")
+
+        assert "retraction-watch was not queried on this run" in note
 
     def test_the_verdict_and_the_exit_code_do_not_move(self) -> None:
         """Coverage a reference's own identifier denies it is not its defect."""
@@ -994,7 +1014,9 @@ class TestARetractionSourceNobodyAsked:
         assert kinds == ["retraction-unverified", "not-asked"]
         gap = next(i for i in result.issues if i.kind == "not-asked")
         assert gap.source == "retraction-watch"
-        assert "was never asked" in gap.note
+        # This entry does carry a DOI, so the reason is the run's, not the
+        # reference's.
+        assert "retraction-watch was not queried on this run" in gap.note
 
 
 class TestASourceThatCannotDissent:
