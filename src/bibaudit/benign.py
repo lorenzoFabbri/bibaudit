@@ -124,6 +124,25 @@ _PRINT_DATE_REGISTRIES = frozenset({"crossref"})
 #: ``Advances in research`` against ``Advances in drug research``.
 _MAX_SKIPPED_WORD = 3
 
+#: Fewest tokens a name may be left holding when NLM's trailing qualifier comes
+#: off a title the record carries *beside* its primary one.
+#:
+#: Those are the abbreviated forms, and an abbreviation's words are already
+#: truncated: one of them left alone is one shortened word rather than a name.
+#: ``Proc (Bayl Univ Med Cent)`` (NlmId 9302033) reduces to ``Proc``, which
+#: opens 441 serials' abbreviations in that list and is none of them.
+#: 825 of the 2,695 qualified ``MedAbbr`` values in NLM's own list reduce to one
+#: token and **208** of those are literally some other serial's whole
+#: abbreviation — ``Aging (Milano)`` (NlmId 9102503) leaving ``Aging``, which is
+#: NlmId 0050677's — against 67 correct bibliographies the floor declines to
+#: rescue. See :func:`_container_medline_qualifier` and the write-up in
+#: ``docs/registry-artifacts.md``, which names what it still lets through.
+#:
+#: The record's *primary* container is not held to it: there the qualifier comes
+#: off the serial's name in full, and one word of a full name is still the name
+#: a masthead prints.
+_MIN_QUALIFIER_REMAINDER_TOKENS = 2
+
 #: Smallest gap, in years, between an entry's year and a registry ``issued``
 #: date that :func:`_year_deposit_artifact` will read as a deposit timestamp
 #: rather than as a wrong year. A re-deposited working paper lands many years
@@ -686,17 +705,52 @@ def _container_medline_qualifier(field: str, stored: str, registry: str, ref: Re
     name outright. *Cancer Epidemiology* against *Cancer Epidemiology,
     Biomarkers & Prevention* differs by a word rather than by a qualifier, and
     fires here for the same reason it fires next door.
+
+    **NLM writes the qualifier onto every name it holds for the serial**, so it
+    comes off every name the record carries and not only the first. ``TA``
+    reaches :attr:`~bibaudit.model.Record.container_alternates` verbatim, and
+    ``MedAbbr`` carries the same parenthetical: 2,695 of the 37,989 serials in
+    NLM's own list qualify their abbreviation, and a bibliography storing the
+    abbreviation as ISO 4, Web of Science and Scopus write it — the journal's
+    own, without a catalogue's disambiguator — reported ``container/mismatch``
+    on 1,075 of them. ``Acta Hepatogastroenterol`` against ``JT - Acta
+    hepato-gastroenterologica`` and ``TA - Acta Hepatogastroenterol (Stuttg)``
+    (NlmId 0340734) is the shape; nothing else reaches it, since the stored
+    value is an abbreviation of neither the ``JT`` it is compared against nor
+    anything else the record holds whole.
+
+    On those other names the remainder must keep
+    :data:`_MIN_QUALIFIER_REMAINDER_TOKENS` tokens, and the **stored** side is
+    still never stripped. No article comes off them either: ``_LEADING_ARTICLE``
+    matches ``An ``, and on an abbreviated title that opens *Anales* or *Anais*
+    rather than an article — ``An Pediatr (Barc)`` (NlmId 101162596) and 17
+    more of the qualified abbreviations, every one of them that shape — so
+    taking it off would compare a stored name against a title with its first
+    word deleted. ``JT`` keeps that branch because the article is a whole word
+    of the language there, and NLM keeps it on ten of the qualified serials.
     """
     if field != "container":
         return None
+    folded_stored = fold(stored)
     base = _without_trailing_qualifier(registry)
-    if base is None:
-        return None
-    folded_base, folded_stored = fold(base), fold(stored)
-    if folded_base == folded_stored:
-        return "registry appends a parenthetical qualifier to the journal name"
-    if _LEADING_ARTICLE.sub("", folded_base) == folded_stored:
-        return "registry files the journal under a leading article and a qualifier"
+    if base is not None:
+        folded_base = fold(base)
+        if folded_base == folded_stored:
+            return "registry appends a parenthetical qualifier to the journal name"
+        if _LEADING_ARTICLE.sub("", folded_base) == folded_stored:
+            return "registry files the journal under a leading article and a qualifier"
+    for alternate in rec.container_alternates:
+        reduced = _without_trailing_qualifier(clean(alternate))
+        if reduced is None:
+            continue
+        folded_reduced = fold(reduced)
+        if len(folded_reduced.split()) < _MIN_QUALIFIER_REMAINDER_TOKENS:
+            continue
+        if folded_reduced == folded_stored:
+            return (
+                "registry appends a parenthetical qualifier to another name "
+                "it carries for the journal"
+            )
     return None
 
 

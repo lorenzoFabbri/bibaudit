@@ -1191,6 +1191,119 @@ class TestContainerMedlineQualifier:
         ) is None
 
 
+class TestTheQualifierComesOffEveryNameTheRecordCarries:
+    """NLM writes the qualifier onto ``MedAbbr`` as well as ``JournalTitle``.
+
+    2,695 of the 37,989 serials in the 2026-08-09 fetch of ``J_Medline.txt``
+    qualify their abbreviation. A bibliography storing that abbreviation as
+    ISO 4, Web of Science and Scopus write it — the journal's own, with no
+    catalogue disambiguator — reported ``container/mismatch`` on 1,075 of them
+    while the reduction was applied to ``JT`` alone, and reports it on 67 now:
+    exactly the remainders the token floor refuses.
+    """
+
+    def test_the_abbreviated_name_loses_its_qualifier_too(self) -> None:
+        """NlmId 0340734, ``JT - Acta hepato-gastroenterologica`` beside
+        ``TA - Acta Hepatogastroenterol (Stuttg)``.
+
+        Nothing else reaches the entry: the stored value abbreviates neither
+        the ``JT`` it is compared against nor any name the record holds whole,
+        so with the reduction scoped to ``JT`` a correct citation of the
+        journal's own abbreviation failed the build.
+        """
+        assert classify(
+            "container", "Acta Hepatogastroenterol", "Acta hepato-gastroenterologica",
+            container_alternates=["Acta Hepatogastroenterol (Stuttg)"],
+        ) == (
+            "registry appends a parenthetical qualifier to another name "
+            "it carries for the journal"
+        )
+
+    def test_a_remainder_of_one_token_is_not_a_name(self) -> None:
+        """NlmId 9302033, ``TA - Proc (Bayl Univ Med Cent)``.
+
+        ``Proc`` opens 441 serials' abbreviations in NLM's list and is none of
+        them. 825 of the 2,695 qualified abbreviations reduce to a single token
+        and 208 of those are some other serial's whole abbreviation, so the
+        floor refuses them all — at the cost of 67 correct bibliographies it
+        declines to rescue, ``Rehabilitation`` against ``TA - Rehabilitation
+        (Bonn)`` (NlmId 1302716) among them.
+        """
+        assert classify(
+            "container", "Proc", "Proceedings (Baylor University. Medical Center)",
+            container_alternates=["Proc (Bayl Univ Med Cent)"],
+        ) is None
+        assert classify(
+            "container", "Rehabilitation",
+            "Rehabilitation: Sozialmedizin, physikalische Medizin, Praventivmedizin",
+            container_alternates=["Rehabilitation (Bonn)"],
+        ) is None
+
+    def test_no_article_comes_off_an_abbreviated_name(self) -> None:
+        """``An`` opens *Anales* and *Anais*, not a byline in English.
+
+        All 18 qualified abbreviations whose remainder matches the
+        leading-article pattern are that shape — ``An Pediatr (Barc)``, NlmId
+        101162596, among them — so stripping there would compare a stored name
+        against a title with its first word deleted, and clear an entry that
+        named a journal the record does not.
+        """
+        jt = "Anales de pediatria (Barcelona, Spain : 2003)"
+
+        assert classify(
+            "container", "An Pediatr", jt, container_alternates=["An Pediatr (Barc)"],
+        ) == (
+            "registry appends a parenthetical qualifier to another name "
+            "it carries for the journal"
+        )
+        assert classify(
+            "container", "Pediatr", jt, container_alternates=["An Pediatr (Barc)"],
+        ) is None
+
+    def test_a_journal_differing_by_a_word_still_fires_on_the_abbreviation(self) -> None:
+        """The pairing: the remainder has to equal the stored name outright.
+
+        *Ann Surg* is *Annals of Surgery*, a different journal from the one
+        this record is, and a prefix or substring test over the reduced
+        abbreviation would explain it away.
+        """
+        jt, ta = medline_journal("pubmed_qualifier_year.txt")
+
+        assert classify("container", "Ann Med Surg", jt, container_alternates=ta) == (
+            "registry appends a parenthetical qualifier to another name "
+            "it carries for the journal"
+        )
+        assert classify("container", "Ann Surg", jt, container_alternates=ta) is None
+        # And in the direction a prefix test would clear: `Ann Med` is *Annals
+        # of medicine*, NlmId 8406612, a third serial whose whole abbreviation
+        # opens this record's.
+        assert classify("container", "Ann Med", jt, container_alternates=ta) is None
+
+    def test_the_reason_says_which_name_was_reduced(self) -> None:
+        """The report prints the stored value beside ``JT``, and here those two
+        are not related by a qualifier at all.
+
+        A reason naming *the journal name* would describe a reduction of the
+        value the reader is looking at, which is not the one that happened —
+        the same discipline the acronym rule keeps when it names the second
+        edit it made.
+        """
+        result = compare(
+            make_ref(container="Acta Hepatogastroenterol"),
+            {"pubmed": make_record(
+                source="pubmed",
+                container="Acta hepato-gastroenterologica",
+                container_alternates=["Acta Hepatogastroenterol (Stuttg)"],
+            )},
+        )
+
+        assert not result.fails
+        assert artifacts(result, "container") == [
+            "registry appends a parenthetical qualifier to another name "
+            "it carries for the journal"
+        ]
+
+
 class TestContainerAcronymPrefix:
     """A publisher's masthead sets the acronym ahead of the name; NLM does not.
 

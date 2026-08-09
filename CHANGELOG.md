@@ -184,6 +184,25 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A correct journal abbreviation is no longer failed for a qualifier NLM
+  appends to it.** The rule that drops NLM's trailing parenthetical ran on the
+  record's primary container title alone, while `MedAbbr` carries the same
+  parenthetical and reaches the record as an alternate title: `Acta
+  Hepatogastroenterol` against `JT - Acta hepato-gastroenterologica` and
+  `TA - Acta Hepatogastroenterol (Stuttg)` (NlmId 0340734) matched neither, and
+  nothing else reaches the pairing. Measured through the real comparison over
+  NLM's own serial list, 1,075 of the 2,695 serials with a qualified
+  abbreviation reported `container/mismatch` against a bibliography storing the
+  abbreviation as ISO 4, Web of Science and Scopus write it; 67 still do. The
+  reduction now runs on every name the record carries, and where the match came
+  off one of them the reason says so: `registry appends a parenthetical
+  qualifier to another name it carries for the journal`. On those names the
+  remainder must keep two tokens — one word of an abbreviation is one truncated
+  word, `Proc (Bayl Univ Med Cent)` leaving `Proc`, which opens 441 serials'
+  abbreviations and is none of them — and no leading article comes off them,
+  since `An` there opens *Anales* rather than a byline in English. What the
+  widening clears and what the floor does not remove are counted and named in
+  `docs/registry-artifacts.md`.
 - **An entry crediting the organisation the registry credits is no longer
   suppressed.** The two collective escapes exist for a group name standing
   against a list of *people* — one side names the consortium, the other its

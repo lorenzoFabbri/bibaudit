@@ -1111,13 +1111,17 @@ there is, so an entry citing the journal's own name has nothing else to be
 compared against, and without the rule below it reports `container/mismatch`.
 
 **Detection.** `benign._container_medline_qualifier` removes one trailing
-balanced parenthetical from the **registry's** value and requires what is left
-to equal the stored name outright, or to equal it after one opening
-`The`/`A`/`An` comes off that same remainder. Never a prefix and never a
-substring: *Annals of Surgery* against `Annals of medicine and surgery (2012)`
-differs by more than a qualifier and still reports `container/mismatch`, as
-*Cancer Epidemiology* does against *Cancer Epidemiology, Biomarkers &
-Prevention* next door.
+balanced parenthetical from **every name the registry's record carries for the
+container** — its `container`, and each entry of `container_alternates` — and
+requires what is left to equal the stored name outright. Never a prefix and
+never a substring: *Annals of Surgery* against `Annals of medicine and surgery
+(2012)` differs by more than a qualifier and still reports
+`container/mismatch`, as *Cancer Epidemiology* does against *Cancer
+Epidemiology, Biomarkers & Prevention* next door.
+
+Two things happen on the record's primary value and nowhere else. One opening
+`The`/`A`/`An` may come off its remainder, and the remainder may be a single
+word. Both are answered below.
 
 **Why the qualifier may be dropped, when in a catalogue it is exactly what
 tells two serials apart.** That objection is about looking a journal up, and
@@ -1139,6 +1143,66 @@ the journal *The Neurologist* is accepted. That is the whole of the exposure:
 it needs the entry to be wrong in the one field the identifier has already
 settled, and every other field of that entry is still compared against the
 record.
+
+**NLM writes the qualifier onto the abbreviation too, and the rule follows it
+there.** `MedAbbr` carries the same parenthetical as `JournalTitle`, and
+`registries/pubmed._container_alternates` puts it on the record verbatim: 2,695
+of the 37,989 serials carry a qualified `MedAbbr`, against 2,698 with a
+qualified `JournalTitle`, and 1,213 carry one on both. A bibliography storing
+the abbreviation the way ISO 4, Web of Science and Scopus write it — the
+journal's own, with no catalogue disambiguator — matches neither the `JT` it is
+compared against nor the `TA` beside it, and no other rule reaches the pairing:
+the stored value abbreviates nothing the record holds whole. Measured through
+the real `compare()` on a PMID-shaped record built by the shipped client,
+**1,075 of those 2,695 serials reported `container/mismatch` [error]** while
+the reduction was scoped to `JT`. `Acta Hepatogastroenterol` against `JT - Acta
+hepato-gastroenterologica` and `TA - Acta Hepatogastroenterol (Stuttg)` (NlmId
+0340734) is the shape.
+
+Because the printed pair is then the stored value beside `JT`, which are *not*
+related by a qualifier, the reason says which name was reduced: `registry
+appends a parenthetical qualifier to another name it carries for the journal`.
+
+**The floor: two tokens, and what it costs.** On any name but the primary one
+the remainder must keep at least two tokens. `JT` is the serial's name in full
+and one word of it is still that name — `Lancet` for `Lancet (London,
+England)`; `TA` is already a reduction, and one word of it is one truncated
+word. `Proc (Bayl Univ Med Cent)` (NlmId 9302033) reduces to `Proc`, which
+opens 441 serials' abbreviations in NLM's list and is the whole of none of
+them.
+
+Measured: 825 of the 2,695 qualified abbreviations reduce to a single token,
+and **208** of those are literally some other serial's whole `MedAbbr` —
+`Aging (Milano)` (NlmId 9102503) leaving `Aging`, which is NlmId 0050677's
+abbreviation entire. The floor refuses all 825, and the price is **67** of the
+1,075 rescues above: `Rehabilitation` against `TA - Rehabilitation (Bonn)`
+(NlmId 1302716), `Biochemistry` against `TA - Biochemistry (Mosc)` (NlmId
+0376536) and 65 more still report `container/mismatch`. That is the whole of
+the change's residual noise, and it is the direction this project errs in.
+
+**What the floor does not remove, named.** 611 pairs remain where a
+two-token-or-longer remainder is some other serial's whole `MedAbbr`, and this
+rule newly clears **600** of them (the other 11 already agreed on case or as an
+alternate title). `Acta Oncol (Madr)` (NlmId 0370346) reduces to `Acta Oncol`,
+which is the whole `MedAbbr` of *Acta oncologica (Stockholm, Sweden)* (NlmId
+8709065); `Acta Ophthalmol (Copenh)` (NlmId 0370347) reduces to `Acta
+Ophthalmol`, which is *Acta ophthalmologica*'s (NlmId 101468102); `Ann Immunol
+(Paris)` (NlmId 0353045) reduces to `Ann Immunol`, which is *Annals of
+immunology*'s (NlmId 7611917). A reader can look up either half of any of them
+in [`J_Medline.txt`](https://ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt).
+
+It is the same exposure as the 316 on the `JournalTitle` side and it is bounded
+the same way: reaching it needs an entry to name the *other* serial for a work
+whose identifier has already settled which serial it appeared in, and every
+other field of that entry is still compared against the record.
+
+**No article comes off an abbreviation.** The leading-article branch stays on
+the record's primary value. `_LEADING_ARTICLE` matches `An `, and on an
+abbreviated title that is *Anales* or *Anais*: all 18 qualified `MedAbbr`
+values whose remainder matches the pattern are that shape — `An Pediatr (Barc)`
+(NlmId 101162596), `An R Acad Nac Med (Madr)` (NlmId 7505188) — so stripping
+there would compare a stored name against a title with its first word deleted,
+and clear an entry naming a journal the record does not.
 
 **Two details of the stripping.** The parenthetical is matched from its closing
 bracket back to the one that balances it, not by a pattern over its contents,
