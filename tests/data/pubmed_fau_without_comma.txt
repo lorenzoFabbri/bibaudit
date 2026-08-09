@@ -1,0 +1,26 @@
+PMID- 11278851
+OWN - NLM
+STAT- MEDLINE
+IS  - 0021-9258 (Print)
+IS  - 0021-9258 (Linking)
+VI  - 276
+IP  - 22
+DP  - 2001 Jun 1
+TI  - Paclitaxel induces prolonged activation of the Ras/MEK/ERK pathway independently 
+      of activating the programmed cell death machinery.
+PG  - 19555-64
+FAU - Okano J
+AU  - Okano J
+FAU - Rustgi, A K
+AU  - Rustgi AK
+LA  - eng
+PT  - Journal Article
+PT  - Research Support, U.S. Gov't, P.H.S.
+DEP - 20010305
+PL  - United States
+TA  - J Biol Chem
+JT  - The Journal of biological chemistry
+JID - 2985121R
+AID - S0021-9258(19)67100-0 [pii]
+AID - 10.1074/jbc.M011164200 [doi]
+PST - ppublish

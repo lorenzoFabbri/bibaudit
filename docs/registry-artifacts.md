@@ -401,6 +401,60 @@ suppress the author-count difference on top.
 
 ---
 
+## A full-author tag written without its comma
+
+**What happens.** MEDLINE's `FAU` is `Surname, Initials` and the comma is what
+says which half is which. A few citations carry the tag without it, and a
+comma-less creator string is BibTeX's *Given Family* — so `FAU - Okano J` was
+read as a person surnamed `J`.
+
+That is not a cosmetic misreading. A registry surname of one character is
+exactly what *Author comparisons with nothing to compare* accepts **any** stored
+surname against, under `registry surname truncated`. The parser was
+manufacturing the evidence for an escape that then cleared whatever name the
+bibliography had at that position, so a fabricated co-author passed there and
+nowhere else.
+
+**Observed.** 10 of 16,511 `FAU` values, in 9 of 3,500 citations sampled from
+five windows spanning 1992–2026: `Okano J` (PMID 11278851, recorded verbatim in
+`tests/data/pubmed_fau_without_comma.txt` beside `FAU - Rustgi, A K` in the same
+byline), `Chung H`, `Watanabe Yi`, `Liu Cj`, `van der Schaaf A`,
+`Meijer Drees R`, `van Veenendaal MA`, `Van Siclen CD`, `K Sikorska`, and the
+single-token `Desriani`. Every one of them is written character for character as
+that record's own `AU` line: NLM never backfilled the comma.
+
+**Reported as.** Nothing. This is a parsing rule, not a suppression — the
+creator is read the way the record means it and then compared normally.
+
+**Detection.** `registries/pubmed._parse_fau`. A value with a comma goes to
+`names.parse_name` as before; one without goes to `_parse_au_fallback`, the
+parser for the abbreviated `AU` tag, which is not an approximation here but the
+same string's own reading. `FED`, the editor tag with `FAU`'s convention, is
+read by the same function.
+
+**The one citation that writes it the other way round.** PMID 31128948 carries
+`K Sikorska` — an initial in front of the surname — in both `FAU` and `AU`,
+beside fifteen colleagues written `Koole, S N`-fashion. `"Sikorska K"[au]`
+answers 215 citations and `"K Sikorska"[au]` exactly that one, so NLM's own
+order is what the record breaks. `pubmed._initials_ahead_of_the_surname`
+recognises it on two conditions, and 27 of the 33,026 `FAU`/`AU` values in the
+sample open with a single letter, so both are load-bearing:
+
+- **exactly two tokens, the first one character long.** Eight surnames in the
+  sample genuinely begin with a lone letter — `A Richmond, Jacqueline`,
+  `T Rahma, Azhar`, `E Albuquerque, Rodrigo Pires`, `W Y Chan, Stella` — and the
+  abbreviated form of each carries its initials as a further token, so none is
+  two tokens long. One character rather than a short one, because two-letter
+  surnames are among the commonest in this literature and take a transliterated
+  initials block: `"Ho Yi"[au]` answers 14 citations and is Ho, Y. I.;
+- **the second token is not written in capitals.** An initials block is, and a
+  surname of one or two letters is real: `S DMTS`, `A LK`, `N AK` and `T T` are
+  surnames `S`, `A`, `N` and `T` with their initials after them, which is NLM's
+  order already. A length test cannot separate those from `Sikorska`; the
+  capitals can.
+
+---
+
 ## Zero-padded article numbers
 
 **What happens.** Journals that number articles rather than paginating them

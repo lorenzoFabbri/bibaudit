@@ -152,6 +152,38 @@ def _clean_title(raw: str | None) -> tuple[str | None, bool]:
     return text or None, False
 
 
+def _initials_ahead_of_the_surname(tokens: list[str]) -> bool:
+    """Whether *tokens* is one initial written in front of the surname.
+
+    NLM's own order is the reverse and this function's caller assumes it, so
+    what is recognised here is the narrowest shape covering the one citation
+    that carries the other: PMID 31128948 writes ``K Sikorska`` in both ``FAU``
+    and ``AU``, beside fifteen colleagues written ``Koole, S N``-fashion.
+    ``"Sikorska K"[au]`` answers 215 citations and ``"K Sikorska"[au]``
+    exactly that one.
+
+    Two conditions, each excluding a shape the same live sample carries — 27 of
+    33,026 ``FAU``/``AU`` values over 3,500 citations spanning 1992-2026 open
+    with a single letter:
+
+    * **exactly two tokens, the first of them one character long.** A surname
+      can genuinely begin with a lone letter, and eight do here —
+      ``A Richmond, Jacqueline``, ``T Rahma, Azhar``, ``E Albuquerque, Rodrigo
+      Pires``, ``W Y Chan, Stella`` — but the abbreviated form of each carries
+      its initials as a further token (``A Richmond J``), so none is two tokens
+      long. One character rather than a short one, because two-letter surnames
+      are among the commonest in this literature and take a transliterated
+      initials block that is not capitalised: ``"Ho Yi"[au]`` answers 14
+      citations, and it is Ho, Y. I.;
+    * **the second token is not written in capitals.** An initials block is,
+      and a surname of one or two letters is real: ``S DMTS``, ``A LK``,
+      ``N AK`` and ``T T`` are surnames ``S``, ``A``, ``N`` and ``T`` with
+      their initials after them, which is NLM's order and needs no rewriting.
+      A length test cannot separate those from ``Sikorska``; the capitals can.
+    """
+    return len(tokens) == 2 and len(tokens[0]) == 1 and not tokens[1].isupper()
+
+
 def _parse_au_fallback(raw: str) -> Name:
     """Parse one MEDLINE ``AU`` (abbreviated author) entry, e.g. "van Eijck CHJ".
 
@@ -159,9 +191,10 @@ def _parse_au_fallback(raw: str) -> Name:
     the "Given Family" order :func:`~bibaudit.names.parse_name` assumes for a
     comma-less string, which is BibTeX's convention, not MEDLINE's. Passing
     "Smith JA" to it unmodified would swap surname and given name and fail
-    the author comparison on the surname alone. ``FAU`` (which does carry a
-    comma, "Smith, John A") is used whenever present; this fallback exists
-    only for the older citations where ``FAU`` was never backfilled.
+    the author comparison on the surname alone.
+
+    :func:`_parse_fau` sends the comma-less ``FAU`` values here for the same
+    reason.
     """
     text = clean(raw).strip()
     if not text:
@@ -191,11 +224,39 @@ def _parse_au_fallback(raw: str) -> Name:
     tokens = text.split()
     if len(tokens) < 2:
         return Name(family=text)
+    if _initials_ahead_of_the_surname(tokens):
+        return parse_name(f"{tokens[1]}, {tokens[0]}")
     # MEDLINE's abbreviated form is always "<surname tokens...> <initials>";
     # the last token is the initials block regardless of how many words the
     # surname itself has ("van Eijck CHJ").
     surname, initials = " ".join(tokens[:-1]), tokens[-1]
     return parse_name(f"{surname}, {initials}")
+
+
+def _parse_fau(raw: str) -> Name:
+    """Parse one MEDLINE ``FAU`` (full author) entry, e.g. "van Eijck, Casper H J".
+
+    ``FAU`` is ``Surname, Initials`` and the comma says which half is which, so
+    :func:`~bibaudit.names.parse_name` reads it directly. What it cannot read is
+    the same tag written *without* the comma, because a comma-less string is
+    BibTeX's "Given Family": ``Okano J`` arrived as a creator surnamed ``J``,
+    and a registry surname of one character is what
+    ``names.Reason.REGISTRY_INITIAL_ONLY`` accepts any stored surname against —
+    so the parser manufactured the evidence for an escape that then cleared a
+    fabricated name at that position.
+
+    10 of 16,511 ``FAU`` values on a live sample of 3,500 citations (five
+    windows spanning 1992-2026) carry no comma, in 9 records. Every one of them
+    is written character for character as that record's ``AU`` line — NLM simply
+    never backfilled the comma — so the abbreviated parser is not an
+    approximation here, it is the same string's own reading: ``Okano J``,
+    ``Chung H``, ``Watanabe Yi``, ``Liu Cj``, ``van der Schaaf A``,
+    ``Meijer Drees R``, ``van Veenendaal MA``, ``Van Siclen CD``,
+    ``K Sikorska`` and the single-token ``Desriani``.
+    """
+    if "," in clean(raw):
+        return parse_name(raw)
+    return _parse_au_fallback(raw)
 
 
 def _corporate_creator(raw: str) -> Name:
@@ -217,7 +278,8 @@ def _corporate_creator(raw: str) -> Name:
 def _authors_from(fields: dict[str, list[str]]) -> tuple[list[Name], bool]:
     """The record's creators, and whether they came from the editor tags.
 
-    ``FAU`` when present, else ``AU`` — see :func:`_parse_au_fallback`. Then
+    ``FAU`` when present, else ``AU`` — see :func:`_parse_fau` and
+    :func:`_parse_au_fallback`. Then
     ``CN``, MEDLINE's corporate author, which for some citations is the whole
     byline: PMID 42538063, a committee opinion in *Fertility and Sterility*,
     credits ``CN - Practice Committee of the American Society for Reproductive
@@ -238,9 +300,11 @@ def _authors_from(fields: dict[str, list[str]]) -> tuple[list[Name], bool]:
     already covers that case from the entry's side without needing one.
 
     A record with none of the three falls back to ``FED``/``ED``, MEDLINE's
-    editor tags, in that same order and for the reason ``crossref._authors``
-    falls back to ``editor``: an edited volume's byline *is* its editors, and
-    comparing an empty list against the entry's compares nothing. PMID
+    editor tags, in that same order, read by the same two parsers for the same
+    reason — ``FED`` is ``FAU``'s convention and ``ED`` is ``AU``'s — and for
+    the reason ``crossref._authors`` falls back to ``editor``: an edited
+    volume's byline *is* its editors, and comparing an empty list against the
+    entry's compares nothing. PMID
     20301295, the *GeneReviews* book record, carries six ``FED`` lines and no
     ``FAU`` or ``AU`` at all; 111 of 200 records in a live sample of ``pubmed
     books[sb]`` have the same shape. The flag reaches ``Record.raw`` so a
@@ -249,7 +313,7 @@ def _authors_from(fields: dict[str, list[str]]) -> tuple[list[Name], bool]:
     """
     full = fields.get("FAU")
     if full:
-        return [parse_name(value) for value in full if value], False
+        return [_parse_fau(value) for value in full if value], False
     abbreviated = fields.get("AU")
     if abbreviated:
         return [_parse_au_fallback(value) for value in abbreviated if value], False
@@ -258,7 +322,7 @@ def _authors_from(fields: dict[str, list[str]]) -> tuple[list[Name], bool]:
         return [_corporate_creator(value) for value in corporate if value], False
     editors_full = fields.get("FED")
     if editors_full:
-        return [parse_name(value) for value in editors_full if value], True
+        return [_parse_fau(value) for value in editors_full if value], True
     editors = fields.get("ED", [])
     return [_parse_au_fallback(value) for value in editors if value], bool(editors)
 

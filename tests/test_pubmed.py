@@ -37,7 +37,8 @@ from typing import Any
 
 import pytest
 
-from bibaudit.model import Record
+from bibaudit.model import Name, Record
+from bibaudit.names import names_agree
 from bibaudit.normalize import normalize_doi
 from bibaudit.registries import pubmed
 from bibaudit.registries.http import Transient
@@ -439,6 +440,108 @@ class TestAuthors:
         assert name.et_al
         assert (name.family, name.given) == ("", "")
         assert str(name) == "Et al"
+
+
+class TestAFullAuthorTagWithoutItsComma:
+    """``FAU`` is ``Surname, Initials``, and 10 values in 16,511 have no comma.
+
+    Measured over a live sample of 3,500 citations drawn from five windows
+    spanning 1992-2026: 9 records carry one, and each writes it character for
+    character as that record's own ``AU`` line — NLM never backfilled the
+    comma. Read with BibTeX's "Given Family" convention, ``Okano J`` becomes a
+    creator surnamed ``J``, and a one-character registry surname is what
+    ``names.Reason.REGISTRY_INITIAL_ONLY`` accepts *any* stored surname
+    against. The parser was manufacturing the evidence for an escape that then
+    cleared a fabricated name.
+
+    ``tests/data/pubmed_fau_without_comma.txt`` is NCBI's own bytes for PMID
+    11278851, whose two-creator byline carries one of each: ``FAU - Okano J``
+    beside ``FAU - Rustgi, A K``.
+    """
+
+    def _record(self) -> Record:
+        return _resolve_one(
+            "fau_without_comma", pmid="11278851", doi="10.1074/jbc.M011164200"
+        )
+
+    def test_a_comma_less_value_keeps_medline_surname_first_order(self) -> None:
+        record = self._record()
+
+        assert (record.authors[0].family, record.authors[0].given) == ("Okano", "J")
+
+    def test_the_comma_carrying_value_beside_it_is_unchanged(self) -> None:
+        """The comma says which half is which, so ``parse_name`` still reads it.
+
+        Routing every ``FAU`` through the abbreviated parser would take the
+        last token as the initials block and split "Rustgi, A K" at the space
+        instead of at the comma.
+        """
+        record = self._record()
+
+        assert (record.authors[1].family, record.authors[1].given) == ("Rustgi", "A K")
+
+    def test_the_manufactured_surname_no_longer_clears_a_fabricated_name(self) -> None:
+        """The harm, end to end: a one-character surname agrees with anything."""
+        record = self._record()
+
+        agreed, _ = names_agree(Name(family="Zbragowitz"), record.authors[0])
+
+        assert not agreed
+
+    def test_an_editor_tag_is_read_by_the_same_convention(self) -> None:
+        """``FED`` is ``FAU``'s tag for an edited volume and MEDLINE's, not BibTeX's."""
+        names = pubmed._authors_from({"FED": ["Okano J"]})[0]
+
+        assert (names[0].family, names[0].given) == ("Okano", "J")
+
+
+class TestAnInitialWrittenAheadOfTheSurname:
+    """One citation in the same sample writes the name the other way round.
+
+    PMID 31128948 carries ``K Sikorska`` in both ``FAU`` and ``AU``, beside
+    fifteen colleagues written ``Koole, S N``-fashion. ``"Sikorska K"[au]``
+    answers 215 citations and ``"K Sikorska"[au]`` exactly that one, so the
+    surname is Sikorska and NLM's own order is what the record breaks.
+
+    27 of 33,026 ``FAU``/``AU`` values in the sample open with a single letter
+    and the other 26 must not be rewritten, which is what the two conditions
+    in ``pubmed._initials_ahead_of_the_surname`` are for.
+    """
+
+    def test_the_witnessed_value_is_read_with_the_surname_it_has(self) -> None:
+        name = pubmed._parse_au_fallback("K Sikorska")
+
+        assert (name.family, name.given) == ("Sikorska", "K")
+
+    @pytest.mark.parametrize(
+        ("value", "family", "given"),
+        [
+            # A surname that genuinely begins with a lone letter. Every one in
+            # the sample carries its initials as a further token, so none is
+            # two tokens long.
+            ("A Richmond J", "A Richmond", "J"),
+            ("T Rahma A", "T Rahma", "A"),
+            ("E Albuquerque RP", "E Albuquerque", "RP"),
+            ("W Y Chan S", "W Y Chan", "S"),
+            # A two-letter surname whose transliterated initials block is not
+            # capitalised. ``"Ho Yi"[au]`` answers 14 citations and is Ho, Y.
+            # I., so the leading token has to be one character and not merely
+            # a short one.
+            ("Ho Yi", "Ho", "Yi"),
+            # A surname of one or two letters with its initials after it, which
+            # is MEDLINE's order already. A length test cannot tell "DMTS" from
+            # "Sikorska"; the capitals can.
+            ("S DMTS", "S", "DMTS"),
+            ("A LK", "A", "LK"),
+            ("T T", "T", "T"),
+        ],
+    )
+    def test_a_surname_that_begins_with_one_letter_is_left_alone(
+        self, value: str, family: str, given: str
+    ) -> None:
+        name = pubmed._parse_au_fallback(value)
+
+        assert (name.family, name.given) == (family, given)
 
 
 class TestACorporateByline:
