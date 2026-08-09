@@ -174,11 +174,12 @@ _RW_KIND_MAP = {
 #: NLM recorded went unreported.
 _KIND_PRIORITY = ("retraction", "withdrawal", "removal", "expression-of-concern", "correction")
 
-#: `M/D/Y H:MM` is every witnessed value's shape (71,306 of 71,496 rows) —
-#: confirmed month-first, not day-first: 41,661 rows have a day > 12, which
-#: is only valid under that ordering, and none contradict it — always at
-#: midnight. One row uses a 12-hour `H:MM:SS AM/PM` variant instead; both are
-#: tried in :func:`_parse_rw_date` before a cell is given up on.
+#: `M/D/Y H:MM` is every witnessed value's shape (71,399 of the 71,641 rows in
+#: the 2026-08-09 export; the remaining 241 carry no date at all) — confirmed
+#: month-first, not day-first: 41,709 rows have a day > 12, which is only valid
+#: under that ordering, and none contradict it — always at midnight. One row
+#: uses a 12-hour `H:MM:SS AM/PM` variant instead; both are tried in
+#: :func:`_parse_rw_date` before a cell is given up on.
 _RW_DATE_FORMATS = ("%m/%d/%Y %H:%M", "%m/%d/%Y %I:%M:%S %p")
 
 
