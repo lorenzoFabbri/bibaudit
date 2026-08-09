@@ -556,10 +556,69 @@ class TestAuthorListComparison:
         assert not diff.mismatches
         assert set(diff.reasons.values()) == {"reordered"}
 
-    def test_count_difference_is_reported(self) -> None:
+    def test_a_creator_the_registry_never_reaches_is_reported_by_name(self) -> None:
+        """Not as a count: the reader's question is *which* name has no witness."""
         stored = [Name(family="Malats"), Name(family="Real")]
         registry = [Name(family="Malats")]
-        assert compare_author_lists(stored, registry).count_differs
+
+        diff = compare_author_lists(stored, registry)
+
+        assert diff.uncorroborated == [(2, "Real")]
+        assert not diff.count_differs
+        assert not diff.clean
+
+    def test_a_registry_byline_longer_than_the_entry_is_still_a_count(self) -> None:
+        """The other direction is incompleteness, and stays a count difference."""
+        stored = [Name(family="Malats")]
+        registry = [Name(family="Malats"), Name(family="Real")]
+
+        diff = compare_author_lists(stored, registry)
+
+        assert diff.count_differs
+        assert not diff.uncorroborated
+
+    def test_a_truncated_byline_states_nothing_about_its_own_tail(self) -> None:
+        """Past an et-al marker the list stopped; it did not gain a creator.
+
+        Without the guard the marker itself is the creator past the registry's
+        last, and every BibTeX byline written `and others` reports an invented
+        co-author named *others*.
+        """
+        stored = parse_name_list("Malats, N and Real, F and others")
+        registry = [Name(family="Malats"), Name(family="Real")]
+
+        diff = compare_author_lists(stored, registry)
+
+        assert not diff.uncorroborated
+        assert diff.clean
+
+    def test_a_tail_that_is_entirely_excused_is_not_a_count_either(self) -> None:
+        """Every position past the registry's last is accounted for one by one.
+
+        A count line beside them restates the same arithmetic and names nobody,
+        so it is not printed whether the tail was reported or excused.
+        """
+        stored = [
+            Name(family="Alpha", given="A"),
+            Name(family="Bravo", given="B"),
+            Name(literal="STAAB consortium", collective=True),
+        ]
+        registry = [Name(family="Alpha", given="A"), Name(family="Zulu", given="Z")]
+
+        diff = compare_author_lists(stored, registry)
+
+        assert not diff.uncorroborated
+        assert not diff.count_differs
+        assert diff.reasons[3] == "collective creator past the registry's last"
+
+    def test_a_tail_surname_the_alphabet_cannot_express_is_reported(self) -> None:
+        """Nothing was compared, and that is not the registry carrying it."""
+        stored = [Name(family="Alpha", given="A"), Name(family="王", given="L")]
+        registry = [Name(family="Alpha", given="A")]
+
+        diff = compare_author_lists(stored, registry)
+
+        assert [position for position, _ in diff.uncorroborated] == [2]
 
     def test_registry_collective_against_a_member_list_is_not_a_defect(self) -> None:
         """Crossref splits some consortium bylines; the bibliography keeps the group."""
@@ -730,7 +789,6 @@ class TestABylineCollectiveTheRegistryFilesApart:
         )
 
         assert not diff.clean
-        assert diff.count_differs
         assert diff.mismatches
 
     def test_a_creator_that_is_a_collective_and_a_truncation_marker_is_refused(
@@ -817,7 +875,7 @@ class TestRegistryOmittingTheFirstAuthor:
         registry = [Name(family="Charlie"), Name(family="Delta"), Name(family="Echo")]
         diff = compare_author_lists(stored, registry)
         assert diff.mismatches
-        assert diff.count_differs
+        assert not diff.clean
 
     def test_a_registry_sharing_only_a_minority_of_the_names_is_still_reported(self) -> None:
         stored = parse_name_list(
@@ -826,7 +884,7 @@ class TestRegistryOmittingTheFirstAuthor:
         registry = [Name(family="Echo"), Name(family="Foxtrot")]
         diff = compare_author_lists(stored, registry)
         assert diff.mismatches
-        assert diff.count_differs
+        assert not diff.clean
 
     def test_two_corroborating_names_are_not_enough(self) -> None:
         """Two surnames agreeing in sequence is what a companion paper produces.
@@ -898,10 +956,15 @@ class TestRegistryOmittingTheFirstAuthor:
         the count used to include them: a registry byline of `[王, 李, 张]`
         "aligned" against `[Alpha, Bravo, Charlie]`, and the author-count
         difference was suppressed along with it.
+
+        `Delta` is the creator that carries the finding: it sits past the
+        registry's third and last position, so what says the difference was not
+        aligned away is that it is reported there.
         """
         stored = parse_name_list("Alpha, A and Bravo, B and Charlie, C and Delta, D")
         diff = compare_author_lists(stored, registry)
-        assert diff.count_differs, case
+        assert not diff.clean, case
+        assert [name for _, name in diff.uncorroborated] == ["Delta, D"], case
         assert diff.reasons.get(1) != "registry omits the first author", case
 
     def test_a_prepended_senior_author_is_accepted_and_that_is_a_known_limit(self) -> None:
@@ -1304,6 +1367,25 @@ _WITNESSED_REASONS: tuple[tuple[Reason, int, list[Name], list[Name]], ...] = (
         Reason.REORDERED, 1,
         [Name(family="Real"), Name(family="Malats")],
         [Name(family="Malats"), Name(family="Real")],
+    ),
+    # Past the registry's last creator. The people do not align, so
+    # `_byline_collectives` declines the byline and the consortium arrives at
+    # the tail instead.
+    (
+        Reason.TRAILING_COLLECTIVE, 3,
+        [
+            Name(family="Alpha", given="A"), Name(family="Bravo", given="B"),
+            Name(literal="STAAB consortium", collective=True),
+        ],
+        [Name(family="Alpha", given="A"), Name(family="Zulu", given="Z")],
+    ),
+    (
+        Reason.CREDITED_ELSEWHERE, 3,
+        [
+            Name(family="Alpha", given="A"), Name(family="Bravo", given="B"),
+            Name(family="Alpha", given="A"),
+        ],
+        [Name(family="Alpha", given="A"), Name(family="Bravo", given="B")],
     ),
 )
 

@@ -450,6 +450,10 @@ class Reason(StrEnum):
         "byline carries collective creator(s) the registry files apart: ",
         False,
     )
+    #: Recorded past the registry's last creator, where there is no position
+    #: to compare against and the alternative is calling the creator invented.
+    TRAILING_COLLECTIVE = ("collective creator past the registry's last", False)
+    CREDITED_ELSEWHERE = ("credited elsewhere in the registry byline", False)
     FIRST_AUTHOR_OMITTED = ("registry omits the first author", False)
     MOJIBAKE_TRUNCATED = ("registry mojibake truncated the surname", False)
     REORDERED = ("reordered", False)
@@ -1064,6 +1068,12 @@ class AuthorDiff:
     mismatches:
         ``(position, stored, registry, )`` triples, 1-based, for creators that do
         not denote the same person.
+    uncorroborated:
+        ``(position, stored)`` pairs, 1-based, for creators the entry names past
+        the registry's last — compared against nothing, and no registry record
+        says they exist. An invented co-author appended to an otherwise correct
+        byline is the shape, and it is the one a first-author-only check cannot
+        see.
     stored_count, registry_count:
         List lengths. Compared only when neither list is et-al truncated.
     truncated:
@@ -1076,10 +1086,14 @@ class AuthorDiff:
         Accepted-difference explanations keyed by position, for the report.
     """
 
-    __slots__ = ("_reasons", "_view", "mismatches", "registry_count", "stored_count", "truncated")
+    __slots__ = (
+        "_reasons", "_view", "mismatches", "registry_count", "stored_count",
+        "truncated", "uncorroborated",
+    )
 
     def __init__(self) -> None:
         self.mismatches: list[tuple[int, str, str]] = []
+        self.uncorroborated: list[tuple[int, str]] = []
         self.stored_count: int = 0
         self.registry_count: int = 0
         self.truncated: bool = False
@@ -1146,14 +1160,30 @@ class AuthorDiff:
 
     @property
     def count_differs(self) -> bool:
-        """True if the lists differ in length in a way that is not explained."""
+        """True if the lists differ in length in a way that is not explained.
+
+        A surplus on the stored side is explained when every position past the
+        registry's last was accounted for one by one — named in
+        :attr:`uncorroborated`, or excused with its own reason. A count line
+        beside those restates the same arithmetic and names nobody, and the
+        report the reader needs is the one that says *which* creator has no
+        witness. Derived from what was actually recorded rather than from the
+        lengths, because :func:`compare_author_lists` returns before walking
+        anything when either list is empty.
+        """
         if self.truncated:
+            return False
+        surplus = self.stored_count - self.registry_count
+        accounted = len(self.uncorroborated) + sum(
+            1 for position in self._reasons if position > self.registry_count
+        )
+        if surplus > 0 and surplus == accounted:
             return False
         return self.stored_count != self.registry_count
 
     @property
     def clean(self) -> bool:
-        return not self.mismatches and not self.count_differs
+        return not self.mismatches and not self.uncorroborated and not self.count_differs
 
 
 def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff:
@@ -1184,6 +1214,11 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
        (:func:`_surname_truncated_by_mojibake`, 10.5271/sjweh.3626);
     5. a pair that disagrees inside two bylines holding the same creators
        counted, where both names appear in the other list — a reordering.
+
+    Past the registry's last creator the entry is naming somebody no record
+    corroborates, and :func:`_tail_past_the_registry` reports it rather than
+    excusing it — the one place in this module where the tie breaks towards the
+    finding, because the miss it covers is the one the tool exists to catch.
 
     Nothing here is dropped: every escape records a reason, and
     ``compare._check_authors`` prints it with both values under
@@ -1289,4 +1324,66 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
             continue
         diff.mismatches.append((index + 1, str(left), str(right)))
 
+    _tail_past_the_registry(diff, stored, registry)
     return diff
+
+
+def _tail_past_the_registry(
+    diff: AuthorDiff, stored: list[Name], registry: list[Name]
+) -> None:
+    """Judge the creators the entry names past the registry's last.
+
+    The loop above stops at the shorter list, so a creator appended to the end
+    of a byline was compared against nothing and its only trace was a *count*
+    warning, which does not fail: appending a fabricated name to an otherwise
+    correct byline produced no failing verdict on 4,255 of 4,255 live entries.
+    That is the documented failure mode of a generated bibliography and the
+    reason ``compare._check_authors`` compares the whole list rather than the
+    first author, so the tie between "the entry invented somebody" and "the
+    registry's byline is short" breaks towards the finding here, where every
+    other rule in this module breaks the other way.
+
+    It is a tie, and no author list can settle it — the mirror of what
+    :func:`_registry_omits_first_author` says about a prepended author. Measured
+    over 3,040 works whose MEDLINE and Crossref records were both fetched, the
+    two registries disagree about byline length on 40 (1.3%); after the two
+    exceptions below, 7 of those report a creator when MEDLINE is the only
+    witness (0.23%) and 2 when Crossref is (0.07%) — against a shape that was
+    never reported at all.
+
+    Two of the three tail positions are not that claim and are excused with
+    their own reason:
+
+    * **a collective creator.** An organisation is not an invented co-author,
+      and MEDLINE files consortia under ``CN`` rather than in byline position —
+      the defect :func:`_byline_collectives` covers where the remaining people
+      align exactly, arriving here where they do not. PMID 38236418's entry
+      carries ``on behalf of the STAAB consortium`` past MEDLINE's eleventh
+      creator;
+    * **a surname the registry's byline carries somewhere else.** "The registry
+      does not name this person" would be false against the very record being
+      quoted. The shape is a bibliography that repeats a creator, and a
+      misalignment this module declined to explain: run a byline with a
+      plausible senior author prepended through
+      :func:`_registry_omits_first_author` below its alignment floor and the
+      entry's *last* creator lands here, present in the registry list all
+      along.
+
+    The second of those is a stated hole: a fabricated name that happens to
+    share a surname with a real co-author is excused rather than reported.
+    """
+    if diff.truncated:
+        return
+    registry_keys = {key for key in (family_key(n) for n in registry) if key}
+    for index in range(len(registry), len(stored)):
+        name = stored[index]
+        if name.collective:
+            diff.note(index + 1, Reason.TRAILING_COLLECTIVE)
+            continue
+        # ``registry_keys`` holds no empty key, so a creator whose own surname
+        # the comparison alphabet cannot express finds nothing here and is
+        # reported — which is the honest answer: nothing was compared.
+        if family_key(name) in registry_keys:
+            diff.note(index + 1, Reason.CREDITED_ELSEWHERE)
+            continue
+        diff.uncorroborated.append((index + 1, str(name)))

@@ -456,6 +456,13 @@ def _check_authors(ctx: _Context) -> bool:
     bibliographies. The cost of the full comparison is a longer list of benign
     differences, which is why :mod:`~bibaudit.names` carries explicit handling
     for collective authors, et-al markers, particles and registry mojibake.
+
+    "Full" reaches past the registry's last creator, which is where the
+    documented failure mode actually puts the invented name: a byline compared
+    only as far as the shorter list is a byline whose appended creator is
+    compared against nothing. Those come back as ``authors/uncorroborated``,
+    one line per creator, because a count line names nobody and the reader's
+    question is *which* name no record carries.
     """
     stored = ctx.ref.authors
     registry = ctx.primary.authors or (
@@ -497,6 +504,13 @@ def _check_authors(ctx: _Context) -> bool:
         ctx.add(
             "authors", "mismatch", "error", f"#{position} {left}", f"#{position} {right}",
             source=source,
+        )
+
+    for position, name in diff.uncorroborated:
+        ctx.add(
+            "authors", "uncorroborated", "error", f"#{position} {name}", "",
+            source=source,
+            note=f"the registry's byline ends at #{diff.registry_count}",
         )
 
     return diff.clean

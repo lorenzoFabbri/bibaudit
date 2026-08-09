@@ -125,6 +125,65 @@ class TestFieldMismatch:
         assert any(i.field == "authors" for i in result.issues)
 
 
+class TestAnInventedCoauthorAppendedToTheByline:
+    """Where a generated bibliography actually puts the invented name.
+
+    The test above inserts it in the *middle*, which shifts every following
+    position and mismatches on each. Moved to the end it was compared against
+    nothing: `names.compare_author_lists` walked the two lists in step and
+    stopped at the shorter one, so the only trace was an author-count warning,
+    which does not fail. Appending a fabricated name to an otherwise correct
+    byline produced no failing verdict on 4,255 of 4,255 live entries.
+    """
+
+    def _appended(self, *extra: Name) -> Result:
+        return compare(
+            make_ref(authors=[*make_record().authors, *extra]),
+            {"crossref": make_record()},
+        )
+
+    def test_one_appended_name_fails_the_build(self) -> None:
+        result = self._appended(Name(family="Fabricado", given="Xavier Q"))
+
+        assert result.verdict == "FIELD-MISMATCH"
+        assert result.fails
+
+    def test_the_report_names_the_creator_rather_than_counting(self) -> None:
+        """A count line names nobody, and *which* name has no witness is the
+        reader's whole question."""
+        result = self._appended(Name(family="Fabricado", given="Xavier Q"))
+
+        [issue] = [i for i in result.issues if i.field == "authors"]
+
+        assert (issue.kind, issue.severity) == ("uncorroborated", "error")
+        assert issue.stored == "#3 Fabricado, Xavier Q"
+        assert issue.note == "the registry's byline ends at #2"
+
+    def test_every_appended_name_gets_its_own_line(self) -> None:
+        result = self._appended(
+            Name(family="Alpha", given="A"),
+            Name(family="Bravo", given="B"),
+            Name(family="Charlie", given="C"),
+        )
+
+        assert [i.stored for i in result.issues if i.field == "authors"] == [
+            "#3 Alpha, A", "#4 Bravo, B", "#5 Charlie, C",
+        ]
+
+    def test_a_correct_byline_is_untouched(self) -> None:
+        assert self._appended().verdict == "OK"
+
+    def test_an_entry_that_omits_a_creator_is_still_only_incomplete(self) -> None:
+        """The direction matters. A byline shorter than the registry's is a
+        citation abbreviating, not one crediting somebody no record carries."""
+        result = compare(
+            make_ref(authors=make_record().authors[:1]), {"crossref": make_record()}
+        )
+
+        assert result.verdict == "INCOMPLETE"
+        assert not result.fails
+
+
 class TestIdentifierProblems:
     def test_unresolvable_doi_is_bad_id(self) -> None:
         result = compare(make_ref(), {})
@@ -2128,7 +2187,13 @@ class TestAConsortiumMedlineFilesApartFromTheByline:
         # The shape did not hold, so the ordinary positional comparison ran and
         # the whole shifted tail is reported — including the substitution.
         assert "mismatch" in [i.kind for i in result.issues if i.field == "authors"]
-        assert not result.suppressed
+        # The byline is one longer than MEDLINE's, so its last creator has no
+        # position to be compared at. MEDLINE does carry `Ahluwalia`, one place
+        # earlier, and saying otherwise would be false against the record being
+        # quoted — so that position is stated, not accused.
+        assert [i.note for i in result.suppressed] == [
+            "credited elsewhere in the registry byline"
+        ]
 
 
 class TestAConsortiumThatIsTheWholeByline:

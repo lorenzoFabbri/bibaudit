@@ -1949,7 +1949,10 @@ class TestAuthorArtifacts:
         )
         result = compare(ref, {"crossref": record})
         assert errors(result, "authors") == ["mismatch", "mismatch"]
-        assert artifacts(result, "authors") == []
+        # `Aragonés` sits past the registry's last position and the registry
+        # does carry her, one place earlier — so she is excused there rather
+        # than accused of being invented.
+        assert artifacts(result, "authors") == ["credited elsewhere in the registry byline"]
         assert result.fails
 
     def test_a_registry_missing_an_interior_author_is_still_a_defect(self) -> None:
@@ -1979,7 +1982,7 @@ class TestAuthorArtifacts:
         # of the entry's, so the two do not hold the same creators counted and
         # the shift is not a reordering.
         assert errors(result, "authors") == ["mismatch", "mismatch"]
-        assert artifacts(result, "authors") == []
+        assert artifacts(result, "authors") == ["credited elsewhere in the registry byline"]
         assert result.fails
 
     def test_a_registry_surname_missing_its_first_letter_is_not_a_defect(self) -> None:
@@ -2095,9 +2098,13 @@ class TestAuthorArtifacts:
         )
         result = compare(ref, {"crossref": record})
         assert "registry omits the first author" not in artifacts(result, "authors")
-        # The count difference is back, and the positional comparison runs
-        # against the real offsets instead of the aligned-away ones.
-        assert "count" in [i.kind for i in result.issues if i.field == "authors"]
+        # The length difference is back, and the positional comparison runs
+        # against the real offsets instead of the aligned-away ones. `Delta`
+        # is the creator it lands on: past the registry's third and last
+        # position, named rather than counted.
+        assert [i.stored for i in result.issues if i.kind == "uncorroborated"] == [
+            "#4 Delta, D"
+        ]
         assert result.fails
 
     def test_a_lost_first_letter_in_a_clean_byline_is_still_a_defect(self) -> None:

@@ -398,6 +398,92 @@ that explains a shift it has no evidence for hides the substitution underneath.
 
 ---
 
+## Creators the entry names past the registry's last
+
+**What this is, and why it is not a suppression.** The two sections here are the
+*exceptions* to a check that fails the build, which is the reverse of everything
+else in this file. `names.compare_author_lists` walks two bylines in step and
+stops at the shorter one, so a creator appended to the end of an entry's byline
+was compared against nothing, and the only trace was an author-*count* warning,
+which does not fail. Appending a fabricated name to an otherwise correct byline
+produced no failing verdict on **4,255 of 4,255** live entries.
+
+That is the documented failure mode of a generated bibliography, and the reason
+`compare._check_authors` compares the whole list rather than the first author,
+so the tie breaks towards the finding here: a creator past the registry's last
+position is reported as `authors/uncorroborated`, at error severity, one line
+per creator, naming the creator. A count line names nobody, and the reader's
+question is *which* name no record carries.
+
+**It is a tie.** A registry whose byline is short at the tail produces the
+identical shape, exactly as *Registry bylines missing their first author*
+describes for the other end, and no author list can separate the two. Measured
+over 3,040 works whose MEDLINE and Crossref records were both fetched — five
+windows spanning 1992-2026 — the two registries disagree about byline length on
+40 (1.3%). After the two exceptions below, an entry written from the publisher's
+deposit and checked against MEDLINE alone reports a creator on **7 of them
+(0.23%)**, which is the PMID path, where there is no second witness; an entry
+written from MEDLINE and checked against Crossref reports one on **2 (0.07%)**.
+Against a shape that was never reported at all.
+
+The exceptions carry the rest: 1 tail position excused as a collective and 14 as
+credited elsewhere, over the same 3,040 works.
+
+Two kinds of tail position are *not* that claim, and each is excused with its
+own reason rather than reported.
+
+### A collective creator past the registry's last
+
+**What happens.** An organisation is not an invented co-author. MEDLINE files
+consortia under `CN` and lists only people under `FAU`/`AU`, so a byline
+exported from Crossref carries a creator MEDLINE's list does not — the defect
+*Consortia the byline credits and MEDLINE files apart* covers where the
+remaining people align exactly. Where they do not, that escape declines the
+byline and the consortium arrives here.
+
+**Observed.** PMID 38236418 (`10.1007/s00392-023-02363-5`): the entry built from
+Crossref's deposit carries 21 creators including `on behalf of the STAAB
+consortium`, MEDLINE's byline is 11 people with a `CN` line beside them, and the
+consortium sits past MEDLINE's last position. 1 of the 11 tails in the live
+sample above.
+
+**Reported as.** `collective creator past the registry's last`.
+
+**Detection.** `names._tail_past_the_registry`, on `Name.collective` — which is
+the registry's own answer where the creator came from a registry (Crossref's
+`<organization>` slot) and the adapter's collective-author parse where it came
+from the bibliography.
+
+**The residual, stated.** A fabricated *organisation* appended to a byline is
+excused. The failure mode this check exists for invents people.
+
+### A surname the registry's byline carries somewhere else
+
+**What happens.** "The registry does not name this person" would be false
+against the very record being quoted. Two shapes reach it: a bibliography that
+repeats a creator, and a misalignment this tool declined to explain — run a
+byline with a plausible senior author prepended through
+`names._registry_omits_first_author` below its alignment floor and the entry's
+*last* creator lands past the registry's end, present in the registry list all
+along.
+
+**Observed.** PMID 42552006, the ITC Project entry in
+`tests/data/pubmed_collective_creator.txt`, with one of its people substituted:
+the shape no longer holds for *Consortia the byline credits and MEDLINE files
+apart*, the positional comparison runs, and `Ahluwalia, Indu B` ends up one
+position past MEDLINE's last — carried by MEDLINE all the same.
+
+**Reported as.** `credited elsewhere in the registry byline`.
+
+**Detection.** `names._tail_past_the_registry`. The creator's `family_key` must
+be non-empty and appear among the registry byline's keys.
+
+**The residual, stated.** A fabricated name that happens to share a surname with
+a real co-author is excused rather than reported. That is a real hole, and the
+alternative is printing a claim the registry's own record contradicts.
+
+---
+
 ## Author comparisons with nothing to compare
 
 **What happens.** Four situations let a position pass without either side being
