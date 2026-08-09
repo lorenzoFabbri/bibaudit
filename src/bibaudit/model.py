@@ -228,6 +228,13 @@ class Record:
     publisher: str | None = None
     #: The registry's own type string, e.g. "journal-article", "book-chapter".
     kind: str | None = None
+    #: Further type strings the registry files this same work under, in the
+    #: registry's own order after :attr:`kind`. A registry may mean all of
+    #: them at once: MEDLINE's ``PT`` list for PMID 42557261 is ``Dataset``
+    #: then ``Journal Article``, and a data descriptor in *Scientific Data*
+    #: really is both. An entry matching any of them is right, exactly as an
+    #: entry citing either the print or the online-first year is right.
+    kind_alternates: list[str] = field(default_factory=list)
     retracted: bool = False
     retraction_kind: str | None = None
     raw: dict[str, Any] = field(default_factory=dict)

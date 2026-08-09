@@ -1017,6 +1017,14 @@ class TestBookRecords:
 
         assert record.kind == "Journal Article"
 
+    def test_a_second_recognised_type_is_carried_too(self) -> None:
+        """This record's ``PT`` list is ``Review`` then ``Book Chapter``.
+
+        Only one of the two is recognised, so the alternates are empty and the
+        chapter is a chapter and nothing else.
+        """
+        assert self._chapter().kind_alternates == []
+
     def test_the_publisher_is_deliberately_not_read(self) -> None:
         """``PB`` is on both fixtures and ``compare`` does compare a publisher.
 
@@ -1029,6 +1037,50 @@ class TestBookRecords:
         """
         assert self._book().publisher is None
         assert self._book().raw["PB"] == ["University of Washington, Seattle"]
+
+
+class TestSeveralPublicationTypes:
+    """NLM writes ``PT`` alphabetically, and sometimes means every value in it.
+
+    ``tests/data/pubmed_data_descriptor.txt`` is PMID 42557261 verbatim, a data
+    descriptor in *Scientific Data*: ``PT - Dataset`` then ``PT - Journal
+    Article``. Both are structural and the work is both, but ``Dataset`` sorts
+    first, so reading the first recognised value alone made the record say the
+    work is a dataset and not an article. ``"dataset"[pt] AND "journal
+    article"[pt]`` returns 5,670 citations.
+    """
+
+    def _descriptor(self) -> Record:
+        client = _StubClient(medline=_fixture("data_descriptor"))
+        return PubMed(client).by_pmids(["42557261"]).records["42557261"]
+
+    def test_the_alphabetically_first_type_still_leads(self) -> None:
+        """The record reports what NLM wrote, in NLM's order — nothing is reranked."""
+        assert self._descriptor().kind == "Dataset"
+
+    def test_the_type_further_down_the_list_is_kept(self) -> None:
+        assert self._descriptor().kind_alternates == ["Journal Article"]
+
+    def test_a_type_the_vocabulary_does_not_know_is_still_left_out(self) -> None:
+        """``PT`` is mostly not a document type, and an alternate is not a dump.
+
+        ``Randomized Controlled Trial`` normalises to ``other``, which
+        ``compare._check_kind`` reads as "no opinion", so carrying it would
+        offer a type that agrees with everything.
+        """
+        fields = pubmed._parse_medline_records(_fixture("data_descriptor"))[0]
+        fields["PT"] = ["Randomized Controlled Trial", "Journal Article", "Review"]
+        record = pubmed._record_from_medline(fields)
+
+        assert (record.kind, record.kind_alternates) == ("Journal Article", [])
+
+    def test_one_type_written_twice_is_one_type(self) -> None:
+        """Two spellings normalising to the same kind tell a reader nothing twice."""
+        fields = pubmed._parse_medline_records(_fixture("data_descriptor"))[0]
+        fields["PT"] = ["Journal Article", "Dataset", "Journal Article"]
+        record = pubmed._record_from_medline(fields)
+
+        assert (record.kind, record.kind_alternates) == ("Journal Article", ["Dataset"])
 
 
 class TestByPmids:

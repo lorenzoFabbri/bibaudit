@@ -762,6 +762,44 @@ def _check_pages(ctx: _Context) -> None:
     ctx.add("pages", "mismatch", "error", stored, registry, source=source)
 
 
+def _registry_kinds(record: Record) -> list[str]:
+    """Every type *record*'s registry files this work under, normalised, in order.
+
+    A registry may file one work under several types at once and mean all of
+    them, which is why this reads
+    :attr:`~bibaudit.model.Record.kind_alternates` beside
+    :attr:`~bibaudit.model.Record.kind`. Any type the registry itself carries
+    is acceptable, on the same terms as any year and any container title it
+    carries.
+
+    ``"other"`` is dropped rather than returned. It is this vocabulary's word
+    for "no opinion", so a record whose types are all unrecognised offers
+    nothing to disagree with, and an empty list is what says so.
+    """
+    kinds: list[str] = []
+    for value in (record.kind, *record.kind_alternates):
+        kind = normalize_kind(value)
+        if kind != "other" and kind not in kinds:
+            kinds.append(kind)
+    return kinds
+
+
+def _kind_disagrees(stored_kind: str, registry_kinds: Sequence[str]) -> bool:
+    """Whether *stored_kind* contradicts every type the registry carries.
+
+    Shared by :func:`_check_kind` and :func:`confirm_without_id` for the same
+    reason :data:`_COMPATIBLE_KINDS` is: the check that judges a *found*
+    record and the one that screens a *candidate* must not drift into
+    disagreeing about which pairs are the same work catalogued differently.
+    """
+    if stored_kind == "other" or not registry_kinds:
+        return False
+    return not any(
+        stored_kind == kind or frozenset({stored_kind, kind}) in _COMPATIBLE_KINDS
+        for kind in registry_kinds
+    )
+
+
 def _check_kind(ctx: _Context) -> None:
     """Flag an entry whose type is incompatible with the resolved work's.
 
@@ -769,17 +807,17 @@ def _check_kind(ctx: _Context) -> None:
     *review* of the book rather than the book. Type incompatibility rejected
     four of nine identifier proposals in earlier manual work, which is why it is
     checked rather than assumed.
+
+    Every type the record carries is printed, because a reader deciding
+    whether the entry or the registry is wrong needs to see what the registry
+    actually said, and a record naming two of them said both.
     """
     stored_kind = normalize_kind(ctx.ref.kind)
-    registry_kind = normalize_kind(ctx.primary.kind)
-    if stored_kind == "other" or registry_kind == "other":
-        return
-    if stored_kind == registry_kind:
-        return
-    if frozenset({stored_kind, registry_kind}) in _COMPATIBLE_KINDS:
+    registry_kinds = _registry_kinds(ctx.primary)
+    if not _kind_disagrees(stored_kind, registry_kinds):
         return
     ctx.add(
-        "kind", "incompatible", "warning", stored_kind, registry_kind,
+        "kind", "incompatible", "warning", stored_kind, ", ".join(registry_kinds),
         note="entry type disagrees with the resolved work's type",
     )
 
@@ -1619,15 +1657,13 @@ def confirm_without_id(
         if score < thresholds.search_confirm:
             continue
 
-        candidate_kind = normalize_kind(candidate.kind)
-        if (
-            stored_kind != "other"
-            and candidate_kind != "other"
-            and stored_kind != candidate_kind
-            and frozenset({stored_kind, candidate_kind}) not in _COMPATIBLE_KINDS
-        ):
+        candidate_kinds = _registry_kinds(candidate)
+        if _kind_disagrees(stored_kind, candidate_kinds):
             # Searching for a book by title reliably turns up reviews of it.
-            rejections.append(f"{_candidate_label(candidate)}: type {candidate_kind} != {stored_kind}")
+            rejections.append(
+                f"{_candidate_label(candidate)}: type {', '.join(candidate_kinds)} "
+                f"!= {stored_kind}"
+            )
             continue
 
         if not candidate.authors and not candidate.years:

@@ -164,9 +164,10 @@ class TestWrongWork:
 def make_pubmed(**overrides: object) -> Record:
     """PubMed's view of the same work, as ``registries.pubmed`` builds it.
 
-    ``years`` uses MEDLINE's ``issued`` slot and there is no ``kind``: PubMed
-    carries no Crossref-style type string, so a record built here must not
-    accidentally corroborate more than the real client can.
+    ``years`` uses MEDLINE's ``issued`` slot. There is no ``kind``, which the
+    real client sets from ``PT``: the tests that exercise it drive the record
+    the client builds off saved MEDLINE bytes, so the vocabulary compared is
+    NLM's own rather than one this helper invented.
     """
     base: dict[str, object] = {
         "source": "pubmed",
@@ -2514,6 +2515,61 @@ class TestKindCompatibility:
         ref = make_ref(kind="preprint")
         result = compare(ref, {"crossref": make_record(kind="journal-article")})
         assert not any(i.field == "kind" for i in result.issues)
+
+
+class TestAWorkFiledUnderTwoTypes:
+    """A registry naming several types means all of them, and the entry may cite any.
+
+    Replayed against ``tests/data/pubmed_data_descriptor.txt``, NCBI's own
+    bytes for PMID 42557261 — a data descriptor in *Scientific Data*, ``PT -
+    Dataset`` then ``PT - Journal Article``. NLM writes ``PT``
+    alphabetically, so the type that leads the record is not the structural
+    one, and a correct ``@article`` was reported as disagreeing with the
+    resolved work's type: INCOMPLETE, in the summary counts, and a failure
+    under ``--fail-on INCOMPLETE``. Any type the registry itself carries is
+    acceptable, on the same terms as any year and any container title it
+    carries.
+    """
+
+    def _entry(self, kind: str) -> Result:
+        ref = Reference(
+            key="zeng2026fnirs",
+            locator="references.bib:3",
+            kind=kind,
+            pmid="42557261",
+            title=(
+                "An fNIRS Dataset for Cognitive Decoding during a Multi-day "
+                "Block-design Stroop Task"
+            ),
+            authors=[Name(family="Zeng", given="Lingwei")],
+            year=2026,
+            container="Scientific data",
+            volume="13",
+            issue="1",
+        )
+        return compare(ref, {"pubmed": pubmed_record("pubmed_data_descriptor.txt")})
+
+    def test_the_type_further_down_the_registrys_list_is_accepted(self) -> None:
+        result = self._entry("article")
+
+        assert not [i for i in result.issues if i.field == "kind"]
+
+    def test_the_type_leading_the_registrys_list_is_accepted_too(self) -> None:
+        """Neither of the two is privileged: the registry stated both."""
+        assert not [i for i in self._entry("dataset").issues if i.field == "kind"]
+
+    def test_a_type_the_registry_named_neither_of_still_disagrees(self) -> None:
+        """The pairing. A ``@book`` against this record is still a finding."""
+        [issue] = [i for i in self._entry("book").issues if i.field == "kind"]
+
+        assert issue.severity == "warning"
+        assert issue.stored == "book"
+
+    def test_the_finding_names_every_type_the_registry_carries(self) -> None:
+        """A reader deciding who is wrong needs to see what the registry said."""
+        [issue] = [i for i in self._entry("book").issues if i.field == "kind"]
+
+        assert issue.registry == "dataset, article"
 
 
 class TestVerdictFor:

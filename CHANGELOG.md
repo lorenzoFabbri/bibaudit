@@ -169,6 +169,17 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A work its registry files under two types is compared against both.** NLM
+  writes MEDLINE's `PT` list alphabetically, so the type leading a citation is
+  not the structural one: PMID 42557261, a data descriptor in *Scientific
+  Data*, is `PT - Dataset` then `PT - Journal Article`, and the record said
+  the work is a dataset and not an article. A correct `@article` citing one
+  moved off `OK` to `INCOMPLETE`, into the summary counts and the JSON, and
+  failed under `--fail-on INCOMPLETE`; `"dataset"[pt] AND "journal
+  article"[pt]` returns 5,670 citations. Any type the registry itself carries
+  is now acceptable, on the same terms as any year and any container title it
+  carries, and a `kind/incompatible` finding names every type the record
+  holds rather than only the first.
 - **A concern or a correction printed beside a retraction no longer says the
   work stands.** Two sources reporting different kinds for one work is
   ordinary: of 200 DOIs sampled whose strongest Retraction Watch row is a

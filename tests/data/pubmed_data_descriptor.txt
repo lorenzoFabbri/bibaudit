@@ -1,0 +1,90 @@
+PMID- 42557261
+OWN - NLM
+STAT- MEDLINE
+DCOM- 20260805
+LR  - 20260808
+IS  - 2052-4463 (Electronic)
+IS  - 2052-4463 (Linking)
+VI  - 13
+IP  - 1
+DP  - 2026 Aug 5
+TI  - An fNIRS Dataset for Cognitive Decoding during a Multi-day Block-design Stroop 
+      Task.
+LID - 10.1038/s41597-026-07800-4 [doi]
+LID - 1138
+AB  - Cognitive state decoding is key to brain-computer interface technology, serves as 
+      a promising tool for psychiatric diagnosis and rehabilitation, and offers a novel 
+      perspective for neuroscientific study. Datasets for decoding cognitive states 
+      using optical neuroimaging modalities remain scarce. To address this, we provide 
+      an fNIRS dataset acquired during a Stroop task, consisting of frontal hemoglobin 
+      responses from 55 young adults. Each participant completed three sessions of 
+      color-word Stroop task within approximately 2 weeks, to collect more than 30 
+      trials per condition while avoiding mental fatigue caused by a single session. 
+      This dataset supports a range of applications, from studying conflict inhibition 
+      to building decoders for neurofeedback training and large-scale cross-subject 
+      fNIRS models, while also facilitating the development of signal processing 
+      algorithms for hemodynamic signals.
+CI  - (c) 2026. The Author(s).
+FAU - Zeng, Lingwei
+AU  - Zeng L
+AD  - Department of Medical Psychology, Fourth Military Medical University, Xi'an, 
+      Shaanxi, 710032, China. lngwii@fmmu.edu.cn.
+AD  - Department of Aerospace Medicine, Fourth Military Medical University, Xi'an, 
+      China. lngwii@fmmu.edu.cn.
+FAU - Sun, Kewei
+AU  - Sun K
+AD  - Department of Medical Psychology, Fourth Military Medical University, Xi'an, 
+      Shaanxi, 710032, China.
+FAU - Yuan, Yimeng
+AU  - Yuan Y
+AD  - Department of Medical Psychology, Fourth Military Medical University, Xi'an, 
+      Shaanxi, 710032, China.
+FAU - Gao, Yuntao
+AU  - Gao Y
+AD  - Department of Medical Psychology, Fourth Military Medical University, Xi'an, 
+      Shaanxi, 710032, China.
+FAU - Wang, Xiuchao
+AU  - Wang X
+AD  - Department of Medical Psychology, Fourth Military Medical University, Xi'an, 
+      Shaanxi, 710032, China.
+FAU - Wen, Zhihong
+AU  - Wen Z
+AD  - Department of Aerospace Medicine, Fourth Military Medical University, Xi'an, 
+      China. wenzh@fmmu.edu.cn.
+FAU - Wu, Di
+AU  - Wu D
+AD  - Department of Medical Psychology, Fourth Military Medical University, Xi'an, 
+      Shaanxi, 710032, China. wudi0426@outlook.com.
+LA  - eng
+GR  - 2023KXKT056/Quick Response Project of Fourth Military Medical University/
+PT  - Dataset
+PT  - Journal Article
+DEP - 20260805
+PL  - England
+TA  - Sci Data
+JT  - Scientific data
+JID - 101640192
+SB  - IM
+MH  - Humans
+MH  - *Stroop Test
+MH  - *Cognition
+MH  - Spectroscopy, Near-Infrared
+MH  - Young Adult
+MH  - Adult
+PMC - PMC13443585
+COIS- Competing interests: The authors declare no competing interests.
+EDAT- 2026/08/06 11:36
+MHDA- 2026/08/06 11:37
+PMCR- 2026/08/05
+CRDT- 2026/08/05 23:21
+PHST- 2026/03/24 00:00 [received]
+PHST- 2026/06/29 00:00 [accepted]
+PHST- 2026/08/06 11:37 [medline]
+PHST- 2026/08/06 11:36 [pubmed]
+PHST- 2026/08/05 23:21 [entrez]
+PHST- 2026/08/05 00:00 [pmc-release]
+AID - 10.1038/s41597-026-07800-4 [pii]
+AID - 7800 [pii]
+AID - 10.1038/s41597-026-07800-4 [doi]
+PST - epublish
+SO  - Sci Data. 2026 Aug 5;13(1):1138. doi: 10.1038/s41597-026-07800-4.

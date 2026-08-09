@@ -302,26 +302,41 @@ def _container_alternates(journal: str | None, abbreviation: str | None) -> list
     return out
 
 
-def _kind_from(fields: dict[str, list[str]]) -> str | None:
-    """The first ``PT`` value :func:`~bibaudit.normalize.normalize_kind` knows.
+def _kinds_from(fields: dict[str, list[str]]) -> list[str]:
+    """Every ``PT`` value :func:`~bibaudit.normalize.normalize_kind` knows, in order.
 
     ``PT`` is a list and most of it is not a document type at all — "Review",
     "Research Support, Non-U.S. Gov't", "English Abstract", "Randomized
     Controlled Trial" all sit beside the structural one, and NLM writes them
-    in no order this can rely on. Taking the first *recognised* value rather
-    than the first value is what makes that harmless: an unrecognised string
-    would normalise to ``"other"``, which ``compare._check_kind`` reads as "no
+    in no order this can rely on. Keeping the *recognised* values rather than
+    the first value is what makes that harmless: an unrecognised string would
+    normalise to ``"other"``, which ``compare._check_kind`` reads as "no
     opinion" and would silence the check on every record carrying a
     descriptive type ahead of its structural one — PMID 20301425 is ``PT -
     Review`` then ``PT - Book Chapter``.
 
-    Left unset when nothing is recognised, because ``None`` and ``"other"``
-    reach ``_check_kind`` the same way and an invented string would not.
+    More than one *is* recognised where NLM means both, and it writes them
+    alphabetically rather than structurally: PMID 42557261 (*Scientific Data*)
+    is ``PT - Dataset`` then ``PT - Journal Article``, and the data descriptor
+    is a journal article and a dataset at once. Returning the first alone
+    reported a correct ``@article`` as disagreeing with the record's type, on
+    the 5,670 citations ``"dataset"[pt] AND "journal article"[pt]`` returns.
+    :attr:`~bibaudit.model.Record.kind_alternates` carries the rest, and any
+    type the registry itself carries is acceptable.
+
+    Empty when nothing is recognised, because ``None`` and ``"other"`` reach
+    ``_check_kind`` the same way and an invented string would not. Two ``PT``
+    values normalising to one type are one type: the record offers a reader
+    nothing by naming it twice.
     """
+    kinds: list[str] = []
+    seen: set[str] = set()
     for value in fields.get("PT", []):
-        if normalize_kind(value) != "other":
-            return clean(value)
-    return None
+        normalised = normalize_kind(value)
+        if normalised != "other" and normalised not in seen:
+            seen.add(normalised)
+            kinds.append(clean(value))
+    return kinds
 
 
 def _retraction(fields: dict[str, list[str]]) -> tuple[bool, str | None]:
@@ -489,6 +504,8 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
     abbreviation = _first(fields.get("TA"))
     alternates = _container_alternates(journal, abbreviation)
 
+    kinds = _kinds_from(fields)
+
     return Record(
         source="pubmed",
         pmid=_first(fields.get("PMID")),
@@ -501,7 +518,8 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
         volume=_first(fields.get("VI")),
         issue=_first(fields.get("IP")),
         pages=_first(fields.get("PG")),
-        kind=_kind_from(fields),
+        kind=kinds[0] if kinds else None,
+        kind_alternates=kinds[1:],
         retracted=retracted,
         retraction_kind=retraction_kind,
         raw=raw,
