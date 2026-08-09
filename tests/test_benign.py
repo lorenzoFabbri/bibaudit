@@ -911,6 +911,68 @@ class TestContainerMedlineQualifier:
         ) is None
 
 
+class TestContainerAcronymPrefix:
+    """A publisher's masthead sets the acronym ahead of the name; NLM does not.
+
+    ``JNCI: Journal of the National Cancer Institute`` against ``JT - Journal
+    of the National Cancer Institute`` (PMID 42550479), and ``JACCP: JOURNAL OF
+    THE AMERICAN COLLEGE OF CLINICAL PHARMACY`` against ``JT - Journal of the
+    American College of Clinical Pharmacy : JACCP`` (PMID 42522049). Seven of
+    386 entries in a live sample failed on the shape.
+    """
+
+    def test_the_acronym_ahead_of_the_registrys_own_name_is_an_artifact(self) -> None:
+        assert classify(
+            "container",
+            "JNCI: Journal of the National Cancer Institute",
+            "Journal of the National Cancer Institute",
+            container_alternates=["J Natl Cancer Inst"],
+        ) == "stored name prefixes the journal's own acronym"
+
+    def test_it_reaches_a_name_nlm_files_behind_its_own_subtitle(self) -> None:
+        """Both sides carry the acronym, in the two places their houses put it."""
+        assert classify(
+            "container",
+            "JACCP: JOURNAL OF THE AMERICAN COLLEGE OF CLINICAL PHARMACY",
+            "Journal of the American College of Clinical Pharmacy : JACCP",
+            container_alternates=["J Am Coll Clin Pharm"],
+        ) == "stored name prefixes the journal's own acronym"
+
+    def test_an_acronym_that_is_not_the_names_own_still_fires(self) -> None:
+        """The whole of what makes removing the prefix information-free."""
+        assert classify(
+            "container",
+            "NEJM: Journal of the National Cancer Institute",
+            "Journal of the National Cancer Institute",
+        ) is None
+
+    def test_a_different_journal_behind_the_acronym_still_fires(self) -> None:
+        assert classify(
+            "container",
+            "JNCI: Journal of the National Cancer Institute",
+            "Journal of Clinical Oncology",
+        ) is None
+
+    def test_a_titles_own_opening_clause_is_not_an_acronym(self) -> None:
+        """*Circulation: Cardiovascular Quality and Outcomes* is another journal.
+
+        The case class is what refuses it: a lowercase word before a colon is a
+        title's own clause, and reading it as an acronym would merge two AHA
+        journals.
+        """
+        assert classify(
+            "container", "Circulation: Cardiovascular Quality and Outcomes", "Circulation"
+        ) is None
+
+    def test_the_remainder_has_to_match_outright(self) -> None:
+        """Never a prefix test, for the reason every container rule says so."""
+        assert classify(
+            "container",
+            "CEBP: Cancer Epidemiology",
+            "Cancer Epidemiology, Biomarkers & Prevention",
+        ) is None
+
+
 class TestRedirectingAggregatorDoi:
     def test_a_jstor_doi_redirecting_to_the_publisher_is_not_a_defect(self) -> None:
         assert classify("doi", "10.2307/2669548", "10.1111/j.1540-5907.2000.tb00000.x") == (
@@ -1034,6 +1096,15 @@ class TestRuleScoping:
             # and 07 in neither — pages have their own first-page rule, and a
             # DOI's suffix or a PMID would be excused the same way.
             ("pages", "027004", "27004", {}, "_number_zero_padded"),
+            # _container_acronym_prefix strips an all-caps prefix whose letters
+            # are word-initials of what follows. Unscoped, a paper titled
+            # "MCCS: Melanoma, Cohort, Case and Survival" is explained against
+            # a registry title of the words alone — the field that says which
+            # work is cited, cleared by an editing rule written for a masthead.
+            (
+                "title", "MCCS: Melanoma Cohort Case Survival",
+                "Melanoma Cohort Case Survival", {}, "_container_acronym_prefix",
+            ),
         ],
     )
     def test_no_rule_leaks_into_a_field_it_was_not_written_for(

@@ -535,6 +535,49 @@ real incompleteness.
 
 ---
 
+## A journal's own acronym written ahead of its name
+
+**What happens.** Several publishers set the masthead as the acronym, a colon,
+then the title — `JNCI: Journal of the National Cancer Institute` — and a
+reference manager copies it whole into `journal`. NLM never files a serial that
+way, so the stored name carries a token the registry's does not have at all.
+
+**Observed.** PMID 42550479, `10.1093/jnci/djag268`, `JT - Journal of the
+National Cancer Institute` with `TA - J Natl Cancer Inst`, in
+`tests/data/pubmed_acronym_prefix.txt`; and PMID 42522049,
+`10.1002/jac5.70263`, `JT - Journal of the American College of Clinical
+Pharmacy : JACCP` against a stored `JACCP: JOURNAL OF THE AMERICAN COLLEGE OF
+CLINICAL PHARMACY`, in `pubmed_acronym_prefix_subtitle.txt`. Seven of 386
+entries in a live sample failed on this shape. `benign._container_abbreviation`
+reaches neither: it needs the stored tokens to be in-order prefixes of the
+registry's, and the acronym is a token the registry's name does not contain.
+
+**Reported as.** `stored name prefixes the journal's own acronym`.
+
+**Detection.** `benign._container_acronym_prefix`. The prefix must be two to
+ten characters with no lowercase — a lowercase word before a colon is a title's
+own opening clause, and `Circulation: Cardiovascular Quality and Outcomes` is a
+different journal from *Circulation* — and its letters must be word-initials of
+what follows, **in order**. That is what makes removing it information-free:
+`JNCI` is derivable from *Journal of the National Cancer Institute* and cannot
+stand for another journal, while `NEJM:` before the same name fails on `E`.
+
+The subsequence test is used rather than a reduction because which words an
+acronym skips is a fact about a language, not about a title: `JNCI` skips *of*
+and *the*, and a Portuguese or German serial skips different ones. A stop-word
+vocabulary would put one language's function words in the verdict path.
+
+What is left has to equal a name the record itself carries — `JT`, a
+`container_alternates` entry, the text before NLM's spaced colon, or the text
+before a trailing parenthetical — **outright**. Never a prefix and never a
+substring: `CEBP: Cancer Epidemiology` against *Cancer Epidemiology, Biomarkers
+& Prevention* differs by a word and still fires. The registry side is never
+stripped of a leading article here, because the stored side has already been
+edited once and one edit per comparison is what keeps the printed reason true
+of what it suppresses.
+
+---
+
 ## Aggregator DOIs that redirect
 
 **What happens.** `doi.org` content negotiation redirects a JSTOR DOI

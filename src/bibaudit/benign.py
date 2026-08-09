@@ -63,6 +63,16 @@ _REDIRECTING_PREFIXES = ("10.2307/",)
 #: value, where punctuation is already gone and the separator is one space.
 _LEADING_ARTICLE = re.compile(r"^(?:the|a|an) ")
 
+#: A journal's own acronym, written ahead of its name with a colon, the way
+#: several publishers set their masthead: ``JNCI: Journal of the National
+#: Cancer Institute``. Two to ten characters and no lowercase, because a
+#: lowercase word before a colon is a title's own opening clause and not an
+#: acronym — ``Circulation: Cardiovascular Quality and Outcomes`` is a
+#: different journal from *Circulation*, and this pattern must not see one.
+#: Matched before :func:`~bibaudit.normalize.fold`, which deletes the colon and
+#: the case this depends on. See :func:`_container_acronym_prefix`.
+_ACRONYM_PREFIX = re.compile(r"^([A-Z][A-Z0-9&]{1,9})\s*:\s*(\S.*)$")
+
 #: How NLM separates a serial's title from the rest of the title it files that
 #: serial under, in ``JT``: ``Journal of clinical oncology : official journal
 #: of the American Society of Clinical Oncology``. Spaced on both sides, which
@@ -619,6 +629,102 @@ def _container_medline_qualifier(field: str, stored: str, registry: str, ref: Re
     return None
 
 
+def _is_initialism_of(acronym: str, rest: str) -> bool:
+    """True if *acronym*'s letters are word-initials of *rest*, in order.
+
+    A subsequence rather than an exact reduction, because which words an
+    acronym skips is a fact about a language rather than about a title:
+    ``JNCI`` skips *of* and *the*, ``JACCP`` skips two occurrences of *of*, and a serial in
+    Portuguese or German skips different ones. Requiring a stop-word
+    vocabulary would put one language's function words in the verdict path;
+    requiring the initials in order does the same work and admits every
+    language.
+
+    It is not the whole of the guard — the caller also requires what is left
+    to equal the registry's name outright — so this only has to establish that
+    the prefix is the journal's own acronym rather than something informative.
+    ``NEJM: Journal of the National Cancer Institute`` fails on ``E``.
+    """
+    initials = [word[0] for word in fold(rest).split() if word]
+    cursor = 0
+    for letter in fold(acronym).replace(" ", ""):
+        while cursor < len(initials) and initials[cursor] != letter:
+            cursor += 1
+        if cursor == len(initials):
+            return False
+        cursor += 1
+    return True
+
+
+def _container_names(registry: str, rec: Record) -> list[str]:
+    """Every folded name this record offers for one journal.
+
+    ``JT`` whole, each ``container_alternates`` entry, and the two reductions
+    NLM's own filing conventions call for: the text before its spaced colon and
+    the text before a trailing balanced parenthetical. Deliberately a union
+    assembled here rather than a reuse of
+    :func:`_container_medline_subtitle` and
+    :func:`_container_medline_qualifier`, because those two also take a
+    leading article off their base and this caller must not: it has already
+    edited the *stored* side, and one edit per comparison is what keeps a
+    printed reason true of what it suppresses.
+    """
+    names = [fold(registry), *(fold(value) for value in rec.container_alternates)]
+    base, separator, _ = registry.partition(_MEDLINE_SUBTITLE)
+    if separator and base.count("(") == base.count(")"):
+        names.append(fold(base))
+    unqualified = _without_trailing_qualifier(registry)
+    if unqualified is not None:
+        names.append(fold(unqualified))
+    return [name for name in names if name]
+
+
+def _container_acronym_prefix(field: str, stored: str, registry: str, ref: Reference, rec: Record) -> str | None:
+    """Stored journal name opens with the journal's own acronym and a colon.
+
+    Instances: ``JNCI: Journal of the National Cancer Institute`` against
+    ``JT - Journal of the National Cancer Institute`` (PMID 42550479,
+    10.1093/jnci/djag268, recorded verbatim in
+    ``tests/data/pubmed_acronym_prefix.txt``), and ``JACCP: JOURNAL OF THE
+    AMERICAN COLLEGE OF CLINICAL PHARMACY`` against ``JT - Journal of the
+    American College of Clinical Pharmacy : JACCP`` (PMID 42522049,
+    10.1002/jac5.70263, ``pubmed_acronym_prefix_subtitle.txt``). Several
+    publishers put the acronym on the masthead that way and a reference
+    manager copies it whole; NLM never does. Seven of 386 entries in a live
+    sample failed on it, and on the PMID path ``JT`` is the only container
+    there is to be compared against.
+
+    ``_container_abbreviation`` cannot reach either: it requires the stored
+    tokens to be in-order prefixes of the registry's, and the acronym is a
+    token the registry's name does not have at all.
+
+    **Why the prefix may come off**: it carries no information the rest does
+    not. :func:`_is_initialism_of` requires its letters to be word-initials of
+    the remainder, in order, so ``JNCI`` is derivable from *Journal of the
+    National Cancer Institute* and cannot stand for another journal — and what
+    is left still has to equal a name the record itself carries, outright.
+    Neither a prefix test nor a substring test: *Cancer Epidemiology* against
+    *Cancer Epidemiology, Biomarkers & Prevention* differs by a word and fires
+    here as it does everywhere else.
+
+    The **registry** side is never stripped of an article here. The stored side
+    has already been edited once, and taking a word off both is how a
+    suppression comes to be printed under a sentence that is false of it.
+    """
+    if field != "container":
+        return None
+    match = _ACRONYM_PREFIX.match(stored)
+    if not match:
+        return None
+    acronym, rest = match.group(1), match.group(2)
+    if not rest.strip() or not _is_initialism_of(acronym, rest):
+        return None
+    folded_rest = fold(rest)
+    if folded_rest and folded_rest in _container_names(registry, rec):
+        return "stored name prefixes the journal's own acronym"
+    return None
+
+
 def _doi_redirecting_prefix(field: str, stored: str, registry: str, ref: Reference, rec: Record) -> str | None:
     """Stored DOI belongs to an aggregator that redirects to the publisher's.
 
@@ -675,6 +781,7 @@ CHECKS: tuple[ArtifactCheck, ...] = (
     _container_leading_article,
     _container_medline_subtitle,
     _container_medline_qualifier,
+    _container_acronym_prefix,
     _doi_redirecting_prefix,
     _pmid_pmc_accession,
 )

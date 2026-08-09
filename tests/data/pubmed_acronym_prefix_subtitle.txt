@@ -1,0 +1,132 @@
+
+PMID- 42522049
+OWN - NLM
+STAT- MEDLINE
+DCOM- 20260729
+LR  - 20260729
+IS  - 2574-9870 (Electronic)
+IS  - 2574-9870 (Linking)
+VI  - 9
+IP  - 8
+DP  - 2026 Aug
+TI  - Contextual Factors Affecting SGLT2 Inhibitors and GLP-1 Receptor Agonists 
+      Prescribing in Primary Care: An Application of the Consolidated Framework for 
+      Implementation Research.
+PG  - e70263
+LID - 10.1002/jac5.70263 [doi]
+AB  - BACKGROUND: Despite strong evidence supporting cardiovascular and kidney benefits 
+      of sodium-glucose co-transporter-2 inhibitors (SGLT2i) and glucagon-like 
+      peptide-1 receptor agonists (GLP-1 RA) in patients with type 2 diabetes, 
+      prescribing rates remain suboptimal. The aim of this study was to assess 
+      clinicians' knowledge and comfort prescribing SGLT2i and GLP-1 RA in clinical 
+      practice and factors influencing prescribing of these agents. METHODS: This 
+      multi-methods study used questionnaires to assess self-reported knowledge and 
+      comfort prescribing SGLT2i and GLP-1 RA, and semi-structured interviews based on 
+      the Consolidated Framework for Implementation Research (CFIR) to assess factors 
+      affecting prescribing decisions among 21 clinicians (12 primary care physicians, 
+      4 pharmacists, 5 nurse practitioners) at a large community-based health system in 
+      Virginia. Questionnaire results were analyzed using descriptive statistics, and 
+      interviews used a two-phase analytic approach combining inductive and deductive 
+      coding. RESULTS: Clinicians self-reported high knowledge (7.9/10) and comfort 
+      (8.1 and 8.4/10) prescribing SGLT2i and GLP-1 RA but identified multiple 
+      implementation barriers. The most significant barriers were insurance coverage 
+      and out-of-pocket costs, with prior authorization requirements delaying therapy 
+      initiation. Medicare beneficiaries faced particularly challenging access due to 
+      coverage gaps and ineligibility for manufacturer assistance programs. 
+      Organizational factors, including high workload, limited appointment time, and 
+      the absence of automated patient identification systems, hindered consistent 
+      prescribing. Medication burden, side effects, and aversion to injectable 
+      medications emerged as patient-related barriers. Facilitators included strong 
+      clinical evidence supporting these agents, organizational culture supportive of 
+      innovation, and access to pharmacist support. CONCLUSION: Despite high 
+      self-reported knowledge and comfort prescribing SGLT2i and GLP-1 RA, clinicians 
+      identified barriers to their use in clinical practice at the patient, clinician, 
+      organizational, and medication access levels. Future work should identify the 
+      best implementation strategies to address these barriers.
+CI  - (c) 2026 The Author(s). JACCP: Journal of the American College of Clinical Pharmacy 
+      published by Wiley Periodicals LLC on behalf of ACCP Foundation, Ltd.
+FAU - Salgado, Teresa M
+AU  - Salgado TM
+AUID- ORCID: 0000-0003-2708-7145
+AD  - Department of Pharmacotherapy & Outcomes Science, Virginia Commonwealth 
+      University School of Pharmacy, Richmond, Virginia, USA.
+AD  - Center for Pharmacy Practice Innovation, Virginia Commonwealth University School 
+      of Pharmacy, Richmond, Virginia, USA.
+FAU - Amayreh, Rana
+AU  - Amayreh R
+AUID- ORCID: 0009-0009-7136-6273
+AD  - Department of Pharmacotherapy & Outcomes Science, Virginia Commonwealth 
+      University School of Pharmacy, Richmond, Virginia, USA.
+FAU - Alshahawey, Mona
+AU  - Alshahawey M
+AUID- ORCID: 0000-0001-7424-2799
+AD  - Department of Pharmacotherapy & Outcomes Science, Virginia Commonwealth 
+      University School of Pharmacy, Richmond, Virginia, USA.
+AD  - Department of Clinical Pharmacy, Faculty of Pharmacy, Ain Shams University, 
+      Cairo, Egypt.
+FAU - Musselman, Kerri T
+AU  - Musselman KT
+AD  - CKB Health Consulting LLC, Midlothian, Virginia, USA.
+FAU - Buffington, Tonya M
+AU  - Buffington TM
+AD  - Bon Secours Mercy Health, Richmond, Virginia, USA.
+FAU - Hyder, Haroon
+AU  - Hyder H
+AD  - Bon Secours Mercy Health, Richmond, Virginia, USA.
+FAU - Jones, Resa M
+AU  - Jones RM
+AUID- ORCID: 0000-0002-0080-4047
+AD  - Department of Epidemiology and Biostatistics, Barnett College of Public Health, 
+      Temple University, Philadelphia, Pennsylvania, USA.
+AD  - Fox Chase Cancer Center, Temple Health, Temple University, Philadelphia, 
+      Pennsylvania, USA.
+FAU - Dixon, Dave L
+AU  - Dixon DL
+AUID- ORCID: 0000-0001-7560-9521
+AD  - Department of Pharmacotherapy & Outcomes Science, Virginia Commonwealth 
+      University School of Pharmacy, Richmond, Virginia, USA.
+AD  - Center for Pharmacy Practice Innovation, Virginia Commonwealth University School 
+      of Pharmacy, Richmond, Virginia, USA.
+LA  - eng
+PT  - Journal Article
+PL  - United States
+TA  - J Am Coll Clin Pharm
+JT  - Journal of the American College of Clinical Pharmacy : JACCP
+JID - 101723133
+RN  - 0 (Sodium-Glucose Transporter 2 Inhibitors)
+RN  - 0 (Glucagon-Like Peptide-1 Receptor Agonists)
+RN  - 0 (Hypoglycemic Agents)
+SB  - IM
+MH  - Humans
+MH  - *Sodium-Glucose Transporter 2 Inhibitors/therapeutic use
+MH  - *Glucagon-Like Peptide-1 Receptor Agonists
+MH  - *Diabetes Mellitus, Type 2/drug therapy
+MH  - *Primary Health Care
+MH  - *Practice Patterns, Physicians'/statistics & numerical data
+MH  - Surveys and Questionnaires
+MH  - Male
+MH  - Female
+MH  - *Hypoglycemic Agents/therapeutic use
+MH  - Pharmacists
+MH  - Health Knowledge, Attitudes, Practice
+MH  - Implementation Science
+OTO - NOTNLM
+OT  - diabetes mellitus
+OT  - evidence-based practice
+OT  - glucagon-like peptide-1 receptor agonists
+OT  - implementation science
+OT  - primary health care
+OT  - qualitative research
+OT  - sodium-glucose transporter 2 inhibitors
+EDAT- 2026/07/29 00:35
+MHDA- 2026/07/29 18:39
+CRDT- 2026/07/28 23:52
+PHST- 2026/06/17 00:00 [revised]
+PHST- 2026/04/29 00:00 [received]
+PHST- 2026/07/02 00:00 [accepted]
+PHST- 2026/07/29 18:39 [medline]
+PHST- 2026/07/29 00:35 [pubmed]
+PHST- 2026/07/28 23:52 [entrez]
+AID - 10.1002/jac5.70263 [doi]
+PST - ppublish
+SO  - J Am Coll Clin Pharm. 2026 Aug;9(8):e70263. doi: 10.1002/jac5.70263.

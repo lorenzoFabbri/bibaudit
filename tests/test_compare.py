@@ -2087,6 +2087,54 @@ class TestMedlineSocietyExpansionOnThePmidPath:
         assert [i.kind for i in result.issues if i.field == "container"] == ["mismatch"]
 
 
+class TestAMastheadAcronymOnThePmidPath:
+    """The publisher's masthead sets the acronym ahead of the name; NLM does not.
+
+    Replayed against ``tests/data/pubmed_acronym_prefix.txt``, NCBI's own bytes
+    for PMID 42550479 (10.1093/jnci/djag268). ``JT`` is *Journal of the
+    National Cancer Institute* and the journal's own site heads every page
+    *JNCI: Journal of the National Cancer Institute*, which is what a reference
+    manager stores. On the PMID path ``JT`` is the only container there is.
+    """
+
+    def _entry(self, container: str) -> Result:
+        ref = Reference(
+            key="wang2026chip",
+            locator="references.bib:31",
+            kind="article",
+            pmid="42550479",
+            title=(
+                "The joint association of clonal hematopoiesis of indeterminate "
+                "potential and biological aging with cancer risk among 332,911 "
+                "individuals"
+            ),
+            authors=[Name(family="Wang", given="Li"), Name(et_al=True)],
+            year=2026,
+            container=container,
+        )
+        return compare(ref, {"pubmed": pubmed_record("pubmed_acronym_prefix.txt")})
+
+    def test_the_masthead_form_does_not_fail_the_build(self) -> None:
+        result = self._entry("JNCI: Journal of the National Cancer Institute")
+
+        assert not result.fails
+        assert [i.note for i in result.suppressed if i.field == "container"] == [
+            "stored name prefixes the journal's own acronym"
+        ]
+
+    def test_the_registrys_own_spelling_needs_no_suppression(self) -> None:
+        result = self._entry("Journal of the National Cancer Institute")
+
+        assert not result.fails
+        assert not [i for i in result.suppressed if i.field == "container"]
+
+    def test_another_journal_behind_the_acronym_still_fails(self) -> None:
+        result = self._entry("JCO: Journal of Clinical Oncology")
+
+        assert result.verdict == "FIELD-MISMATCH"
+        assert [i.kind for i in result.issues if i.field == "container"] == ["mismatch"]
+
+
 class TestMedlineDatesOnThePmidPath:
     """A work published ahead of its issue has two years, and MEDLINE has both.
 
