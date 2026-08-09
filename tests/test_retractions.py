@@ -398,8 +398,8 @@ class TestRetractionWatchCsv:
 
     def test_the_unavailable_sentinel_is_not_treated_as_a_doi(self, tmp_path: Path) -> None:
         """RW records ``Unavailable`` literally in ``OriginalPaperDOI`` for rows
-        with no known original-paper DOI (3,419 of 71,496 rows in the live
-        2026-08-01 export) -- it must never be indexed as though it were one.
+        with no known original-paper DOI (3,422 of 71,641 rows in the live
+        2026-08-09 export) -- it must never be indexed as though it were one.
         """
         stub = _client(rw_csv=_rw_sample())
         index_probe = Retractions(stub, cache_dir=tmp_path).status_for(
@@ -454,7 +454,7 @@ class TestRetractionWatchCsv:
         assert status.notices[WAKEFIELD_DOI.lower()].kind == "retraction"
 
     def test_a_blank_nature_defaults_to_retraction(self, tmp_path: Path) -> None:
-        """190 of 71,496 live rows carry no ``RetractionNature`` tag at all; the
+        """241 of 71,641 live rows carry no ``RetractionNature`` tag at all; the
         whole database's subject is retractions, so an untagged row is read
         as one rather than silently dropped.
         """

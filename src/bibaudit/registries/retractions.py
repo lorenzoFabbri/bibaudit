@@ -119,8 +119,8 @@ from .pubmed import PubMed
 __all__ = ["RW_CACHE_SUBDIR", "RetractionNotice", "Retractions", "concern_in"]
 
 #: Crossref Labs' distribution of the Retraction Watch database. Verified
-#: live (2026-08-01): a keyless, unauthenticated ``GET`` streams a ~66 MB,
-#: ~71,500-row CSV (``Content-Disposition: attachment; filename=retractions.csv``).
+#: live (2026-08-09): a keyless, unauthenticated ``GET`` streams a 65,722,306-byte,
+#: 71,641-row CSV (``Content-Disposition: attachment; filename=retractions.csv``).
 #: The historical ``labs.crossref.org/data/retraction-watch.csv`` URL this
 #: brief was written against no longer serves the file; this is the
 #: replacement, confirmed by fetching it rather than assumed from memory.
@@ -149,7 +149,7 @@ _RW_INDEX_CACHE_KEY = "index-v1"
 #: came to leave the one cache holding retraction status untouched.
 RW_CACHE_SUBDIR = "retraction-watch"
 
-#: RW's ``RetractionNature`` values (2026-08-01 snapshot, 71,496 rows) mapped
+#: RW's ``RetractionNature`` values (2026-08-09 snapshot, 71,641 rows) mapped
 #: onto this module's kind vocabulary. Keys are :func:`~bibaudit.normalize.fold`ed
 #: so case and punctuation drift in a future export do not silently stop
 #: matching. ``Reinstatement`` (160 rows) is deliberately absent: it is
@@ -348,9 +348,9 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int]:
 
     Streamed row by row through :class:`csv.DictReader` rather than
     materialised as ``list(csv.DictReader(...))`` first: only the rows whose
-    ``OriginalPaperDOI`` is both present and DOI-shaped are ever retained, a
-    small fraction of the ~71,500 total, so building the full row list before
-    filtering would hold everything the streaming read avoids.
+    ``OriginalPaperDOI`` is both present and DOI-shaped are ever retained —
+    65,454 of the 71,641 rows in the 2026-08-09 export — so building the full
+    row list before filtering would hold everything the streaming read avoids.
 
     A DOI can carry more than one row — RW logged both a 2004 ``Correction``
     and a 2010 ``Retraction`` for 10.1016/S0140-6736(97)11096-0, the
