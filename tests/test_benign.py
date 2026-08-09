@@ -1491,7 +1491,7 @@ class TestRuleScoping:
             # an opening page of 7 on a work that starts at 7 in one registry
             # and 07 in neither — pages have their own first-page rule, and a
             # DOI's suffix or a PMID would be excused the same way.
-            ("pages", "027004", "27004", {}, "_number_zero_padded"),
+            ("pages", "07", "7", {}, "_number_zero_padded"),
             # _container_acronym_prefix strips an all-caps prefix whose letters
             # are word-initials of what follows. Unscoped, a paper titled
             # "MCCS: Melanoma, Cohort, Case and Survival" is explained against

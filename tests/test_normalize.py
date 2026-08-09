@@ -277,6 +277,38 @@ class TestPages:
         """No journal paginates ``A102``; the prefix alone identifies it."""
         assert is_article_number("A102")
 
+    def test_the_padding_a_journal_writes_counts_towards_the_floor(self) -> None:
+        """``085001`` is a six-digit article number in *J Biomed Opt*, and the
+        padding is how the journal writes it. Measured on the normalised value
+        it was five digits, so the floor refused it and
+        ``benign._pages_article_number`` never fired: PMIDs 42571480, 42571556
+        and 42571506 — correct entries, ``PG`` ``085001``/``086003``/``086004``
+        against a Crossref ``page`` of ``1-15``/``1-16``/``1-37`` — were
+        reported ``pages/mismatch`` and failed the build. ``027004`` is the same
+        shape, and is the literal ``first_page``'s own docstring cites.
+        """
+        assert is_article_number("085001")
+        assert is_article_number("027004")
+
+    def test_a_prefixed_number_is_counted_as_written_too(self) -> None:
+        """One rule, both shapes. **No witnessed instance**: the journals that
+        pad are the ones writing a bare number, and ``e0123456`` clears the
+        four-character floor with or without its zero. It is here because
+        counting the two shapes differently would be a second rule nobody could
+        state, and ``e012`` is what that difference looks like.
+        """
+        assert is_article_number("e012")
+        assert not is_article_number("e12")
+
+    def test_the_padding_does_not_lower_the_floor_for_a_shorter_number(
+        self,
+    ) -> None:
+        """The other half: padding is counted, not waived. ``0246`` is four
+        characters and still not an article number, so a page disagreement
+        between ``0246`` and a range stays reported.
+        """
+        assert not is_article_number("0246")
+
 
 class TestPmidExtraction:
     """What a note may and may not be read as declaring a PMID.

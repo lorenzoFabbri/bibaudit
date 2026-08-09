@@ -56,7 +56,12 @@ _WS_RE = re.compile(r"\s+")
 _BRACE_RE = re.compile(r"[{}]")
 _NONWORD_RE = re.compile(r"[^a-z0-9]+")
 _YEAR_RE = re.compile(r"(1[5-9]\d\d|20\d\d)")
-_PAGE_RE = re.compile(r"\s*([A-Za-z]?)0*(\d+)")
+#: An opening page or article number: an optional letter prefix, any zero
+#: padding, and the digits. The padding is captured rather than skipped because
+#: :func:`first_page` drops it and :func:`is_article_number` counts it — the
+#: same value written two ways is one article, and how wide the journal writes
+#: it is what says it is an article number at all.
+_PAGE_RE = re.compile(r"\s*([A-Za-z]?)(0*)(\d+)")
 
 #: LaTeX accent commands, as they appear in hand-written or exported .bib files:
 #: ``{\'e}``, ``\"{o}``, ``\c{c}``. Mapping them to the bare letter is enough for
@@ -404,12 +409,13 @@ def first_page(value: object) -> str:
     match = _PAGE_RE.match(text)
     if not match:
         return ""
-    prefix, digits = match.group(1).lower(), match.group(2)
+    prefix, digits = match.group(1).lower(), match.group(3)
     return f"{prefix}{digits}"
 
 
 #: Fewest digits in an **all-numeric** value before it reads as an article
-#: number rather than as an opening page. Four was too few: ``2461`` is the
+#: number rather than as an opening page — counted as the source writes them,
+#: zero padding included. Four was too few: ``2461`` is the
 #: first page of 10.1001/archinte.167.22.2461 (*Arch Intern Med* 167(22)) and
 #: nothing about it says "article number" — so a stored ``2461`` against a
 #: registry ``2450-2455`` was excused by ``benign._pages_article_number`` as
@@ -441,12 +447,22 @@ def is_article_number(value: object) -> bool:
     text = clean(value)
     if not text or "-" in text:
         return False
-    page = first_page(text)
-    if not page:
+    match = _PAGE_RE.match(text)
+    if not match:
         return False
-    if page.isdigit():
-        return len(page) >= _MIN_NUMERIC_ARTICLE_NUMBER
-    return len(page) >= 4
+    prefix, padding, digits = match.groups()
+    # Measured on the value as written, before :func:`first_page` normalises the
+    # padding away. *Environmental Health Perspectives* writes ``085001`` and
+    # the citing entry ``85001``; both are the same six-digit article number,
+    # and counting the normalised form made the padded one five digits and not
+    # an article number at all. Three live instances in one 1,923-entry sweep
+    # (PMIDs 42571480, 42571556, 42571506, all *J Biomed Opt*, all correct
+    # entries) were reported ``pages/mismatch`` and failed the build — and the
+    # docstring on :data:`_MIN_NUMERIC_ARTICLE_NUMBER` cites ``027004`` as the
+    # very case the rule exists for.
+    if not prefix:
+        return len(padding) + len(digits) >= _MIN_NUMERIC_ARTICLE_NUMBER
+    return len(prefix) + len(padding) + len(digits) >= 4
 
 
 #: Registry type strings mapped onto the tool's own vocabulary. The mapping is

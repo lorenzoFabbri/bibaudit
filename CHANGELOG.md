@@ -184,6 +184,14 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A zero-padded article number is one.** `is_article_number` measured the
+  value after `first_page` normalised the padding away, so `085001` counted as
+  five digits and fell under the six-digit floor while the unpadded `85001` for
+  the same article cleared it — the predicate answered differently about one
+  item depending on which registry deposited it, and
+  `benign._pages_article_number` never fired. Three correct entries in one
+  1,923-entry live sweep were reported `pages/mismatch` and failed the build.
+
 - **The "not asked" note names each source beside the key it is looked up by.**
   The keyless sources were pooled into one clause, so a book carrying neither
   identifier read `crossref, pubmed, retraction-watch take a DOI or a PMID this

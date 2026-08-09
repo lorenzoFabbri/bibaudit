@@ -459,6 +459,22 @@ mistyped page as a numbered article, and the floor keeps the difference
 reported. That is the safe direction — a page disagreement nobody was told
 about is the loss this predicate's threshold exists to prevent.
 
+**Both floors count the value as the source writes it**, zero padding included,
+which is the same padding the section above says both forms of. Measured on the
+normalised value instead, `085001` was five digits and not an article number,
+while the unpadded `85001` for the same article was — so the predicate answered
+differently about one item depending on which registry deposited it, and the
+suppression never fired. Three live instances in one 1,923-entry sweep, all
+correct entries, all failing the build: PMIDs 42571480, 42571556 and 42571506
+(*J Biomed Opt*), `PG` `085001`/`086003`/`086004` against a Crossref `page` of
+`1-15`/`1-16`/`1-37`. `027004` — the literal `first_page`'s own docstring cites
+— had the same problem. Padding is counted, never waived: `0246` is four
+characters and still not an article number. On the prefixed floor the same rule
+has **no witnessed instance**, since the journals that pad write a bare number
+and `e0123456` clears four characters either way; it is written once rather than
+twice because two floors counting differently is a second rule nobody could
+state.
+
 ---
 
 ## Doubled tokens from mangled MathML
