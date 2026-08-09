@@ -534,12 +534,15 @@ def _without_trailing_qualifier(title: str) -> str | None:
     and ``Clinical oncology (Royal College of Radiologists (Great Britain))``
     (PMID 42546669) each lose their qualifier whole.
 
-    ``None`` when there is no trailing parenthetical, when nothing opens it, or
-    when what is left still holds an unclosed ``(``: four titles in NLM's own
-    serial list end on a parenthesis that does not close the qualifier —
-    ``Interventional radiology (Higashimatsuyama-shi (Japan)``, NlmId
-    101745449, is one — and the remainder there is a fragment of a name rather
-    than a name. Callers must treat ``None`` as "no comparison to make".
+    ``None`` when there is no trailing parenthetical, when nothing opens it,
+    when what is left still holds an unclosed ``(``, or when nothing is left at
+    all. Four titles in NLM's own serial list end on a parenthesis that does
+    not close the qualifier — ``Interventional radiology
+    (Higashimatsuyama-shi (Japan)``, NlmId 101745449, is one — and the
+    remainder there is a fragment of a name rather than a name. No serial in
+    that list is a qualifier and nothing else, so the empty remainder is a
+    guard against a shape rather than a case. Callers must treat ``None`` as
+    "no comparison to make".
     """
     if not title.endswith(")"):
         return None
@@ -569,7 +572,7 @@ def _container_medline_qualifier(field: str, stored: str, registry: str, ref: Re
     ``TA - ASAIO J``, in ``tests/data/pubmed_qualifier_inner_colon.txt``. NLM
     appends a qualifier — a place, a founding year, the issuing body, or
     several at once — wherever a bare title would be ambiguous in its
-    catalogue, on 2,697 of the 37,979 serials in its own list,
+    catalogue, on 2,698 of the 37,987 serials in its own list,
     ``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``. The masthead, Crossref and
     the bibliography carry the bare title, and where ``TA`` is a real
     abbreviation rather than the plain name nothing else reaches the entry:

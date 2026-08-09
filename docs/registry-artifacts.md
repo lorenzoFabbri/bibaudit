@@ -988,8 +988,8 @@ shape, and it has its own rule below.
 **What happens.** NLM appends a qualifier in parentheses wherever a bare title
 would be ambiguous in its catalogue — a place (`Lancet (London, England)`), an
 edition (`BMJ (Clinical research ed.)`), a founding year (`Annals of medicine
-and surgery (2012)`), the issuing body, or several at once. It is on 2,697 of
-the 37,979 serials in NLM's own list,
+and surgery (2012)`), the issuing body, or several at once. It is on 2,698 of
+the 37,987 serials in NLM's own list,
 [`J_Medline.txt`](https://ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt). The
 masthead, Crossref and the bibliography all carry the bare title.
 
