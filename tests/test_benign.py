@@ -1283,8 +1283,8 @@ class TestTheQualifierComesOffEveryNameTheRecordCarries:
     def test_a_remainder_of_one_token_is_not_a_name(self) -> None:
         """NlmId 9302033, ``TA - Proc (Bayl Univ Med Cent)``.
 
-        ``Proc`` opens 441 serials' abbreviations in NLM's list and is none of
-        them. 825 of the 2,695 qualified abbreviations reduce to a single token
+        ``Proc`` opens 442 serials' abbreviations in NLM's list — its own
+        among them — and is the whole of none of them. 825 of the 2,695 qualified abbreviations reduce to a single token
         and 208 of those are some other serial's whole abbreviation, so the
         floor refuses them all — at the cost of 67 correct bibliographies it
         declines to rescue, ``Rehabilitation`` against ``TA - Rehabilitation

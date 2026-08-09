@@ -221,6 +221,18 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **The publication type NLM puts on a retraction notice is named as the one it
+  emits.** Five statements in shipped source and test docstrings said, in the
+  present tense, that PMID 20137807 carries `PT - Retraction of Publication`,
+  and a `tests/data/` fixture presented as a real MEDLINE response carried it.
+  NLM renamed MeSH descriptor D016440 in 2025: the record carries `PT -
+  Retraction Notice` and nothing else, and `"Retraction of Publication"[pt]`
+  matches no record in PubMed. No verdict moves — `pubmed._PT_RETRACTED` is
+  exact fold-equality against the retracted paper's own type, so both spellings
+  of the notice's type were safely non-matching — but the direction rule was
+  being proved against a snapshot that had drifted, and the fixture is now
+  refetched verbatim with its `PT` list pinned.
+
 - **A creator the entry names past the registry's last is reported.**
   `names.compare_author_lists` walks two bylines in step and stops at the
   shorter one, so a name appended to the end of an entry's byline was compared
