@@ -1757,6 +1757,81 @@ class TestAnAnswerAboutAnotherRecord:
         assert result.fails
 
 
+class TestAConsortiumMedlineFilesApartFromTheByline:
+    """Crossref credits a consortium in the byline; MEDLINE files it in ``CN``.
+
+    Replayed against ``tests/data/pubmed_collective_creator.txt``, NCBI's own
+    bytes for PMID 42552006 (10.1136/bmjopen-2025-107667). Crossref's byline is
+    nine creators with ``for the ITC Project Collaborators`` at position 6;
+    MEDLINE's ``FAU`` list is the same eight people. Compared position against
+    position the consortium reads as a substitution for Kress, and every
+    position after it is shifted.
+    """
+
+    def _entry(self, authors: list[Name]) -> Result:
+        ref = Reference(
+            key="chunghall2026itc",
+            locator="references.bib:12",
+            kind="article",
+            pmid="42552006",
+            title=(
+                "Changes in knowledge of the major harms of tobacco smoking and "
+                "secondhand smoke exposure among adults who smoke: findings from "
+                "26 countries of the International Tobacco Control (ITC) Project "
+                "(2002-2022) and 32 countries of the Global Adult Tobacco Survey "
+                "(GATS) (2008-2020)"
+            ),
+            authors=authors,
+            year=2026,
+            container="BMJ Open",
+            volume="16",
+            issue="8",
+            pages="e107667",
+        )
+        return compare(ref, {"pubmed": pubmed_record("pubmed_collective_creator.txt")})
+
+    def _crossref_byline(self) -> list[Name]:
+        return [
+            Name(family="Chung-Hall", given="Janet"),
+            Name(family="Fong", given="Geoffrey T"),
+            Name(family="Meng", given="Gang"),
+            Name(family="Craig", given="Lorraine V"),
+            Name(family="Indome", given="Eunice O"),
+            Name(literal="for the ITC Project Collaborators", collective=True),
+            Name(family="Kress", given="Alissa C"),
+            Name(family="Shi", given="Jing"),
+            Name(family="Ahluwalia", given="Indu B"),
+        ]
+
+    def test_the_shifted_byline_does_not_fail_the_build(self) -> None:
+        result = self._entry(self._crossref_byline())
+
+        assert not result.fails
+        assert not [i for i in result.issues if i.field == "authors"]
+
+    def test_the_consortium_is_named_in_the_suppression(self) -> None:
+        """A suppression a reader cannot look up is one nobody can challenge."""
+        [artifact] = [i for i in self._entry(self._crossref_byline()).suppressed
+                      if i.field == "authors"]
+
+        assert artifact.note == (
+            "byline carries collective creator(s) the registry files apart: "
+            "for the ITC Project Collaborators"
+        )
+
+    def test_a_substituted_person_still_fails(self) -> None:
+        """The alignment is the evidence, not a tolerance the escape grants."""
+        byline = self._crossref_byline()
+        byline[7] = Name(family="Nobody", given="X Y")
+        result = self._entry(byline)
+
+        assert result.verdict == "FIELD-MISMATCH"
+        # The shape did not hold, so the ordinary positional comparison ran and
+        # the whole shifted tail is reported — including the substitution.
+        assert "mismatch" in [i.kind for i in result.issues if i.field == "authors"]
+        assert not result.suppressed
+
+
 class TestMedlineJournalTitleOnThePmidPath:
     """The journal name a PMID-resolved entry is compared against is MEDLINE's.
 

@@ -169,6 +169,17 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A consortium the byline credits and MEDLINE files apart no longer shifts
+  the whole author list.** Crossref credits a consortium as an `<organization>`
+  inside the `author` array; MEDLINE files it under `CN` and lists only people
+  under `FAU`/`AU`. `names._interleaved_collectives` covered the same defect
+  from the other direction only, so an entry exported from Crossref carried a
+  creator the MEDLINE byline does not and reported a substitution at that
+  position and every one after it — `#6 for the ITC Project Collaborators`
+  against `#6 Kress, Alissa C` on PMID 42552006, and 25 consecutive positions
+  on another entry. It is now a `REGISTRY-ARTIFACT` naming the organisations,
+  on the same evidence its mirror requires: what is left after the collectives
+  come off must align exactly with the registry's list.
 - **A verdict of `OK` can no longer be reached over zero comparisons.** Every
   check in `compare` returns in silence when the registry's value is empty, so
   a record holding no title, byline, year, container, volume, issue, pages or

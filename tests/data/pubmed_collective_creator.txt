@@ -1,0 +1,215 @@
+
+PMID- 42552006
+OWN - NLM
+STAT- MEDLINE
+DCOM- 20260804
+LR  - 20260804
+IS  - 2044-6055 (Electronic)
+IS  - 2044-6055 (Linking)
+VI  - 16
+IP  - 8
+DP  - 2026 Aug 4
+TI  - Changes in knowledge of the major harms of tobacco smoking and secondhand smoke 
+      exposure among adults who smoke: findings from 26 countries of the International 
+      Tobacco Control (ITC) Project (2002-2022) and 32 countries of the Global Adult 
+      Tobacco Survey (GATS) (2008-2020).
+PG  - e107667
+LID - 10.1136/bmjopen-2025-107667 [doi]
+AB  - OBJECTIVES: To assess levels of and trends in knowledge that smoking and 
+      secondhand smoke (SHS) cause lung cancer and cardiovascular disease (CVD) in 46 
+      countries over two decades. DESIGN: Longitudinal cohort and repeat 
+      cross-sectional surveys. SETTING: Nationally representative surveys in 26 
+      International Tobacco Control (ITC) Project countries (2002-2022) and 32 Global 
+      Adult Tobacco Survey (GATS) countries (2008-2020). PARTICIPANTS: Adults (aged 18+ 
+      years) who smoke tobacco (26 ITC countries: n=133 410; 32 GATS countries: n=110 
+      537). ANALYSIS OUTCOMES: Current use of cigarettes at least monthly (all ITC 
+      countries) and/or bidis at least monthly (ITC India, Bangladesh and Zambia) and 
+      current use of any combustible tobacco products (all GATS countries). We 
+      conducted individual-level analyses of the ITC and GATS data separately, without 
+      combining the datasets or analysing previously published summary statistics. 
+      Generalised estimating equations and weighted multinomial regression models 
+      assessed country-level prevalence of knowledge for three smoking and two SHS 
+      outcomes. Multilevel models estimated mean prevalence across all countries and 
+      tested within-country linear trends over time for five disease indicators by 
+      survey. Across 12 countries with data from both surveys, correlations between ITC 
+      and GATS assessed consistency across indicators. RESULTS: Knowledge that smoking 
+      causes lung cancer was highest (ITC=92.2%, GATS=91.9%), followed by heart disease 
+      (ITC=84.7%)/heart attack (GATS=80.0%) and stroke (ITC=75.0%, GATS=66.1%). 
+      Knowledge that SHS causes lung cancer (ITC=77.3%, GATS=82.1%) was highest, 
+      followed by heart attack (ITC=61.8%)/heart disease (GATS=72.5%) (all p<0.0001). 
+      In ITC and GATS countries, the average change in knowledge across the five 
+      diseases was +0.14% per year. There was agreement between the ITC and GATS data 
+      (range: Pearson correlations=0.60-0.81 across the five indicators). CONCLUSIONS: 
+      There is a need to improve and sustain people's knowledge of diseases caused by 
+      smoking and SHS, especially CVD risks.
+CI  - (c) Author(s) (or their employer(s)) 2026. Re-use permitted under CC BY. Published 
+      by BMJ Group.
+FAU - Chung-Hall, Janet
+AU  - Chung-Hall J
+AUID- ORCID: 0000-0002-9139-8100
+AD  - School of Psychology, University of Waterloo, Waterloo, Ontario, Canada 
+      jchunghall@uwaterloo.ca.
+FAU - Fong, Geoffrey T
+AU  - Fong GT
+AUID- ORCID: 0000-0001-9098-6472
+AD  - School of Psychology, University of Waterloo, Waterloo, Ontario, Canada.
+AD  - School of Public Health Sciences, University of Waterloo, Waterloo, Ontario, 
+      Canada.
+AD  - Ontario Institute for Cancer Research, Toronto, Ontario, Canada.
+FAU - Meng, Gang
+AU  - Meng G
+AUID- ORCID: 0000-0002-7771-7881
+AD  - School of Psychology, University of Waterloo, Waterloo, Ontario, Canada.
+FAU - Craig, Lorraine V
+AU  - Craig LV
+AD  - School of Psychology, University of Waterloo, Waterloo, Ontario, Canada.
+FAU - Indome, Eunice O
+AU  - Indome EO
+AUID- ORCID: 0009-0008-0732-8419
+AD  - School of Psychology, University of Waterloo, Waterloo, Ontario, Canada.
+CN  - ITC Project Collaborators
+FAU - Kress, Alissa C
+AU  - Kress AC
+AUID- ORCID: 0000-0002-6601-7097
+AD  - National Center for Chronic Disease Prevention and Health Promotion, Office on 
+      Smoking and Health, Atlanta, Georgia, USA.
+FAU - Shi, Jing
+AU  - Shi J
+AUID- ORCID: 0009-0004-7782-5323
+AD  - National Center for Chronic Disease Prevention and Health Promotion, Office on 
+      Smoking and Health, Atlanta, Georgia, USA.
+AD  - Noninfectious Disease Programs, CDC Foundation Inc, Atlanta, Georgia, USA.
+FAU - Ahluwalia, Indu B
+AU  - Ahluwalia IB
+AUID- ORCID: 0000-0001-5985-3356
+AD  - National Center for Chronic Disease Prevention and Health Promotion, Office on 
+      Smoking and Health, Atlanta, Georgia, USA.
+LA  - eng
+GR  - R01-CA125116/CA/NCI NIH HHS/United States
+GR  - R01-CA100362/US NCI National Cancer Institute/
+GR  - R01-CA090955/US NCI National Cancer Institute/
+GR  - P50-CA111236/US NCI National Cancer Institute/
+GR  - P01-CA200512/US NCI National Cancer Institute/
+GR  - C312/A3726/CRUK_/Cancer Research UK/United Kingdom
+GR  - C312/A6465/CRUK_/Cancer Research UK/United Kingdom
+GR  - C321/A11039/CRUK_/Cancer Research UK/United Kingdom
+GR  - C25586/A19540/CRUK_/Cancer Research UK/United Kingdom
+GR  - R01-CA125116/US National Cancer Institute at the National Institutes of Health/
+GR  - P50-CA111236/CA/NCI NIH HHS/United States
+PT  - Journal Article
+DEP - 20260804
+PL  - England
+TA  - BMJ Open
+JT  - BMJ open
+JID - 101552874
+RN  - 0 (Tobacco Smoke Pollution)
+SB  - IM
+MH  - Humans
+MH  - *Tobacco Smoke Pollution/adverse effects
+MH  - *Tobacco Smoking/adverse effects/epidemiology
+MH  - *Health Knowledge, Attitudes, Practice
+MH  - Adult
+MH  - Male
+MH  - Cross-Sectional Studies
+MH  - Female
+MH  - Middle Aged
+MH  - Longitudinal Studies
+MH  - Lung Neoplasms/etiology
+MH  - *Cardiovascular Diseases/etiology
+MH  - Young Adult
+MH  - Global Health
+MH  - Adolescent
+OTO - NOTNLM
+OT  - Health
+OT  - PUBLIC HEALTH
+OT  - Tobacco Use
+FIR - Andler, Raphael
+IR  - Andler R
+FIR - Bansal-Travers, Maansi
+IR  - Bansal-Travers M
+FIR - Barrientos-Gutierrez, Tonatiuh
+IR  - Barrientos-Gutierrez T
+FIR - Boado, Marcelo
+IR  - Boado M
+FIR - Burhoo, Premduth
+IR  - Burhoo P
+FIR - Michael Cummings, K
+IR  - Michael Cummings K
+FIR - Perez, Cristina de Abreu
+IR  - Perez CA
+FIR - Demjen, Tibor
+IR  - Demjen T
+FIR - East, Katherine A
+IR  - East KA
+FIR - Edwards, Richard
+IR  - Edwards R
+FIR - Fernandez, Esteve
+IR  - Fernandez E
+FIR - Fu, Marcela
+IR  - Fu M
+FIR - Gartner, Coral E
+IR  - Gartner CE
+FIR - Goma, Fastone M
+IR  - Goma FM
+FIR - Gupta, Prakash C
+IR  - Gupta PC
+FIR - Ghulam Hussain, A K M
+IR  - Ghulam Hussain AKM
+FIR - Hyland, Andrew
+IR  - Hyland A
+FIR - Ikamari, Lawrence
+IR  - Ikamari L
+FIR - Jampaklay, Aree
+IR  - Jampaklay A
+FIR - Jiang, Yuan
+IR  - Jiang Y
+FIR - Katanoda, Kota
+IR  - Katanoda K
+FIR - Kim, Gil-Yong
+IR  - Kim GY
+FIR - Kim, Su Young
+IR  - Kim SY
+FIR - Lee, Sungkyu
+IR  - Lee S
+FIR - Hairi, Farizah Mohd
+IR  - Hairi FM
+FIR - Mons, Ute
+IR  - Mons U
+FIR - Nargis, Nigar
+IR  - Nargis N
+FIR - Nordin, Amer Siddiq Amer
+IR  - Nordin ASA
+FIR - Ong'ang'o, Jane Rahedi
+IR  - Ong'ang'o JR
+FIR - Omar, Maizurah
+IR  - Omar M
+FIR - Pednekar, Mangesh S
+IR  - Pednekar MS
+FIR - Przewozniak, Krzysztof
+IR  - Przewozniak K
+FIR - Seo, Hong Gwan
+IR  - Seo HG
+FIR - Thrasher, James F
+IR  - Thrasher JF
+FIR - Trofor, Antigona
+IR  - Trofor A
+FIR - Vardavas, Constantine I
+IR  - Vardavas CI
+FIR - Waa, Andrew M
+IR  - Waa AM
+FIR - Willemsen, Marc C
+IR  - Willemsen MC
+FIR - Wilson, Nick
+IR  - Wilson N
+FIR - Zatonski, Witold A
+IR  - Zatonski WA
+EDAT- 2026/08/05 18:38
+MHDA- 2026/08/05 18:39
+CRDT- 2026/08/04 20:53
+PHST- 2026/08/05 18:39 [medline]
+PHST- 2026/08/05 18:38 [pubmed]
+PHST- 2026/08/04 20:53 [entrez]
+AID - bmjopen-2025-107667 [pii]
+AID - 10.1136/bmjopen-2025-107667 [doi]
+PST - epublish
+SO  - BMJ Open. 2026 Aug 4;16(8):e107667. doi: 10.1136/bmjopen-2025-107667.

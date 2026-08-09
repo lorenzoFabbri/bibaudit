@@ -444,6 +444,11 @@ class Reason(StrEnum):
         "registry interleaves collective creator(s) the byline omits: ",
         False,
     )
+    #: The mirror, and a prefix for the same reason.
+    BYLINE_COLLECTIVES = (
+        "byline carries collective creator(s) the registry files apart: ",
+        False,
+    )
     FIRST_AUTHOR_OMITTED = ("registry omits the first author", False)
     MOJIBAKE_TRUNCATED = ("registry mojibake truncated the surname", False)
     REORDERED = ("reordered", False)
@@ -451,6 +456,13 @@ class Reason(StrEnum):
 
 #: Derived, never retyped, so it cannot fall behind the reasons that exist.
 ARTIFACT_REASONS: tuple[str, ...] = tuple(r.value for r in Reason)
+
+#: Reasons whose value is a *prefix*: what a reader gets is the sentence plus
+#: the organisations the escape found, so recording one through
+#: :meth:`AuthorDiff.note` would print the claim and name nobody.
+_NAMES_ITS_FINDING = frozenset(
+    {Reason.INTERLEAVED_COLLECTIVES, Reason.BYLINE_COLLECTIVES}
+)
 
 
 def _script_key(text: str) -> str:
@@ -849,6 +861,55 @@ def _interleaved_collectives(stored: list[Name], registry: list[Name]) -> list[N
     return collectives
 
 
+def _byline_collectives(stored: list[Name], registry: list[Name]) -> list[Name]:
+    """Collective creators in the byline that the registry's list files apart.
+
+    :func:`_interleaved_collectives` read from the other direction, and the
+    same defect arrives from both. Crossref credits a consortium as an
+    ``<organization>`` inside the ``author`` array; MEDLINE files it under
+    ``CN`` and lists only people under ``FAU``/``AU``. A bibliography exported
+    from Crossref therefore carries a creator the MEDLINE record's byline does
+    not, every position after it is shifted by one, and a correct entry
+    reported a substitution at each.
+
+    The witnessed instance is PMID 42552006, 10.1136/bmjopen-2025-107667,
+    recorded verbatim in ``tests/data/pubmed_collective_creator.txt``:
+    Crossref's byline is nine creators with ``for the ITC Project
+    Collaborators`` at position 6, MEDLINE's ``FAU`` list is the same eight
+    people with ``CN - ITC Project Collaborators`` beside them, and the entry
+    reported ``#6 for the ITC Project Collaborators`` against ``#6 Kress,
+    Alissa C``. Four of 386 entries in a 396-entry live sample took this shape.
+
+    ``CN`` is deliberately not read into the record instead. MEDLINE does write
+    it in byline position, but not in *Crossref's* byline position: PMID
+    42521817 (10.1038/s41591-026-04492-6) groups five consortia together where
+    Crossref interleaves two of them among people, so reading it would replace
+    one misalignment with another. This escape does not depend on the position
+    at all.
+
+    The evidence and the bound are :func:`_interleaved_collectives`': what is
+    left after the collectives come off must be the same length as the
+    registry's list, and every position must agree *informatively*. One
+    substituted person and the shape does not hold.
+    """
+    collectives = [n for n in stored if n.collective]
+    if not collectives:
+        return []
+    people = [n for n in stored if not n.collective]
+    if len(people) != len(registry) or not people:
+        return []
+    if any(n.et_al for n in stored) or any(n.et_al for n in registry):
+        # Past an et-al marker a list is truncated and its length states
+        # nothing — the same refusal the mirror makes, for the same reason.
+        return []
+    if not all(
+        _agrees_informatively(left, right)
+        for left, right in zip(people, registry, strict=True)
+    ):
+        return []
+    return collectives
+
+
 def _list_carries_registry_mojibake(stored: list[Name], registry: list[Name]) -> bool:
     """True if some registry creator is provably a Latin-1 mis-decode of the stored one.
 
@@ -1049,32 +1110,37 @@ class AuthorDiff:
         The guarantee covers the whole recorded string, not just its opening,
         because a member's value is all there is to record: what a reader sees
         under REGISTRY-ARTIFACT is a string ``ARTIFACT_REASONS`` contains. The
-        one reason that goes on to name what it found has
-        :meth:`note_collectives`, and it is excluded here rather than by a type
-        because Python cannot say "any member but this one" without retyping the
-        other thirteen.
+        two reasons that go on to name what they found have
+        :meth:`note_collectives`, and they are excluded here rather than by a
+        type because Python cannot say "any member but these" without retyping
+        the rest.
         """
-        if reason is Reason.INTERLEAVED_COLLECTIVES:
+        if reason in _NAMES_ITS_FINDING:
             raise ValueError(
-                "INTERLEAVED_COLLECTIVES names the organisations it found; "
+                f"{reason.name} names the organisations it found; "
                 "record it with note_collectives"
             )
         self._reasons[position] = reason.value
 
-    def note_collectives(self, position: int, found: Sequence[Name]) -> None:
-        """Record the interleaved consortia at a 1-based *position*.
+    def note_collectives(
+        self, position: int, found: Sequence[Name], reason: Reason
+    ) -> None:
+        """Record the consortia one side carries and the other does not.
 
         The organisations are named in full rather than counted, and the payload
         is built here, from the creators the escape found, so the only text that
         can follow the prefix is that list. An empty *found* is refused: the claim
-        is "these particular creators are organisations the bibliography left
-        out", and a report that makes it and then lists nothing is a suppression
-        the reader cannot check.
+        is "these particular creators are organisations one side left out", and a
+        report that makes it and then lists nothing is a suppression the reader
+        cannot check.
+
+        *reason* says which side carried them, because a reader given the other
+        one goes looking in the wrong record.
         """
         if not found:
-            raise ValueError("the interleaved consortia have to be named, and none was given")
+            raise ValueError("the consortia have to be named, and none was given")
         named = "; ".join(str(name) for name in found)
-        self._reasons[position] = f"{Reason.INTERLEAVED_COLLECTIVES.value}{named}"
+        self._reasons[position] = f"{reason.value}{named}"
 
     @property
     def count_differs(self) -> bool:
@@ -1105,7 +1171,10 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
     1. a single collective creator on either side, standing for a whole byline;
     2. consortia the registry credits *between* people and BibTeX cannot
        represent, where every remaining person aligns exactly
-       (:func:`_interleaved_collectives`, 10.1158/1055-9965.epi-23-0009);
+       (:func:`_interleaved_collectives`, 10.1158/1055-9965.epi-23-0009), and
+       the mirror — consortia the *byline* credits between people and the
+       registry files apart from them (:func:`_byline_collectives`, MEDLINE's
+       ``CN``, 10.1136/bmjopen-2025-107667);
     3. a registry byline missing exactly its first author
        (:func:`_registry_omits_first_author`, 10.1097/00008469-199710000-00007);
     4. within a byline proven to be mis-decoded, a surname that lost its first
@@ -1144,7 +1213,13 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
         # reader cannot look up is a check nobody can audit, and here the whole
         # claim is "these particular creators are organisations the bibliography
         # left out" — so the report has to print which ones.
-        diff.note_collectives(1, interleaved)
+        diff.note_collectives(1, interleaved, Reason.INTERLEAVED_COLLECTIVES)
+        diff.truncated = True
+        return diff
+
+    filed_apart = _byline_collectives(stored, registry)
+    if filed_apart:
+        diff.note_collectives(1, filed_apart, Reason.BYLINE_COLLECTIVES)
         diff.truncated = True
         return diff
 

@@ -1059,6 +1059,15 @@ _WITNESSED_REASONS: tuple[tuple[Reason, int, list[Name], list[Name]], ...] = (
         ],
     ),
     (
+        Reason.BYLINE_COLLECTIVES, 1,
+        [
+            Name(family="Alpha", given="A"),
+            Name(literal="ITC Project Collaborators", collective=True),
+            Name(family="Bravo", given="B"),
+        ],
+        [Name(family="Alpha", given="A"), Name(family="Bravo", given="B")],
+    ),
+    (
         Reason.FIRST_AUTHOR_OMITTED, 1,
         [
             Name(family="Alpha", given="A"), Name(family="Bravo", given="B"),
@@ -1131,16 +1140,35 @@ class TestOnlyDocumentedReasonsReachAReport:
         with pytest.raises(ValueError, match="note_collectives"):
             AuthorDiff().note(1, Reason.INTERLEAVED_COLLECTIVES)
 
+    def test_the_mirror_reason_is_refused_by_note_too(self) -> None:
+        """Both prefixes name what they found, so both are excluded."""
+        with pytest.raises(ValueError, match="note_collectives"):
+            AuthorDiff().note(1, Reason.BYLINE_COLLECTIVES)
+
     def test_naming_no_collectives_at_all_is_refused(self) -> None:
         with pytest.raises(ValueError, match="named"):
-            AuthorDiff().note_collectives(1, [])
+            AuthorDiff().note_collectives(1, [], Reason.INTERLEAVED_COLLECTIVES)
 
     def test_the_organisations_are_printed_in_full(self) -> None:
         diff = AuthorDiff()
-        diff.note_collectives(1, [Name(literal="DiscovEHR"), Name(literal="UK Biobank")])
+        diff.note_collectives(
+            1,
+            [Name(literal="DiscovEHR"), Name(literal="UK Biobank")],
+            Reason.INTERLEAVED_COLLECTIVES,
+        )
         assert diff.reasons[1] == (
             "registry interleaves collective creator(s) the byline omits: "
             "DiscovEHR; UK Biobank"
+        )
+
+    def test_the_side_that_carried_them_is_named(self) -> None:
+        """A reader given the wrong side goes looking in the wrong record."""
+        diff = AuthorDiff()
+        diff.note_collectives(
+            1, [Name(literal="FinnGen")], Reason.BYLINE_COLLECTIVES
+        )
+        assert diff.reasons[1] == (
+            "byline carries collective creator(s) the registry files apart: FinnGen"
         )
 
     def test_reasons_cannot_be_written_through_the_public_name(self) -> None:

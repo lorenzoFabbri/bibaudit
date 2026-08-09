@@ -138,6 +138,41 @@ act on.
 
 ---
 
+## Consortia the byline credits and MEDLINE files apart
+
+**What happens.** The mirror of the section above, and the same defect. Crossref
+credits a consortium as an `<organization>` inside the `author` array; MEDLINE
+files it under `CN` and lists only people under `FAU`/`AU`. So a bibliography
+exported from Crossref — which keeps the organisation, unlike Crossref's own
+BibTeX — carries a creator the MEDLINE byline does not, and every position after
+it is shifted by one.
+
+**Observed.** PMID 42552006, `10.1136/bmjopen-2025-107667`, recorded verbatim in
+`tests/data/pubmed_collective_creator.txt`. Crossref's byline is nine creators
+with `for the ITC Project Collaborators` at position 6; MEDLINE's `FAU` list is
+the same eight people, with `CN - ITC Project Collaborators` beside them. The
+entry reported `#6 for the ITC Project Collaborators` against `#6 Kress, Alissa
+C` and a substitution at every position after. Four of 386 entries in a 396-entry
+live sample took this shape, one of them shifting 25 consecutive positions.
+
+**Reported as.** `byline carries collective creator(s) the registry files apart`,
+followed by the organisations in full. Which side carried them is in the
+sentence, because a reader given the other one goes looking in the wrong record.
+
+**Detection.** `names._byline_collectives`, on the evidence and the bound its
+mirror uses: the collectives are dropped from the **stored** side and what
+remains must be the same length as the registry's list with every position
+agreeing informatively.
+
+**Why `CN` is not simply read onto the record instead.** MEDLINE does write it
+in byline position — but not in *Crossref's* byline position. PMID 42521817
+(`10.1038/s41591-026-04492-6`) groups five consortia together after the 42nd
+author where Crossref interleaves two of them among people at positions 44 and
+46, so reading `CN` would replace one misalignment with another. This escape
+does not depend on the position at all.
+
+---
+
 ## A consortium standing for the whole byline
 
 **What happens.** One side credits the consortium and the other credits its
