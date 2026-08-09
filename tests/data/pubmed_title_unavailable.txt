@@ -1,0 +1,73 @@
+
+PMID- 42536854
+OWN - NLM
+STAT- MEDLINE
+DCOM- 20260731
+LR  - 20260731
+IS  - 1606-7916 (Electronic)
+IS  - 0036-3634 (Linking)
+VI  - 68
+IP  - 2 (mar-abr)
+DP  - 2026 Apr 9
+TI  - [Not Available].
+PG  - 162-166
+LID - 10.21149/17789 [doi]
+AB  - El objetivo de este trabajo es analizar el desarrollo conceptual del modelo 
+      secuencial de carcinogenesis gastrica propuesto por el profesor Pelayo Correa, y 
+      destacar su integracion transdisciplinaria y su relevancia para comprender la 
+      variacion poblacional del riesgo y las oportunidades de prevencion en America 
+      Latina. El modelo de Correa se origino en observaciones epidemiologicas en 
+      Colombia y evoluciono hacia un marco integrador que combina historia natural, 
+      patologia, biologia molecular, genetica del huesped y virulencia bacteriana. La 
+      cascada precancerosa -gastritis cronica, atrofia, metaplasia, displasia y 
+      carcinoma- se confirmo como un proceso dinamico y potencialmente reversible, 
+      modulada por la persistencia de Helicobacter pylori. El ensayo clinico de 
+      quimioprevencion en Narino demostro que la erradicacion de H. pylori acelera la 
+      regresion de lesiones y modifica la trayectoria de la cascada. Un aporte central 
+      del modelo es la incorporacion de la coevolucion huesped-patogeno: la 
+      incompatibilidad entre linajes humanos y cepas de H. pylori de distinto origen 
+      explica diferencias marcadas en la progresion de lesiones precursoras entre 
+      poblaciones cercanas. Esta articulacion conceptual sustenta estrategias de 
+      prevencion primaria y vigilancia basadas en riesgo. La obra del profesor Correa 
+      muestra que las enfermedades cronicas requieren marcos que integren multiples 
+      niveles biologicos y analiticos, e identifica la erradicacion de H. pylori como 
+      punto critico de intervencion. En America Latina, este enfoque transdisciplinario 
+      orienta estrategias costo-efectivas de prevencion y vigilancia adaptadas a 
+      contextos de alta vulnerabilidad y heterogeneidad poblacional.
+FAU - Bravo, Luis Eduardo
+AU  - Bravo LE
+AD  - Facultad de Salud, Universidad del Valle, Cali, Colombia . 
+      luis.bravo@correounivalle.edu.co.
+FAU - Quijano-Lievano, Monica L
+AU  - Quijano-Lievano ML
+AD  - Doctorado en Salud, Universidad del Valle, Cali, Colombia. 
+      monica.quijano@correounivalle.edu.co.
+LA  - spa
+PT  - English Abstract
+PT  - Journal Article
+TT  - El modelo transdisciplinario de Pelayo Correa: una arquitectura conceptual para 
+      entender el cancer gastrico.
+DEP - 20260409
+PL  - Mexico
+TA  - Salud Publica Mex
+JT  - Salud publica de Mexico
+JID - 0404371
+SB  - IM
+MH  - *Stomach Neoplasms/prevention & 
+      control/epidemiology/etiology/microbiology/pathology
+MH  - Humans
+MH  - Helicobacter pylori/pathogenicity
+MH  - Helicobacter Infections/complications/epidemiology
+MH  - Precancerous Conditions/epidemiology
+MH  - Carcinogenesis
+EDAT- 2026/07/31 18:35
+MHDA- 2026/07/31 18:36
+CRDT- 2026/07/31 15:22
+PHST- 2025/12/07 00:00 [received]
+PHST- 2026/01/07 00:00 [accepted]
+PHST- 2026/07/31 18:36 [medline]
+PHST- 2026/07/31 18:35 [pubmed]
+PHST- 2026/07/31 15:22 [entrez]
+AID - 10.21149/17789 [doi]
+PST - epublish
+SO  - Salud Publica Mex. 2026 Apr 9;68(2 (mar-abr)):162-166. doi: 10.21149/17789.

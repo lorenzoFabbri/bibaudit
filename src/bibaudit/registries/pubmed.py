@@ -113,6 +113,14 @@ _ABBREVIATION_TAIL_RE = re.compile(r"(?:[A-Za-z]\.){2,}$")
 #: ``PT  - Retraction of Publication``.
 _PT_RETRACTED = "retracted publication"
 
+#: What NLM writes in ``TI`` when it holds no English title for an article —
+#: ``TI - [Not Available].``, folded. It says the field is empty, so reading it
+#: as a title compares a correct entry against a placeholder. Matched on
+#: :func:`~bibaudit.normalize.fold` after the brackets and the trailing period
+#: come off, and by exact equality: a real title that merely contains those two
+#: words is a title.
+_TITLE_UNAVAILABLE = "not available"
+
 
 def _chunk(items: Sequence[str], size: int) -> Iterator[list[str]]:
     """Split *items* into consecutive lists of at most *size* elements."""
@@ -205,24 +213,44 @@ def _authors_from(fields: dict[str, list[str]]) -> tuple[list[Name], bool]:
     return [_parse_au_fallback(value) for value in editors if value], bool(editors)
 
 
-def _book_title(fields: dict[str, list[str]]) -> str | None:
-    """The citation's own title: ``TI``, or ``BTI`` on a whole-book record.
+def _title_from(fields: dict[str, list[str]]) -> str | None:
+    """The citation's own title, from whichever tag NLM put it in.
 
-    MEDLINE gives a book chapter both — ``TI`` the chapter, ``BTI`` the volume
-    it sits in — and gives the volume's own record ``BTI`` alone. PMID
-    20301295 is that second shape, and with only ``TI`` read the record
-    carried no title at all, so ``compare._check_title`` returned before
-    comparing anything and a fabricated title passed. One of 200 records in a
-    live sample of ``pubmed books[sb]`` lacks ``TI``; 196 carry ``BTI``.
+    ``TI``, unless it is :data:`_TITLE_UNAVAILABLE`. NLM writes that
+    placeholder where it holds no English title for an article published in
+    another language, on 66,776 citations, and it states that the field is
+    empty rather than naming the work: compared as a title it scored 0.14
+    against the entry's own and reported ``title/wrong-work``, one weak byline
+    away from accusing a correct entry of citing a different paper. ``TT``, the
+    transliterated title, is what the record does carry there — PMID 42536854
+    (10.21149/17789) is ``TI - [Not Available].`` beside ``TT - El modelo
+    transdisciplinario de Pelayo Correa …``, the title the bibliography stores.
+
+    Then ``BTI``, for a whole-book record. MEDLINE gives a book chapter both —
+    ``TI`` the chapter, ``BTI`` the volume it sits in — and gives the volume's
+    own record ``BTI`` alone. PMID 20301295 is that second shape, and with only
+    ``TI`` read the record carried no title at all, so ``compare._check_title``
+    returned before comparing anything and a fabricated title passed. One of
+    200 records in a live sample of ``pubmed books[sb]`` lacks ``TI``; 196
+    carry ``BTI``.
+
+    ``TT`` beside a *real* ``TI`` is deliberately not read. An entry citing a
+    Spanish paper by its Spanish title against MEDLINE's English translation is
+    the same shape of correct entry, and reaching it needs a second title on
+    the record the way :attr:`~bibaudit.model.Record.container_alternates`
+    carries a second container — not a substitution for the first.
     """
-    return _first(fields.get("TI")) or _first(fields.get("BTI"))
+    title = _first(fields.get("TI"))
+    if title is not None and fold(title) == _TITLE_UNAVAILABLE:
+        return _first(fields.get("TT")) or _first(fields.get("BTI"))
+    return title or _first(fields.get("BTI"))
 
 
 def _container_book(fields: dict[str, list[str]]) -> str | None:
     """``BTI`` as the container, but only where it is not the title itself.
 
     The volume a chapter appears in is that chapter's container, exactly as
-    ``JT`` is an article's. On the whole-book record :func:`_book_title` has
+    ``JT`` is an article's. On the whole-book record :func:`_title_from` has
     already claimed ``BTI``, and a work is not its own container.
     """
     if not _first(fields.get("TI")):
@@ -346,7 +374,7 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
     *GeneReviews* book record, therefore produced a :class:`Record` with no
     title, no authors, no container and one year, and an entry with a
     fabricated title, a fabricated byline and a fabricated container was
-    compared against none of them and reported ``OK``. See :func:`_book_title`,
+    compared against none of them and reported ``OK``. See :func:`_title_from`,
     :func:`_authors_from` and :func:`_kind_from` for what each tag now
     supplies. ``PB`` is deliberately still not read, and the reason is
     ``registries/datacite``'s: ``compare`` does compare a publisher, MEDLINE
@@ -355,7 +383,7 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
     *University of Washington* — and :mod:`~bibaudit.benign` has no publisher
     rule of any kind to absorb it. Reading it would fail a correct ``@book``.
     """
-    title, translated = _clean_title(_book_title(fields))
+    title, translated = _clean_title(_title_from(fields))
 
     years: dict[str, int] = {}
     year = parse_year(_first(fields.get("DP")))

@@ -321,6 +321,11 @@ about another record settles nothing about this one. PubMed being unreachable,
 or `--no-corroborate` having removed the only registry that could answer, is
 `UNCHECKED` as well, exactly as everywhere else in this tool.
 
+`TI - [Not Available].` is NLM stating that it holds no English title for a
+paper published in another language, and it is read as an empty field rather
+than as a title. The record's own `TT` — the transliterated title, which is
+what such a bibliography stores — is read instead.
+
 A PMID resolving to a **book** or a book chapter is compared like any other
 citation. NLM files those under different tags — the volume's title in `BTI`
 rather than `TI`, its editors in `FED`/`ED` rather than `FAU`/`AU`, and the

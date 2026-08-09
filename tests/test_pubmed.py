@@ -744,6 +744,35 @@ class TestPublicationDates:
         assert self._record().year == 2026
 
 
+class TestATitleNlmDoesNotHold:
+    """``TI - [Not Available].`` states that a field is empty, and is not a title.
+
+    ``tests/data/pubmed_title_unavailable.txt`` is PMID 42536854 verbatim
+    (10.21149/17789, a Spanish-language paper in *Salud Publica de Mexico*).
+    NLM writes that placeholder where it holds no English title, on 66,776
+    citations, and the record's own ``TT`` carries the Spanish title the
+    bibliography stores. Compared as a title the placeholder scored 0.14
+    against the entry and reported ``title/wrong-work``.
+    """
+
+    def _record(self) -> Record:
+        client = _StubClient(medline=_fixture("title_unavailable"))
+        return PubMed(client).by_pmids(["42536854"]).records["42536854"]
+
+    def test_the_transliterated_title_is_read_instead(self) -> None:
+        assert self._record().title == (
+            "El modelo transdisciplinario de Pelayo Correa: una arquitectura "
+            "conceptual para entender el cancer gastrico"
+        )
+
+    def test_an_ordinary_title_is_untouched(self) -> None:
+        """The match is exact, so a title is never mistaken for the placeholder."""
+        record = _resolve_one("wrapped_title", pmid="28338828", doi="10.1093/aje/kwx137")
+
+        assert record.title is not None
+        assert record.title.startswith("Night shift work")
+
+
 class TestBookRecords:
     """A MEDLINE book is a citation too, and it was read as if it were an article.
 

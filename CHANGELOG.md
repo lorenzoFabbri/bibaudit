@@ -169,6 +169,13 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **`TI - [Not Available].` is read as an empty field, not as a title.** NLM
+  writes that placeholder where it holds no English title for an article
+  published in another language, on 66,776 citations. Compared as a title it
+  scored 0.14 against the entry's own and reported `title/wrong-work` — one
+  weak byline away from accusing a correct entry of citing a different paper.
+  The record's own `TT`, the transliterated title, is read instead, and it is
+  the title such a bibliography stores.
 - **A consortium the byline credits and MEDLINE files apart no longer shifts
   the whole author list.** Crossref credits a consortium as an `<organization>`
   inside the `author` array; MEDLINE files it under `CN` and lists only people
