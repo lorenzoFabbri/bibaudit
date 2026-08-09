@@ -483,7 +483,7 @@ class TestContainerAbbreviation:
         ("stored", "registry"),
         [
             # A publisher's imprint is three characters or fewer, so the skip
-            # bound passes over it: 256 ordered pairs of NLM serials, 202
+            # bound passes over it: 240 ordered pairs of NLM serials, 186
             # distinct stored names.
             ("Materials letters", "ACS materials letters"),
             ("Archives of dermatology", "A.M.A. archives of dermatology"),

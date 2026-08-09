@@ -938,9 +938,13 @@ and a section reporting only the count leaves a reader unable to tell whether
 their own journal is inside it. Two shapes account for most of it, both
 measured over the same 37,989-serial list:
 
-* **A short word in front of the whole stored name** — 256 ordered pairs, 202
-  distinct stored names. The skip bound passes over words of three characters or
-  fewer, and a publisher's imprint is usually one: `Materials letters` is
+* **A short word in front of the whole stored name** — the registry's name is
+  one or more words of three characters or fewer followed by the stored name,
+  token for token: 240 ordered pairs, 186 distinct stored names, counted on the
+  same basis as the 903 above, which is after `_container_leading_article` has
+  taken the 15 pairs differing only by `The`/`A`/`An` under its own reason. The
+  skip bound passes over words of three characters or fewer, and a publisher's
+  imprint is usually one: `Materials letters` is
   cleared against `ACS materials letters`, `Archives of dermatology` against
   `A.M.A. archives of dermatology`, `Precision oncology` against `AI in
   precision oncology`, `Clinics` against `PET clinics`, `Cancer` against `BMC
@@ -1224,8 +1228,8 @@ the remainder must keep at least two tokens. `JT` is the serial's name in full
 and one word of it is still that name — `Lancet` for `Lancet (London,
 England)`; `TA` is already a reduction, and one word of it is one truncated
 word. `Proc (Bayl Univ Med Cent)` (NlmId 9302033) reduces to `Proc`, which
-opens 441 serials' abbreviations in NLM's list and is the whole of none of
-them.
+opens 442 serials' abbreviations in NLM's list — its own among them — and is
+the whole of none of them.
 
 Measured: 825 of the 2,695 qualified abbreviations reduce to a single token,
 and **208** of those are literally some other serial's whole `MedAbbr` —

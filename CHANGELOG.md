@@ -284,8 +284,8 @@ so `uv sync --all-extras` does not install it into the test environment.
   off one of them the reason says so: `registry appends a parenthetical
   qualifier to another name it carries for the journal`. On those names the
   remainder must keep two tokens — one word of an abbreviation is one truncated
-  word, `Proc (Bayl Univ Med Cent)` leaving `Proc`, which opens 441 serials'
-  abbreviations and is none of them — and no leading article comes off them,
+  word, `Proc (Bayl Univ Med Cent)` leaving `Proc`, which opens 442 serials'
+  abbreviations and is the whole of none of them — and no leading article comes off them,
   since `An` there opens *Anales* rather than a byline in English. What the
   widening clears and what the floor does not remove are counted and named in
   `docs/registry-artifacts.md`.

@@ -124,11 +124,11 @@ _PRINT_DATE_REGISTRIES = frozenset({"crossref"})
 #: ``Advances in research`` against ``Advances in drug research``.
 #:
 #: The 903 are not empty of real confusions, and what is in them is written up
-#: in ``docs/registry-artifacts.md`` — 256 pairs where the skipped short word is
-#: a publisher's imprint (``Materials letters`` against ``ACS materials
-#: letters``) and 373 where a one-token name opens a longer one (``Biofilm``
-#: against ``Biofilms``). Narrowing either costs real abbreviations, measured
-#: there.
+#: in ``docs/registry-artifacts.md`` — 240 pairs where the registry's name is
+#: the whole stored name with a publisher's imprint in front of it
+#: (``Materials letters`` against ``ACS materials letters``) and 373 where a
+#: one-token name opens a longer one (``Biofilm`` against ``Biofilms``).
+#: Narrowing either costs real abbreviations, measured there.
 _MAX_SKIPPED_WORD = 3
 
 #: Fewest tokens a name may be left holding when NLM's trailing qualifier comes
@@ -137,7 +137,8 @@ _MAX_SKIPPED_WORD = 3
 #: Those are the abbreviated forms, and an abbreviation's words are already
 #: truncated: one of them left alone is one shortened word rather than a name.
 #: ``Proc (Bayl Univ Med Cent)`` (NlmId 9302033) reduces to ``Proc``, which
-#: opens 441 serials' abbreviations in that list and is none of them.
+#: opens 442 serials' abbreviations in that list — its own among them — and is
+#: the whole of none of them.
 #: 825 of the 2,695 qualified ``MedAbbr`` values in NLM's own list reduce to one
 #: token and **208** of those are literally some other serial's whole
 #: abbreviation — ``Aging (Milano)`` (NlmId 9102503) leaving ``Aging``, which is
