@@ -2137,6 +2137,46 @@ class TestAlternateContainerWitness:
         assert note.source == "crossref"
 
 
+class TestTheBylineSuppressionNamesWhoSuppliedTheByline:
+    """An author artifact names the registry the compared byline came from.
+
+    ``_check_authors`` falls back to the corroborator when the primary's
+    ``authors`` is empty — a Crossref deposit with no ``author`` array and
+    PubMed's ``FAU`` list beside it — and it already names that registry on the
+    count and mismatch issues. The suppression printed from the same walk named
+    the primary, so one byline produced a REGISTRY-ARTIFACT crediting a
+    registry that supplied no creator at all.
+    """
+
+    def _result(self) -> Result:
+        return compare(
+            make_ref(
+                authors=[
+                    Name(family="Gomez-Rubio", given="P"),
+                    Name(family="Molina-Montes", given="E"),
+                ]
+            ),
+            {
+                "crossref": make_record(authors=[]),
+                "pubmed": make_pubmed(),
+            },
+        )
+
+    def test_the_reordering_is_suppressed_at_all(self) -> None:
+        result = self._result()
+
+        assert not result.fails
+        assert [i.note for i in result.suppressed if i.field == "authors"] == [
+            "reordered",
+            "reordered",
+        ]
+
+    def test_the_suppression_names_the_registry_that_supplied_the_byline(self) -> None:
+        sources = {i.source for i in self._result().suppressed if i.field == "authors"}
+
+        assert sources == {"pubmed"}
+
+
 class TestTheRecordThatSuppliedTheValueIsTheOneJudged:
     """A benign rule is shown the record the compared value came from.
 

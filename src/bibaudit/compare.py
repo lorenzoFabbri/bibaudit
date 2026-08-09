@@ -483,6 +483,7 @@ def _check_authors(ctx: _Context) -> bool:
             str(stored[position - 1]) if position <= len(stored) else "",
             str(registry[position - 1]) if position <= len(registry) else "",
             reason,
+            source=source,
         )
 
     if diff.count_differs:
