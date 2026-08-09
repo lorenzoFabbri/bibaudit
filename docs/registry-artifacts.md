@@ -694,20 +694,41 @@ reported. That is the safe direction — a page disagreement nobody was told
 about is the loss this predicate's threshold exists to prevent.
 
 **Both floors count the value as the source writes it**, zero padding included,
-which is the same padding the section above says both forms of. Measured on the
-normalised value instead, `085001` was five digits and not an article number,
-while the unpadded `85001` for the same article was — so the predicate answered
-differently about one item depending on which registry deposited it, and the
-suppression never fired. Three live instances in one 1,923-entry sweep, all
-correct entries, all failing the build: PMIDs 42571480, 42571556 and 42571506
-(*J Biomed Opt*), `PG` `085001`/`086003`/`086004` against a Crossref `page` of
-`1-15`/`1-16`/`1-37`. `027004` — the literal `first_page`'s own docstring cites
-— had the same problem. Padding is counted, never waived: `0246` is four
-characters and still not an article number. On the prefixed floor the same rule
-has **no witnessed instance**, since the journals that pad write a bare number
-and `e0123456` clears four characters either way; it is written once rather than
-twice because two floors counting differently is a second rule nobody could
-state.
+because the padding is evidence in its own right: no journal files a page
+number with leading zeros, so a padded numeric is fixed-width notation and not
+a page. Counting `normalize.first_page`'s output instead asks about the digits
+alone, and `085001` and `85001` are both five of those — neither an article
+number, and the suppression never fired for either. Three live instances in one
+1,923-entry sweep, all correct entries, all failing the build: PMIDs 42571480,
+42571556 and 42571506 (*J Biomed Opt*), `PG` `085001`/`086003`/`086004` against
+a Crossref `page` of `1-15`/`1-16`/`1-37`, all four values re-fetched from
+`efetch` and `api.crossref.org` on 2026-08-09. `027004` — the literal
+`first_page`'s own docstring cites — has the same shape. Padding is counted,
+never waived: `0246` is four characters and still not an article number. On the
+prefixed floor the same rule has **no witnessed instance**, since the journals
+that pad write a bare number and `e0123456` clears four characters either way;
+it is written once rather than twice because two floors counting differently is
+a second rule nobody could state.
+
+**The residuals, stated.** Two, and they run in opposite directions.
+
+*It reads notation, not the article.* The same article number written without
+its padding is five characters, stays under the floor, and is reported against
+a page range. There is no witnessed instance: a bare five-character numeric
+appears in none of 4,548 MEDLINE `PG` values or 258 bare-numeric Crossref
+`page` values, on a fresh 4,800-citation sample drawn from six windows spanning
+1992-2026 and fetched 2026-08-09 — every bare numeric in it is one to four
+characters or six to seven. The four-character ones are the shape the floor
+exists to keep reported, `2461` among them. Lowering the floor to five would
+excuse them all in order to rescue a shape nothing has been seen writing.
+
+*One side decides for both.* Once either value looks like an article number the
+other is not examined at all, so any span on the far side is excused, including
+one naming a different article. The rule has nothing to check a number against
+a range it was never in. Of the 3,416 works in that sample whose MEDLINE and
+Crossref records both carry a page, the two registries wrote the same notation
+for every one and the suppression fired on none; the exposure is the entries
+where they do not, of which *J Biomed Opt* above is the witnessed case.
 
 ---
 

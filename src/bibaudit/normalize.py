@@ -468,15 +468,21 @@ def is_article_number(value: object) -> bool:
     if not match:
         return False
     prefix, padding, digits = match.groups()
-    # Measured on the value as written, before :func:`first_page` normalises the
-    # padding away. *Environmental Health Perspectives* writes ``085001`` and
-    # the citing entry ``85001``; both are the same six-digit article number,
-    # and counting the normalised form made the padded one five digits and not
-    # an article number at all. Three live instances in one 1,923-entry sweep
-    # (PMIDs 42571480, 42571556, 42571506, all *J Biomed Opt*, all correct
-    # entries) were reported ``pages/mismatch`` and failed the build — and the
-    # docstring on :data:`_MIN_NUMERIC_ARTICLE_NUMBER` cites ``027004`` as the
-    # very case the rule exists for.
+    # Counted as the source wrote it, padding included, because the padding is
+    # itself the evidence: a page number is never filed with leading zeros, so
+    # ``085001`` is fixed-width notation and not a page. Counting
+    # :func:`first_page`'s output instead answers about the digits alone, and
+    # ``085001`` and ``85001`` are both five of those — neither an article
+    # number, and three live *J Biomed Opt* entries (PMIDs 42571480, 42571556,
+    # 42571506, ``PG`` ``085001``/``086003``/``086004`` against a Crossref
+    # ``page`` of ``1-15``/``1-16``/``1-37``, all verified 2026-08-09) were
+    # reported ``pages/mismatch`` and failed the build.
+    #
+    # So this reads notation, never the article behind it, and the same article
+    # number written without its padding stays under the floor. That residual
+    # is stated in ``docs/registry-artifacts.md``; it has no witnessed instance,
+    # a bare five-character numeric appearing in none of 4,548 MEDLINE ``PG``
+    # values or 258 bare-numeric Crossref ``page`` values.
     if not prefix:
         return len(padding) + len(digits) >= _MIN_NUMERIC_ARTICLE_NUMBER
     return len(prefix) + len(padding) + len(digits) >= 4

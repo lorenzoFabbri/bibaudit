@@ -318,7 +318,22 @@ class TestPages:
         "one article in two notations" — a plain page disagreement, silenced.
         """
         assert not is_article_number("2461")
+
+    def test_an_article_number_stripped_of_its_padding_is_not_one(self) -> None:
+        """The residual, and the reason it is accepted rather than fixed.
+
+        This predicate reads notation, not the article behind it: what makes
+        ``027004`` an article number is that no journal files a page with
+        leading zeros. Strip them and five bare digits are indistinguishable
+        from a page, so the same article written ``27004`` against a page range
+        is reported. Lowering the floor to five to rescue it would excuse every
+        five-character page disagreement with it, and a bare five-character
+        numeric appears in none of 4,548 MEDLINE ``PG`` values or 258
+        bare-numeric Crossref ``page`` values on a fresh 4,800-citation sample
+        spanning 1992-2026 — the shape being rescued has never been seen.
+        """
         assert not is_article_number("27004")
+        assert not is_article_number("85001")
 
     def test_a_letter_prefixed_number_needs_no_digit_floor(self) -> None:
         """No journal paginates ``A102``; the prefix alone identifies it."""
@@ -326,13 +341,16 @@ class TestPages:
 
     def test_the_padding_a_journal_writes_counts_towards_the_floor(self) -> None:
         """``085001`` is a six-digit article number in *J Biomed Opt*, and the
-        padding is how the journal writes it. Measured on the normalised value
-        it was five digits, so the floor refused it and
+        padding is how the journal writes it. Measured on ``first_page``'s
+        output the digits alone are five, so the floor refused it and
         ``benign._pages_article_number`` never fired: PMIDs 42571480, 42571556
         and 42571506 — correct entries, ``PG`` ``085001``/``086003``/``086004``
-        against a Crossref ``page`` of ``1-15``/``1-16``/``1-37`` — were
-        reported ``pages/mismatch`` and failed the build. ``027004`` is the same
-        shape, and is the literal ``first_page``'s own docstring cites.
+        against a Crossref ``page`` of ``1-15``/``1-16``/``1-37``, all
+        re-fetched live 2026-08-09 — were reported ``pages/mismatch`` and
+        failed the build. ``027004`` is the same shape, and is the literal
+        ``first_page``'s own docstring cites. 177 of 4,548 MEDLINE ``PG``
+        values in a fresh sample are padded numerics, every one of them six
+        characters written.
         """
         assert is_article_number("085001")
         assert is_article_number("027004")
