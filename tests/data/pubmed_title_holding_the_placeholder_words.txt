@@ -1,0 +1,64 @@
+
+PMID- 42560649
+OWN - NLM
+STAT- Publisher
+LR  - 20260806
+IS  - 2731-5541 (Electronic)
+IS  - 2731-5533 (Linking)
+DP  - 2026 Aug 6
+TI  - When Time Is Not Available: Rethinking Behaviour Change in Prevention.
+LID - 10.1007/s10935-026-00943-5 [doi]
+AB  - Behaviour change theories have substantially advanced understanding of the 
+      mechanisms through which behaviours are initiated, maintained, and sustained. 
+      However, less attention has been directed towards the temporal conditions under 
+      which these mechanisms are able to operate consistently in everyday life. This 
+      conceptual paper explores whether differences in temporal conditions may 
+      contribute to the variability frequently observed in behaviour change 
+      interventions. The paper proposes a complementary framework centred on the 
+      concepts of tempo, interval, and behavioural consolidation. Rather than 
+      introducing an alternative behaviour change theory, the framework considers how 
+      environments differ in the temporal conditions they create for behavioural 
+      processes to unfold. It suggests that these conditions may influence the extent 
+      to which existing behaviour change mechanisms are able to operate effectively 
+      over time. The framework is illustrated through conceptual applications to food 
+      environments, learning environments, sleep, and clinical prevention, 
+      demonstrating how temporal conditions may provide an additional perspective 
+      across behavioural, cognitive, physiological, and professional domains. By making 
+      temporal conditions explicit, this perspective complements existing behaviour 
+      change models and generates new questions for prevention research and practice. 
+      Rather than asking only how behaviour changes, it encourages consideration of 
+      whether the temporal conditions required for behavioural consolidation are 
+      present in the first place.
+CI  - (c) 2026. The Author(s), under exclusive licence to Springer Science+Business 
+      Media, LLC, part of Springer Nature.
+FAU - Ives, Timothy Robert
+AU  - Ives TR
+AUID- ORCID: 0009-0007-3561-9267
+AD  - Independent Researcher, Oakham, UK. timothy.ives@me.com.
+LA  - eng
+PT  - Journal Article
+DEP - 20260806
+PL  - Switzerland
+TA  - J Prev (2022)
+JT  - Journal of prevention (2022)
+JID - 9918351283506676
+SB  - IM
+OTO - NOTNLM
+OT  - Behaviour change
+OT  - Environment
+OT  - Health behaviour
+OT  - Prevention
+OT  - Systems perspective
+OT  - Temporal structure
+EDAT- 2026/08/06 12:37
+MHDA- 2026/08/06 12:37
+CRDT- 2026/08/06 11:20
+PHST- 2026/05/06 00:00 [received]
+PHST- 2026/07/26 00:00 [accepted]
+PHST- 2026/08/06 12:37 [medline]
+PHST- 2026/08/06 12:37 [pubmed]
+PHST- 2026/08/06 11:20 [entrez]
+AID - 10.1007/s10935-026-00943-5 [pii]
+AID - 10.1007/s10935-026-00943-5 [doi]
+PST - aheadofprint
+SO  - J Prev (2022). 2026 Aug 6. doi: 10.1007/s10935-026-00943-5.

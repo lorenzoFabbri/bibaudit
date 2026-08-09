@@ -41,8 +41,14 @@ import pytest
 
 from bibaudit.model import Record
 from bibaudit.normalize import normalize_doi
+from bibaudit.registries import retractions
 from bibaudit.registries.http import Cache, Client, Transient
-from bibaudit.registries.retractions import RetractionOutage, Retractions, concern_in
+from bibaudit.registries.retractions import (
+    RetractionNotice,
+    RetractionOutage,
+    Retractions,
+    concern_in,
+)
 
 DATA = Path(__file__).parent / "data"
 
@@ -940,6 +946,24 @@ class TestSourcesThatDisagree:
         assert answers["retraction-watch"].kind == "correction"
         assert answers["pubmed"].kind == "retraction"
         assert status.notices[RW_CORRECTION_PUBMED_RETRACTION_DOI].kind == "retraction"
+
+    def test_each_answer_is_keyed_by_the_name_its_own_notice_carries(self) -> None:
+        """The key is read off the notice, never restated beside it.
+
+        ``compare._status_issues`` prints whatever ``by_source`` calls a
+        source, and every notice already carries its own name. Writing the two
+        strings out here as well makes two places that have to be changed
+        together, and the failure when they are not is one source appearing
+        under two names in a report, which reads as two witnesses.
+        """
+        notice = RetractionNotice(
+            doi=WAKEFIELD_DOI.lower(), kind="retraction", source="retraction-watch-mirror",
+            notice_doi=None, date=None,
+        )
+
+        status = retractions._reconcile({notice.doi: notice}, {}, frozenset())
+
+        assert list(status.by_source[notice.doi]) == ["retraction-watch-mirror"]
 
     def test_both_sources_are_named_even_though_only_one_kind_survives(
         self, tmp_path: Path

@@ -1087,6 +1087,24 @@ class TestParallelJournalTitles:
 
         assert record.container_alternates == ["Lancet"]
 
+    def test_an_equals_sign_with_no_spaces_joins_nothing(self) -> None:
+        """Why the separator is spaced on both sides rather than bare.
+
+        Of the 610 titles in NLM's serial list carrying an ``=`` at all, 607
+        are the spaced parallel form and 3 are not: ``Cultural studies <=>
+        critical methodologies``, ``Huan jing ke xue= Huanjing kexue`` and one
+        opening with the sign. Split on a bare ``=``, the first becomes
+        ``Cultural studies <`` and ``> critical methodologies`` — two names the
+        registry never carried, offered to a correct entry as values it might
+        have matched.
+        """
+        fields = pubmed._parse_medline_records(_fixture("parallel_title"))[0]
+        fields["JT"] = ["Cultural studies <=> critical methodologies"]
+        record = pubmed._record_from_medline(fields)
+
+        assert record.container == "Cultural studies <=> critical methodologies"
+        assert record.container_alternates == ["J Prev Med Public Health"]
+
 
 class TestATitleNlmDoesNotHold:
     """``TI - [Not Available].`` states that a field is empty, and is not a title.
@@ -1115,6 +1133,23 @@ class TestATitleNlmDoesNotHold:
 
         assert record.title is not None
         assert record.title.startswith("Lifetime exposure to brominated")
+
+    def test_a_title_that_merely_contains_the_two_words_is_a_title(self) -> None:
+        """What makes the match exact rather than a substring test.
+
+        ``tests/data/pubmed_title_holding_the_placeholder_words.txt`` is PMID
+        42560649 verbatim (10.1007/s10935-026-00943-5, *J Prev*): ``TI - When
+        Time Is Not Available: Rethinking Behaviour Change in Prevention.`` A
+        substring test discards it as a placeholder, and the record then has no
+        title for a correct entry to be compared against — one of 1,000 sampled
+        citations answering ``"not available"[ti]`` whose title is a real one.
+        """
+        client = _StubClient(medline=_fixture("title_holding_the_placeholder_words"))
+        record = PubMed(client).by_pmids(["42560649"]).records["42560649"]
+
+        assert record.title == (
+            "When Time Is Not Available: Rethinking Behaviour Change in Prevention"
+        )
 
 
 class TestBookRecords:
@@ -1270,6 +1305,20 @@ class TestSeveralPublicationTypes:
         record = pubmed._record_from_medline(fields)
 
         assert (record.kind, record.kind_alternates) == ("Journal Article", [])
+
+    def test_a_record_with_no_recognised_type_offers_none(self) -> None:
+        """``None`` and ``other`` reach ``_check_kind`` alike; a made-up string does not.
+
+        ``Review`` and ``English Abstract`` are both descriptive, both
+        normalise to ``other``, and NLM writes citations carrying nothing else.
+        Filling the gap with a plausible default would hand ``_check_kind`` a
+        type to compare a ``@book`` entry against that no registry asserted.
+        """
+        fields = pubmed._parse_medline_records(_fixture("data_descriptor"))[0]
+        fields["PT"] = ["Review", "English Abstract"]
+        record = pubmed._record_from_medline(fields)
+
+        assert (record.kind, record.kind_alternates) == (None, [])
 
     def test_one_type_written_twice_is_one_type(self) -> None:
         """Two spellings normalising to the same kind tell a reader nothing twice."""

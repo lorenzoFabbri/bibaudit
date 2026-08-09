@@ -139,6 +139,19 @@ class TestPmidExtraction:
     def test_an_empty_pmid_field_is_refused(self, tmp_path: pathlib.Path) -> None:
         assert self._pmid_of(tmp_path, "pmid = {}") is None
 
+    def test_a_placeholder_in_a_typed_eprint_is_refused_too(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """``normalize_pmid`` is applied on both routes, not just the first.
+
+        A manager that writes ``N/A`` into ``pmid`` writes it into ``eprint``
+        as readily, and the companion ``eprinttype`` says nothing about whether
+        the number beside it is one. Passing the value through unnormalised
+        makes ``compare._check_pmid`` report a placeholder as a stored PMID
+        that disagrees with the registry's.
+        """
+        assert self._pmid_of(tmp_path, "eprint = {N/A}", "eprinttype = {pubmed}") is None
+
     def test_an_entry_with_neither_field_has_no_pmid(self, refs: list[Reference]) -> None:
         """Nothing in ``sample.bib`` carries a PMID under any spelling, so
         every reference read from it must come back with ``None`` — the state

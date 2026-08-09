@@ -28,6 +28,7 @@ import pytest
 import bibaudit
 from bibaudit.compare import (
     _NO_RETRACTION_SIGNAL,
+    CHECKED_FIELDS,
     Thresholds,
     compare,
     confirm_without_id,
@@ -1430,8 +1431,27 @@ class TestARecordWithNothingToCompare:
         gap = next(i for i in self._empty_answer().issues if i.kind == "uncompared")
 
         assert gap.severity == "info"
+        assert gap.field == "doi"
         assert gap.stored == "10.1093/ije/dyx269"
         assert "the identifier resolved" in gap.note
+
+    def test_the_finding_is_labelled_with_the_identifier_that_resolved(self) -> None:
+        """A PMID-resolved entry has no DOI, and the label may not invent one.
+
+        The field is what the report prints in its left-hand column and what a
+        ``.bibaudit.toml`` adjudication is scoped by, so ``doi`` beside an
+        entry carrying only a PMID names a field the reader cannot find and
+        scopes a suppression to one nothing here is about.
+        """
+        result = compare(
+            make_ref(doi=None, pmid="29329392"),
+            {"pubmed": Record(source="pubmed", pmid="29329392")},
+            asked={"pubmed"},
+        )
+        gap = next(i for i in result.issues if i.kind == "uncompared")
+
+        assert gap.field == "identifier"
+        assert gap.stored == "29329392"
 
     @pytest.mark.parametrize(
         ("field", "value"),
@@ -1905,6 +1925,123 @@ class TestDoiAlias:
         """MEDLINE records carry no DOI until the client attaches the queried one."""
         result = compare(make_ref(), {"crossref": make_record(doi=None)})
         assert not any(i.field == "doi" for i in result.issues)
+
+
+class TestTheRecordASuppressionRuleIsAskedAbout:
+    """Every rule in ``benign`` is handed the record the right-hand value came from.
+
+    Three of them read it — ``_container_leading_article`` MEDLINE's ``TA``,
+    ``_pmid_pmc_accession`` its ``PMC`` line, ``_container_abbreviation``
+    Crossref's ``short-container-title`` — and a Crossref deposit asked to
+    explain a value PubMed supplied failed a correct entry citing *The Lancet*.
+    No ``title`` or ``pages`` rule reads it today, so on those two checks the
+    argument is unobservable in a verdict and a revert would go unnoticed; both
+    fields let the corroborator fill a gap, so the day one does read it, it
+    would be the primary's record answering for somebody else's value.
+    """
+
+    def _record_handed_to(
+        self, field: str, monkeypatch: pytest.MonkeyPatch, ref: Reference, records: dict[str, Record]
+    ) -> Record | None:
+        seen: dict[str, Record] = {}
+        real = bibaudit.benign.classify
+
+        def spy(
+            name: str, stored: object, registry: object, reference: Reference, record: Record
+        ) -> str | None:
+            seen.setdefault(name, record)
+            return real(name, stored, registry, reference, record)
+
+        monkeypatch.setattr(bibaudit.benign, "classify", spy)
+        compare(ref, records)
+        return seen.get(field)
+
+    def test_a_title_rule_is_asked_about_the_record_the_title_came_from(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        record = self._record_handed_to(
+            "title",
+            monkeypatch,
+            make_ref(title="A different paper about family history of cancer"),
+            {
+                "crossref": make_record(title=None),
+                "pubmed": make_pubmed(title=make_record().title),
+            },
+        )
+
+        assert record is not None
+        assert record.source == "pubmed"
+
+    def test_a_pages_rule_is_asked_about_the_record_the_pages_came_from(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        record = self._record_handed_to(
+            "pages",
+            monkeypatch,
+            make_ref(pages="999-1001"),
+            {"crossref": make_record(pages=None), "pubmed": make_pubmed(pages="473-483")},
+        )
+
+        assert record is not None
+        assert record.source == "pubmed"
+
+
+class TestTheListOfFieldsAdjudicated:
+    """``CHECKED_FIELDS`` is a promise about what "verified" covers.
+
+    Nothing in ``src/`` reads the tuple; ``docs/why.md`` prints it as "the
+    whole list of stored fields compared against the registry", and the
+    boundary it draws is what the page is for. A field this tool disagrees with
+    a registry about and does not name there is a promise quietly broken, and a
+    name in it nothing compares is one quietly invented.
+    """
+
+    #: One damaged reference per field, each against a record that is otherwise
+    #: the entry's own. The title sits in the ``mismatch`` band on purpose:
+    #: below ``wrong_work`` the finding is about the identifier rather than the
+    #: field, and it is the field boundary being asserted here.
+    def _mismatched_fields(self) -> set[str]:
+        cases: list[tuple[dict[str, object], dict[str, object]]] = [
+            ({"title": "Risk of pancreatic cancer associated with family history"}, {}),
+            ({"authors": [Name(family="Zbragowitz", given="Q")]}, {}),
+            ({"year": 1999}, {}),
+            ({"container": "Journal of Something Else"}, {}),
+            ({"volume": "48"}, {}),
+            ({"issue": "3"}, {}),
+            ({"pages": "999-1001"}, {}),
+            ({"publisher": "Elsevier"}, {"publisher": "Oxford University Press"}),
+            ({"pmid": "9500320"}, {}),
+        ]
+        seen: set[str] = set()
+        for ref_kwargs, record_kwargs in cases:
+            records = {
+                "crossref": make_record(**record_kwargs),
+                "pubmed": make_record(source="pubmed", pmid="29329392"),
+            }
+            result = compare(make_ref(**ref_kwargs), records)
+            seen |= {i.field for i in result.issues if i.kind == "mismatch"}
+        return seen
+
+    def test_the_tuple_names_every_field_a_mismatch_can_be_reported_on(self) -> None:
+        assert self._mismatched_fields() == set(CHECKED_FIELDS)
+
+    def test_the_two_fields_inspected_without_being_adjudicated_stay_out(self) -> None:
+        """The DOI is the lookup key and the entry's type is coarse everywhere.
+
+        Both are read and both can produce an issue; neither can produce a
+        ``mismatch``, which is why ``docs/why.md`` can say a stored field
+        outside the tuple is never adjudicated while these two are still
+        checked.
+        """
+        wrong_type = compare(make_ref(kind="book"), {"crossref": make_record()})
+        aliased = compare(
+            make_ref(doi="10.2307/2669548"),
+            {"crossref": make_record(doi="10.1111/j.1540-5907.2000.tb00000.x")},
+        )
+
+        assert [(i.field, i.kind) for i in wrong_type.issues] == [("kind", "incompatible")]
+        assert not [i for i in aliased.issues if i.kind == "mismatch"]
+        assert not {"doi", "kind"} & set(CHECKED_FIELDS)
 
 
 class TestPmidCheck:

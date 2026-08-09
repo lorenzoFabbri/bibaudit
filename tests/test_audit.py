@@ -1561,6 +1561,31 @@ class TestRetractionCorroboration:
         assert corrected.source == "retraction-watch"
         assert "does not undo the retraction" in corrected.note
 
+    def test_a_notice_for_a_doi_with_no_slot_is_dropped_rather_than_written(
+        self,
+    ) -> None:
+        """The two mappings are keyed independently, and one can carry more.
+
+        ``Retractions.status_for`` re-keys everything it returns through
+        ``normalize_doi``, while ``_audit_unidentified`` builds its one-entry
+        mapping from a candidate record's ``doi`` as the search registry
+        supplied it. A DOI in the answer and not in the records has no dict to
+        fold a notice into, and folding it into the ``None`` returned instead
+        raises ``TypeError`` in the middle of an audit rather than reporting
+        anything.
+        """
+        records: dict[str, dict[str, Record]] = {}
+        notice = RetractionNotice(
+            doi="10.9999/no.slot", kind="retraction", source="retraction-watch",
+            notice_doi=None, date=None,
+        )
+
+        audit_module._merge_retraction_notices(
+            records, {"10.9999/no.slot": {"retraction-watch": notice}}
+        )
+
+        assert records == {}
+
     def test_a_retraction_notice_never_resolves_an_otherwise_unresolved_doi(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
