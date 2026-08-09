@@ -9,13 +9,17 @@ Two groups of fixtures matter more than the rest, and both are real, recorded
 data rather than invented for the test:
 
 * ``tests/data/retraction_watch_sample.csv`` is a small extract of the live
-  export covering four DOIs RW logged more than once, which is what proves
+  export covering five DOIs RW logged more than once, which is what proves
   :func:`~bibaudit.registries.retractions._parse_rw_csv` picks the strongest
   notice rather than the newest, the first or the last: the Wakefield paper
   (a 2004 correction and a later 2010 retraction), 10.1002/ana.24658 (a 2016
   retraction and a later 2019 correction), 10.1371/journal.pone.0058088 (a
-  2022 concern and a later 2024 correction) and 10.1308/rcsann.2020.0038 (a
-  2021 reinstatement and a concern raised after it).
+  2022 concern and a later 2024 correction), 10.1308/rcsann.2020.0038 (a
+  2021 reinstatement and a concern raised after it) and 10.1093/ageing/28.3.265
+  (a 2019 concern upgraded to a retraction later the same year). The last of
+  those, and the single ``Correction`` row for 10.1016/j.ymthe.2023.01.020,
+  are the two DOIs the sources disagree about — one in each direction; see
+  :class:`TestSourcesThatDisagree`.
 * ``tests/data/pubmed_eci_concern*.txt`` are MEDLINE ``efetch`` output for
   PMID 23741377 (the affected paper) and PMID 34710116 (the notice), fetched
   live. The pair is what proves ``ECI`` ("Expression of Concern In:") is read
@@ -26,6 +30,7 @@ data rather than invented for the test:
 
 from __future__ import annotations
 
+import json
 import urllib.parse
 import warnings
 from pathlib import Path
@@ -54,6 +59,29 @@ CONCERN_NOTICE_PMID = "34710116"
 CLEAN_DOI = "10.1038/s41370-023-00600-7"
 CLEAN_PMID = "37726507"
 
+#: The two sources disagree about this DOI, with Retraction Watch the milder of
+#: them. Its only row in the 2026-08-09 export is a ``Correction``, filed — as RW
+#: files a correction — under the correcting article's own DOI, and that
+#: article's MEDLINE citation carries ``PT - Retracted Publication``: the
+#: erratum was itself retracted. Recorded in
+#: ``tests/data/pubmed_retracted_erratum.txt``.
+RW_CORRECTION_PUBMED_RETRACTION_DOI = "10.1016/j.ymthe.2023.01.020"
+RW_CORRECTION_PUBMED_RETRACTION_PMID = "36736314"
+#: RW files this correction under the corrected article's own DOI, so the
+#: notice DOI and the DOI it is about are one string. Named rather than
+#: repeated, because a reader meeting it twice in an assertion would take it
+#: for a copy-paste slip.
+RW_CORRECTION_NOTICE_DOI = RW_CORRECTION_PUBMED_RETRACTION_DOI
+
+#: The same disagreement the other way up: RW logs an expression of concern
+#: (2019-02-05) and then a ``Retraction`` (2019-11-20) against Sato et al.,
+#: *Age and Ageing* 1999, while NLM has never given that citation a retraction
+#: ``PT`` — its only post-publication signal is the ``ECI`` naming the 2019
+#: concern. Recorded in ``tests/data/pubmed_concern_only.txt``.
+RW_RETRACTION_PUBMED_CONCERN_DOI = "10.1093/ageing/28.3.265"
+RW_RETRACTION_PUBMED_CONCERN_PMID = "10475862"
+RW_RETRACTION_NOTICE_DOI = "10.1093/ageing/afz156"
+
 
 def _pubmed_fixture(name: str) -> str:
     return (DATA / f"pubmed_{name}.txt").read_text(encoding="utf-8")
@@ -61,6 +89,24 @@ def _pubmed_fixture(name: str) -> str:
 
 def _rw_sample() -> str:
     return (DATA / "retraction_watch_sample.csv").read_text(encoding="utf-8")
+
+
+def _rewrite_cached_kind(cache_dir: Path, kind: str) -> None:
+    """Set every notice kind in the on-disk Retraction Watch index to *kind*.
+
+    How a value outside this module's own vocabulary reaches the merge:
+    ``_index_from_payload`` reads that file back with no vocabulary check on
+    ``kind``, over a file its docstring calls stale or hand-edited, and the
+    index sits there for the whole seven-day TTL. The file is written by the
+    real :class:`~bibaudit.registries.http.Cache` first and edited in place, so
+    a change to its layout fails these tests rather than leaving them editing
+    something nothing reads.
+    """
+    [path] = list(cache_dir.rglob("*.json"))
+    envelope = json.loads(path.read_text(encoding="utf-8"))
+    for notice in envelope["payload"].values():
+        notice["kind"] = kind
+    path.write_text(json.dumps(envelope), encoding="utf-8")
 
 
 def _params(url: str) -> dict[str, str]:
@@ -470,6 +516,155 @@ class TestSourceCombination:
         result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI, CLEAN_DOI]).notices
         assert result[WAKEFIELD_DOI.lower()].kind == "retraction"
         assert CLEAN_DOI not in result
+
+
+class TestSourcesThatDisagree:
+    """One DOI, two sources, two different kinds — and which one is reported.
+
+    :func:`~bibaudit.registries.retractions._combine` is the only place that
+    choice is made. Both directions are here because the merge must depend on
+    the *kind*, not on the order the candidates happen to be built in: the
+    Retraction Watch notice is always the first of the two, so a rule keeping
+    the first, or the last, agrees with the strongest-wins rule on exactly one
+    of these pairs.
+
+    Both pairings are live, and neither is a shape invented to exercise the
+    branch: Retraction Watch and NLM curate independently and reach different
+    conclusions about the same work all the time. What the code may not do is
+    let the milder conclusion take the stronger one away.
+    """
+
+    def test_pubmeds_retraction_survives_retraction_watchs_correction(
+        self, tmp_path: Path
+    ) -> None:
+        """Retraction Watch's only row for this DOI is a ``Correction``.
+
+        PMID 36736314 is the erratum for Peng et al., *Molecular Therapy*, and
+        it carries ``PT - Published Erratum`` beside ``PT - Retracted
+        Publication``: the erratum itself was retracted. Reported as the
+        correction RW logged, the report tells a reader the work stands and
+        that the corrected version is the one to read the numbers off — about a
+        work NLM records as retracted, which is the worst sentence this tool
+        can print.
+        """
+        stub = _client(
+            rw_csv=_rw_sample(),
+            pmid_by_doi={RW_CORRECTION_PUBMED_RETRACTION_DOI: RW_CORRECTION_PUBMED_RETRACTION_PMID},
+            medline_by_pmid={
+                RW_CORRECTION_PUBMED_RETRACTION_PMID: _pubmed_fixture("retracted_erratum")
+            },
+        )
+        result = Retractions(stub, cache_dir=tmp_path).status_for(
+            [RW_CORRECTION_PUBMED_RETRACTION_DOI]
+        ).notices
+        assert result[RW_CORRECTION_PUBMED_RETRACTION_DOI].kind == "retraction"
+
+    def test_retraction_watchs_retraction_survives_pubmeds_concern(
+        self, tmp_path: Path
+    ) -> None:
+        """The same disagreement with the sources swapped.
+
+        RW upgraded its 2019 expression of concern about Sato et al. to a
+        ``Retraction`` eight months later; NLM's citation still carries the
+        ``ECI`` for the concern and no retraction ``PT`` at all. PubMed's
+        milder answer must not take RW's retraction away — and this is the
+        pairing that fails if the merge keeps whichever notice was built last
+        rather than the strongest.
+        """
+        stub = _client(
+            rw_csv=_rw_sample(),
+            pmid_by_doi={RW_RETRACTION_PUBMED_CONCERN_DOI: RW_RETRACTION_PUBMED_CONCERN_PMID},
+            medline_by_pmid={RW_RETRACTION_PUBMED_CONCERN_PMID: _pubmed_fixture("concern_only")},
+        )
+        result = Retractions(stub, cache_dir=tmp_path).status_for(
+            [RW_RETRACTION_PUBMED_CONCERN_DOI]
+        ).notices
+        assert result[RW_RETRACTION_PUBMED_CONCERN_DOI].kind == "retraction"
+
+    def test_both_sources_are_named_even_though_only_one_kind_survives(
+        self, tmp_path: Path
+    ) -> None:
+        """The registry column is how a reader challenges the finding.
+
+        Naming only the source whose kind won would leave the reader with no
+        way to see that the other source was asked and answered differently —
+        and ``compare._status_issues`` prints this string verbatim.
+        """
+        stub = _client(
+            rw_csv=_rw_sample(),
+            pmid_by_doi={RW_CORRECTION_PUBMED_RETRACTION_DOI: RW_CORRECTION_PUBMED_RETRACTION_PMID},
+            medline_by_pmid={
+                RW_CORRECTION_PUBMED_RETRACTION_PMID: _pubmed_fixture("retracted_erratum")
+            },
+        )
+        result = Retractions(stub, cache_dir=tmp_path).status_for(
+            [RW_CORRECTION_PUBMED_RETRACTION_DOI]
+        ).notices
+        assert result[RW_CORRECTION_PUBMED_RETRACTION_DOI].source == "pubmed,retraction-watch"
+
+    def test_the_evidence_the_losing_source_carried_is_not_discarded(
+        self, tmp_path: Path
+    ) -> None:
+        """The kind is the winner's; the notice DOI and the date need not be.
+
+        PubMed's ``PT`` flag carries neither — the notice is not named on the
+        retracted citation and the only date on it is the article's own year —
+        while the RW row this merge overrules carries both. Taking the whole
+        winning notice would answer "2023, notice unknown" for a finding one of
+        the two sources dated to the day and pointed at a document.
+        """
+        stub = _client(
+            rw_csv=_rw_sample(),
+            pmid_by_doi={RW_CORRECTION_PUBMED_RETRACTION_DOI: RW_CORRECTION_PUBMED_RETRACTION_PMID},
+            medline_by_pmid={
+                RW_CORRECTION_PUBMED_RETRACTION_PMID: _pubmed_fixture("retracted_erratum")
+            },
+        )
+        notice = Retractions(stub, cache_dir=tmp_path).status_for(
+            [RW_CORRECTION_PUBMED_RETRACTION_DOI]
+        ).notices[RW_CORRECTION_PUBMED_RETRACTION_DOI]
+        assert notice.notice_doi == RW_CORRECTION_NOTICE_DOI
+        assert notice.date == "2023-02-03"
+
+    def test_a_kind_this_module_was_never_taught_cannot_take_a_retraction_away(
+        self, tmp_path: Path
+    ) -> None:
+        """An unranked kind sorts last, and the cache is where one gets in.
+
+        ``_index_from_payload`` rebuilds notices from a file its own docstring
+        calls stale or hand-edited, with no vocabulary check on ``kind``, so
+        the value reaching the merge need not be one this module minted. Sorted
+        *first* instead of last it beats every real notice — which is the one
+        thing a kind nobody has taught this module must never be able to do.
+        """
+        first = Retractions(_client(rw_csv=_rw_sample()), cache_dir=tmp_path)
+        first.status_for([WAKEFIELD_DOI])
+        _rewrite_cached_kind(tmp_path, "a-category-invented-after-this-was-written")
+
+        stub = _client(
+            pmid_by_doi={WAKEFIELD_DOI: WAKEFIELD_PMID},
+            medline_by_pmid={WAKEFIELD_PMID: _pubmed_fixture("retracted")},
+        )
+        result = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI]).notices
+        assert result[WAKEFIELD_DOI.lower()].kind == "retraction"
+
+    def test_a_kind_this_module_was_never_taught_is_still_reported_alone(
+        self, tmp_path: Path
+    ) -> None:
+        """Sorting it last is not dropping it.
+
+        With no second source to outrank it, the unfamiliar kind is the only
+        notice this DOI has, and a notice this module cannot classify is still
+        a source saying something happened to the work.
+        """
+        first = Retractions(_client(rw_csv=_rw_sample()), cache_dir=tmp_path)
+        first.status_for([WAKEFIELD_DOI])
+        _rewrite_cached_kind(tmp_path, "a-category-invented-after-this-was-written")
+
+        result = Retractions(_client(), cache_dir=tmp_path).status_for([WAKEFIELD_DOI]).notices
+        assert result[WAKEFIELD_DOI.lower()].kind == (
+            "a-category-invented-after-this-was-written"
+        )
 
 
 class TestOutageHandling:

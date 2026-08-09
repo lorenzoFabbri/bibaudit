@@ -1,0 +1,80 @@
+
+PMID- 36736314
+OWN - NLM
+STAT- PubMed-not-MEDLINE
+LR  - 20230513
+IS  - 1525-0024 (Electronic)
+IS  - 1525-0016 (Print)
+IS  - 1525-0016 (Linking)
+VI  - 31
+IP  - 3
+DP  - 2023 Mar 1
+TI  - RETRACTED: IncRNA RMST Enhances DNMT3 Expression through Interaction with HuR.
+PG  - 909-910
+LID - S1525-0016(23)00020-5 [pii]
+LID - 10.1016/j.ymthe.2023.01.020 [doi]
+FAU - Peng, Wan-Xin
+AU  - Peng WX
+AD  - Key Laboratory of Tumor Molecular Diagnosis and Individualized Medicine of 
+      Zhejiang Province, Zhejiang Provincial People's Hospital, People's Hospital of 
+      Hangzhou Medical College, Hangzhou, Zhejiang 310014, P.R. China; Cancer 
+      Institute, University of Mississippi Medical Center, Jackson, MS 39216, USA.
+FAU - Koirala, Pratirodh
+AU  - Koirala P
+AD  - Cancer Institute, University of Mississippi Medical Center, Jackson, MS 39216, 
+      USA.
+FAU - Zhang, Wei
+AU  - Zhang W
+AD  - Cancer Institute, University of Mississippi Medical Center, Jackson, MS 39216, 
+      USA; Department of Radiology, Affiliated Tumor Hospital of Guangxi Medical 
+      University, Nanning, Guangxi 530021, P.R. China.
+FAU - Ni, Chao
+AU  - Ni C
+AD  - Key Laboratory of Tumor Molecular Diagnosis and Individualized Medicine of 
+      Zhejiang Province, Zhejiang Provincial People's Hospital, People's Hospital of 
+      Hangzhou Medical College, Hangzhou, Zhejiang 310014, P.R. China; Department of 
+      General Surgery, Zhejiang Provincial People's Hospital, People's Hospital of 
+      Hangzhou Medical College, Hangzhou, Zhejiang 310014, P.R. China.
+FAU - Wang, Zheng
+AU  - Wang Z
+AD  - Department of Computer Science, University of Miami, Coral Gables, FL 33146, USA.
+FAU - Yang, Liu
+AU  - Yang L
+AD  - Key Laboratory of Tumor Molecular Diagnosis and Individualized Medicine of 
+      Zhejiang Province, Zhejiang Provincial People's Hospital, People's Hospital of 
+      Hangzhou Medical College, Hangzhou, Zhejiang 310014, P.R. China; Department of 
+      Medical Oncology, Zhejiang Provincial People's Hospital, People's Hospital of 
+      Hangzhou Medical College, Hangzhou, Zhejiang 310014, P.R. China. Electronic 
+      address: yangliuqq2003@163.com.
+FAU - Mo, Yin-Yuan
+AU  - Mo YY
+AD  - Cancer Institute, University of Mississippi Medical Center, Jackson, MS 39216, 
+      USA; Department of Pharmacology/Toxicology, University of Mississippi Medical 
+      Center, Jackson, MS 39216, USA. Electronic address: ymo@umc.edu.
+LA  - eng
+PT  - Journal Article
+PT  - Published Erratum
+PT  - Retracted Publication
+DEP - 20230203
+PL  - United States
+TA  - Mol Ther
+JT  - Molecular therapy : the journal of the American Society of Gene Therapy
+JID - 100890581
+SB  - IM
+EFR - Mol Ther. 2020 Jan 08;28(1):9-18. doi: 10.1016/j.ymthe.2019.09.024. PMID: 
+      31636039
+RIN - Mol Ther. 2023 May 3;31(5):1499. doi: 10.1016/j.ymthe.2023.03.023. PMID: 36972587
+PMC - PMC10014259
+EDAT- 2023/02/04 06:00
+MHDA- 2023/02/04 06:01
+PMCR- 2024/03/01
+CRDT- 2023/02/03 18:42
+PHST- 2023/02/04 06:00 [pubmed]
+PHST- 2023/02/04 06:01 [medline]
+PHST- 2023/02/03 18:42 [entrez]
+PHST- 2024/03/01 00:00 [pmc-release]
+AID - S1525-0016(23)00020-5 [pii]
+AID - 10.1016/j.ymthe.2023.01.020 [doi]
+PST - ppublish
+SO  - Mol Ther. 2023 Mar 1;31(3):909-910. doi: 10.1016/j.ymthe.2023.01.020. Epub 2023 
+      Feb 3.
