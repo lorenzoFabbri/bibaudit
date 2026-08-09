@@ -122,6 +122,13 @@ _PRINT_DATE_REGISTRIES = frozenset({"crossref"})
 #: newly refuses are the family confusions the end-of-name anchor was written
 #: for — ``Advances in biology`` against ``Advances in cell biology``,
 #: ``Advances in research`` against ``Advances in drug research``.
+#:
+#: The 903 are not empty of real confusions, and what is in them is written up
+#: in ``docs/registry-artifacts.md`` — 256 pairs where the skipped short word is
+#: a publisher's imprint (``Materials letters`` against ``ACS materials
+#: letters``) and 373 where a one-token name opens a longer one (``Biofilm``
+#: against ``Biofilms``). Narrowing either costs real abbreviations, measured
+#: there.
 _MAX_SKIPPED_WORD = 3
 
 #: Fewest tokens a name may be left holding when NLM's trailing qualifier comes

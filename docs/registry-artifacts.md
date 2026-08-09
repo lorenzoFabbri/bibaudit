@@ -933,6 +933,37 @@ with different titles as abbreviations of one another; bounded, **903**.
 `REGISTRY-ARTIFACT` is not a failing verdict, so each of those was an
 exoneration printed on a wrong bibliography that exited 0.
 
+**What the residue is.** The two bounds narrow the rule; they do not close it,
+and a section reporting only the count leaves a reader unable to tell whether
+their own journal is inside it. Two shapes account for most of it, both
+measured over the same 37,989-serial list:
+
+* **A short word in front of the whole stored name** — 256 ordered pairs, 202
+  distinct stored names. The skip bound passes over words of three characters or
+  fewer, and a publisher's imprint is usually one: `Materials letters` is
+  cleared against `ACS materials letters`, `Archives of dermatology` against
+  `A.M.A. archives of dermatology`, `Precision oncology` against `AI in
+  precision oncology`, `Clinics` against `PET clinics`, `Cancer` against `BMC
+  cancer`. Every pair is two separate serials in NLM's own list.
+* **A name that is the start of a longer one** — the final-token test is a
+  prefix match, so a one-token title is cleared against any longer one-token
+  title beginning with it: 373 ordered pairs, including `BioMedicine` against
+  `Biomedicines`, `Biofilm` against `Biofilms`, `Cancer` against `Cancers`,
+  `Bios` against `Bioscience`, and the journal `C` against `Cairo`.
+
+Neither is closable by tightening the existing two bounds, and the obvious
+narrowings are not free: requiring the stored name's first token to match the
+registry's first — which would refuse the first shape — refuses **2,226 of the
+27,334** real `MedAbbr` → `JournalTitle` pairs in that list, since NLM keeps a
+leading article on the full title and the abbreviation drops it (`Der
+Anaesthesist`, `L'Annee biologique`, 289 of them in a language whose article is
+not `the`/`a`/`an`). Requiring the last stored token to be shorter than the
+registry's by at least two characters — which would refuse the plural half of
+the second — costs **75** of the same 27,334 (`Rev Med Chil` against `Revista
+medica de Chile`, `Contin Chang` against `Continuity and change`). Both are
+verdict-path changes, so both are the owner's to make; what is recorded here is
+what the rule clears today.
+
 **Why a length and not a word list.** ISO 4 shortens each significant word of a
 title and deletes the articles, conjunctions and prepositions between them, so
 the words a real abbreviation passes over are grammatical furniture: 25,758 of

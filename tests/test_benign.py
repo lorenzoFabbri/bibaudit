@@ -482,6 +482,40 @@ class TestContainerAbbreviation:
     @pytest.mark.parametrize(
         ("stored", "registry"),
         [
+            # A publisher's imprint is three characters or fewer, so the skip
+            # bound passes over it: 256 ordered pairs of NLM serials, 202
+            # distinct stored names.
+            ("Materials letters", "ACS materials letters"),
+            ("Archives of dermatology", "A.M.A. archives of dermatology"),
+            ("Cancer", "BMC cancer"),
+            # The final-token test is a prefix match, so a one-token name is
+            # cleared against any longer one beginning with it: 373 pairs.
+            ("BioMedicine", "Biomedicines"),
+            ("Cancer", "Cancers"),
+            ("Bios", "Bioscience"),
+        ],
+    )
+    def test_the_pairs_this_rule_still_clears_are_the_ones_written_up(
+        self, stored: str, registry: str
+    ) -> None:
+        """The residue the two bounds leave, pinned to what the docs say it is.
+
+        These are separate serials in NLM's own list and this rule clears every
+        one of them, which is a miss the write-up has to state rather than
+        report a bare count for. Narrowing the rule is the owner's call and
+        costs real abbreviations either way — measured in
+        ``docs/registry-artifacts.md`` — so this test exists to make that
+        section fail the build the day the code stops matching it, in whichever
+        direction it moves.
+        """
+        assert (
+            classify("container", stored, registry, container_short=None)
+            == "stored name abbreviates the registry name"
+        )
+
+    @pytest.mark.parametrize(
+        ("stored", "registry"),
+        [
             # Every one of these is a pair of serials NLM lists separately, and
             # every one was cleared as an abbreviation and printed an
             # exoneration: REGISTRY-ARTIFACT is not a failing verdict, so the
