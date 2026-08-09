@@ -171,10 +171,10 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 - **A concern or a correction printed beside a retraction no longer says the
   work stands.** Two sources reporting different kinds for one work is
-  ordinary — Retraction Watch logs a correction over a retraction it already
-  logged, NLM keeps its `ECI` cross-reference after adding `PT - Retracted
-  Publication` — and both findings are still printed, because they are separate
-  statements and all of them are true. What changed is the milder note's
+  ordinary: of 200 DOIs sampled whose strongest Retraction Watch row is a
+  correction, 18 carry a Crossref `updated-by` retraction. Both findings are
+  still printed, because they are separate statements and all of them are
+  true. What changed is the milder note's
   closing clause: where a retraction is recorded for the same work it now reads
   `It does not undo the retraction recorded for this work` instead of the work
   standing and the citation being legitimate. On its own, each note is

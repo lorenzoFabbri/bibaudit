@@ -891,10 +891,15 @@ _CORRECTION_KINDS = frozenset({"correction"})
 #: a source recording the milder one has not contradicted the retraction — but
 #: the clause that reads as a second opinion against the finding goes.
 #:
-#: Not hypothetical in either direction: Retraction Watch's 2026-08-09 export
-#: carries 48 DOIs with a retraction row under a later correction and four with
-#: one under a later concern, and NLM keeps its ``ECI`` cross-reference on a
-#: paper's record after adding ``PT - Retracted Publication``.
+#: The case that reaches this is two sources disagreeing, since one source
+#: recording two kinds already resolves to the stronger before it gets here
+#: (``retractions._KIND_PRIORITY``, ``audit._with_pubmed_concern``). Crossref's
+#: ``updated-by`` linkage and Retraction Watch's own export disagree often:
+#: sampling 200 of the 650 DOIs whose strongest Retraction Watch row is a
+#: correction, 18 carry a Crossref ``updated-by`` retraction (live,
+#: 2026-08-09). 10.1111/anec.12955 is one — Retraction Watch logs a 2023
+#: correction, Crossref links the retraction — and 10.1080/09513590600604673
+#: is the concern's counterpart.
 _BESIDE_A_RETRACTION = "It does not undo the retraction recorded for this work"
 
 

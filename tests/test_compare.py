@@ -800,13 +800,13 @@ class TestCorrection:
 class TestAMilderNoticeBesideARetraction:
     """One report may not say a work has been withdrawn and that it stands.
 
-    Two sources reporting different kinds for one work is ordinary: Retraction
-    Watch logs a correction over a retraction it already logged, and NLM keeps
-    an ``ECI`` cross-reference on a paper's record after adding ``PT -
-    Retracted Publication``. Both findings are printed — they are separate
-    statements and all of them are true — but the milder note's closing clause
-    said the work stands and the citation is legitimate, beside a
-    ``status/retracted`` line saying it has been withdrawn.
+    Two sources reporting different kinds for one work is ordinary: of 200 DOIs
+    sampled whose strongest Retraction Watch row is a correction, 18 carry a
+    Crossref ``updated-by`` retraction — 10.1111/anec.12955 among them, and
+    10.1080/09513590600604673 for the concern. Both findings are printed — they
+    are separate statements and all of them are true — but the milder note's
+    closing clause said the work stands and the citation is legitimate, beside
+    a ``status/retracted`` line saying it has been withdrawn.
     """
 
     def _with(self, kind: str) -> Result:
