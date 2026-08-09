@@ -202,7 +202,7 @@ reference carrying more than one is resolved by the strongest, once.
 | `REGISTRY-ARTIFACT` | difference explained by a known registry defect | no |
 | `TITLE-DRIFT` | wording differs, same work | no |
 | `COSMETIC` | differs only in glyphs or capitalisation | no |
-| `UNCHECKED` | nothing was verified: no registry answered, or none was asked | no |
+| `UNCHECKED` | nothing was verified: nobody answered, nobody was asked, or the record held nothing to compare | no |
 | `OK` | every checked field agrees | no |
 
 `RETRACTED` means the *cited work* was retracted. A retraction **notice** — the

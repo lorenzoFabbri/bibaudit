@@ -1051,6 +1051,83 @@ class TestASourceThatCannotDissent:
         assert "and not by crossref, which answered for this work" in note
 
 
+class TestARecordWithNothingToCompare:
+    """``OK`` means "every checked field agrees", never "nothing was checked".
+
+    Every check returns in silence when the registry's value is empty —
+    correctly, since a registry omitting a field is not evidence about a
+    bibliography. A record omitting *all* of them therefore produced no issues
+    at all and the entry reported ``OK``, which is the clean bill of health
+    ``status/not-asked`` exists to forbid, reached by a run that asked, got an
+    answer, and compared nothing.
+
+    MEDLINE's whole-book records are the instance: PMID 20301295 files its
+    title under ``BTI`` and its byline under ``FED``, and until those were read
+    an entry with both fabricated passed. This covers the shape rather than
+    that instance.
+    """
+
+    def _empty_answer(self, **overrides: object) -> Result:
+        return compare(
+            make_ref(**overrides),
+            {"crossref": Record(source="crossref", doi="10.1093/ije/dyx269")},
+            asked={"crossref", "datacite", "pubmed", "retraction-watch"},
+        )
+
+    def test_a_record_holding_nothing_is_not_a_pass(self) -> None:
+        result = self._empty_answer()
+
+        assert result.verdict == "UNCHECKED"
+        assert not result.fails
+
+    def test_the_finding_says_what_happened(self) -> None:
+        """"Not reached" and "answered with nothing usable" are different facts."""
+        gap = next(i for i in self._empty_answer().issues if i.kind == "uncompared")
+
+        assert gap.severity == "info"
+        assert gap.stored == "10.1093/ije/dyx269"
+        assert "the identifier resolved" in gap.note
+
+    def test_one_comparable_field_is_enough_to_be_a_real_verdict(self) -> None:
+        """The guard must not fire on a registry that is merely sparse."""
+        result = compare(
+            make_ref(),
+            {"crossref": Record(source="crossref", doi="10.1093/ije/dyx269", title=make_ref().title)},
+            asked={"crossref"},
+        )
+
+        assert result.verdict == "OK"
+        assert not [i for i in result.issues if i.kind == "uncompared"]
+
+    def test_the_corroborators_fields_count_too(self) -> None:
+        """Something was compared, whichever record supplied it."""
+        result = compare(
+            make_ref(),
+            {
+                "crossref": Record(source="crossref", doi="10.1093/ije/dyx269"),
+                "pubmed": make_pubmed(),
+            },
+            asked={"crossref", "pubmed"},
+        )
+
+        assert result.verdict != "UNCHECKED"
+
+    def test_anything_actually_found_outranks_it(self) -> None:
+        """A retraction on a fieldless record is still the story of the entry."""
+        result = compare(
+            make_ref(),
+            {
+                "crossref": Record(
+                    source="crossref", doi="10.1093/ije/dyx269",
+                    retracted=True, retraction_kind="retraction",
+                )
+            },
+            asked={"crossref"},
+        )
+
+        assert result.verdict == "RETRACTED"
+
+
 class TestEveryRegistryClientIsAccountedFor:
     """``_NO_RETRACTION_SIGNAL`` is derived from the clients, not remembered.
 

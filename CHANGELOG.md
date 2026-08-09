@@ -169,6 +169,13 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A verdict of `OK` can no longer be reached over zero comparisons.** Every
+  check in `compare` returns in silence when the registry's value is empty, so
+  a record holding no title, byline, year, container, volume, issue, pages or
+  publisher produced no issues at all and the entry reported `OK` — "every
+  checked field agrees", over nothing. That entry is now `UNCHECKED` with an
+  `identifier/uncompared` finding at `info`, which ranks below every other
+  verdict and so can only displace one reached over an empty comparison.
 - **A MEDLINE book record is compared, not skimmed.** NLM files a book's title
   in `BTI` rather than `TI`, its editors in `FED`/`ED` rather than `FAU`/`AU`,
   its structural type in `PT`, and the dates a chapter was contributed and last

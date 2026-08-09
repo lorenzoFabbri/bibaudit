@@ -6,9 +6,12 @@ which takes the issues and the suppressed differences and returns a string — n
 model, no heuristic that varies between runs, nothing that cannot be re-derived
 from the cached registry response.
 
-`UNCHECKED` is the one verdict that function never returns. When no registry
-could be reached there is no record to compare against and so no field-level
-issue to derive anything from, and `compare.compare` records it directly.
+`UNCHECKED` is the verdict that function mostly does not return. When no
+registry could be reached there is no record to compare against and so no
+field-level issue to derive anything from, and `compare.compare` records it
+directly. The one case it *is* derived from an issue is the third path below:
+there a record did answer, and `identifier/uncompared` is the finding that says
+so.
 
 ## The thirteen
 
@@ -29,7 +32,7 @@ run is the part that needs no action.
 | `REGISTRY-ARTIFACT` | difference explained by a known registry defect | no |
 | `TITLE-DRIFT` | title differs in wording but denotes the same work | no |
 | `COSMETIC` | identical apart from glyphs or capitalisation | no |
-| `UNCHECKED` | nothing was verified: no registry answered, or none was asked | no |
+| `UNCHECKED` | nothing was verified: nobody answered, nobody was asked, or the record held nothing to compare | no |
 | `OK` | every checked field agrees | no |
 
 The verdict is the most severe single thing found. An unresolvable identifier
@@ -173,6 +176,24 @@ bypass, and a bypassed check protects nobody. So `UNCHECKED` stays out of the
 failing set — but it is never silent: it appears in the summary counts, and when
 a source that carries retraction linkage could not be reached the report says so
 beside the banner.
+
+### Three ways to reach it, and the third is not an outage
+
+Nobody answered, nobody was asked, and — `identifier/uncompared` — a registry
+answered with a record holding no title, byline, year, container, volume,
+issue, pages or publisher for the entry to be compared against. Every check in
+`compare` returns in silence when the registry's value is empty, correctly,
+since a registry omitting a field says nothing about a bibliography. A record
+that omits *all* of them therefore produced no issues at all and the entry
+reported `OK`: "every checked field agrees", over zero checked fields. That is
+the clean bill of health from a run that checked nobody, reached by a run that
+asked, got an answer, and compared nothing.
+
+MEDLINE's whole-book records are how it was found — they file the title under
+`BTI` and the byline under `FED`, neither of which was read, and both now are.
+The verdict covers the shape rather than that instance: it ranks below every
+other verdict, so anything actually found still outranks it, and it can only
+ever displace a verdict reached over an empty comparison.
 
 ## `UNCONFIRMED` means *needs review*
 

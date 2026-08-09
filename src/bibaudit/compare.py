@@ -85,6 +85,37 @@ _COMPATIBLE_KINDS = frozenset(
     }
 )
 
+#: Everything a record can offer this module to compare an entry against.
+#: Every check below returns in silence when the registry's value is empty —
+#: correctly, since a registry omitting a field is not evidence about a
+#: bibliography — so a record holding *none* of these produces no issues at
+#: all, and ``verdict_for`` reports ``OK``: "every checked field agrees", over
+#: zero checked fields.
+#:
+#: MEDLINE's whole-book records are how that was found. PMID 20301295 files its
+#: title under ``BTI`` and its byline under ``FED``, neither of which was read,
+#: so an entry with a fabricated title, a fabricated byline, a fabricated
+#: container and a fabricated publisher was compared against nothing and passed
+#: — the clean bill of health from a run that checked nobody that
+#: ``status/not-asked`` exists to forbid, reached instead by a run that asked,
+#: got an answer, and compared nothing. Reading those tags closed that
+#: instance; this closes the shape, for the next registry that answers with a
+#: record this module can make no use of.
+#:
+#: Identifier fields are deliberately absent. ``_check_doi`` and ``_check_pmid``
+#: compare an entry's identifiers against each other, which says nothing about
+#: whether the *work* is the one cited.
+_COMPARABLE_FIELDS = (
+    "title",
+    "authors",
+    "years",
+    "container",
+    "volume",
+    "issue",
+    "pages",
+    "publisher",
+)
+
 
 def _in_registry_order(names: Iterable[str]) -> list[str]:
     """*names* sorted into :data:`~bibaudit.model.REGISTRIES` order.
@@ -1205,6 +1236,12 @@ def verdict_for(
         return "DISPUTED"
     if any(i.severity == "warning" for i in issues):
         return "INCOMPLETE"
+    # Ranked below everything above it on purpose: anything actually found is a
+    # better description of the entry than "nothing was comparable", and this
+    # only ever displaces a verdict reached over an empty comparison. See
+    # :data:`_COMPARABLE_FIELDS`.
+    if any(i.kind == "uncompared" for i in issues):
+        return "UNCHECKED"
     # Two different claims, and mapping both onto REGISTRY-ARTIFACT meant a
     # reader could not tell "the registry is known to be wrong here, and here is
     # the documented defect" from "someone on this project decided not to care".
@@ -1421,6 +1458,23 @@ def compare(
     # an absence of one. See _status_issues.
     status, retracted = _status_issues(records, result.consulted, asked_stated=asked is not None)
     ctx.issues.extend(status)
+
+    if not any(
+        getattr(record, attr)
+        for record in (primary, corroborator)
+        if record is not None
+        for attr in _COMPARABLE_FIELDS
+    ):
+        ctx.add(
+            "doi" if ref.doi else "identifier",
+            "uncompared",
+            "info",
+            ref.identifier or "",
+            note=(
+                "the identifier resolved, and the record it resolved to holds "
+                "no field this entry could be compared against"
+            ),
+        )
 
     result.issues = ctx.issues
     result.suppressed = ctx.suppressed

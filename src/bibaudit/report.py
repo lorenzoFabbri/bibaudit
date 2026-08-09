@@ -69,11 +69,14 @@ _VERDICT_HELP = {
     "REGISTRY-ARTIFACT": "difference explained by a known registry defect",
     "TITLE-DRIFT": "title differs in wording but denotes the same work",
     "COSMETIC": "identical apart from glyphs or capitalisation",
-    # Two paths reach UNCHECKED and the wording has to cover both: no registry
-    # could be reached, and no registry was asked (`--no-isbn` on a book whose
-    # only identifier is an ISBN). Naming only the outage would report one as
-    # the other. The per-issue note beneath says which.
-    "UNCHECKED": "nothing was verified: no registry answered, or none was asked",
+    # Three paths reach UNCHECKED and the wording has to cover all of them: no
+    # registry could be reached; no registry was asked (`--no-isbn` on a book
+    # whose only identifier is an ISBN); and a registry that answered with a
+    # record holding no field this entry could be compared against. Naming only
+    # the outage would report one as another. The per-issue note beneath says
+    # which.
+    "UNCHECKED": "nothing was verified: nobody answered, nobody was asked, or "
+    "the record held nothing to compare",
     "OK": "every checked field agrees",
 }
 
