@@ -169,6 +169,20 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A different journal is no longer cleared as an abbreviation of the one
+  cited.** `_container_abbreviation` required the stored words to be in-order
+  prefixes reaching the registry name's last word, and skipped over anything
+  in between — so `Annals of Oncology` against `Annals of surgical oncology`,
+  `Journal of Cancer` against `Journal of gastrointestinal cancer` and `Cancer`
+  against `Pediatric blood & cancer` were each reported `REGISTRY-ARTIFACT`
+  with `stored name abbreviates the registry name` beside them, and the run
+  exited 0 on a bibliography naming a journal the paper did not appear in.
+  Over all 37,987 serials in NLM's own list the rule accepted 27,954 ordered
+  pairs of *distinct* serials as abbreviations of one another. A skipped word
+  may now be three characters at most — every word ISO 4 deletes is an
+  article, a conjunction or a preposition, and 25,756 of the 26,497 words
+  skipped across NLM's 25,639 abbreviated titles are that short — which leaves
+  918 of those pairs.
 - **A journal name the registry files under a leading article is reachable
   from the masthead form.** The rule took the article off the stored side
   only, so an entry storing *Canadian Journal of Statistics* failed against

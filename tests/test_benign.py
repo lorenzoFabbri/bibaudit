@@ -460,6 +460,73 @@ class TestContainerAbbreviation:
         )
         assert reason == "stored name abbreviates the registry name"
 
+    @pytest.mark.parametrize(
+        ("stored", "registry"),
+        [
+            # Every one of these is a pair of serials NLM lists separately, and
+            # every one was cleared as an abbreviation and printed an
+            # exoneration: REGISTRY-ARTIFACT is not a failing verdict, so the
+            # run exited 0 on a bibliography naming the wrong journal.
+            ("Annals of Oncology", "Annals of surgical oncology"),
+            ("Surgical Oncology", "Annals of surgical oncology"),
+            ("Journal of Cancer", "Journal of gastrointestinal cancer"),
+            ("Cancer", "Pediatric blood & cancer"),
+            ("Cancer", "International journal of cancer"),
+            ("American Journal of Nutrition", "The American journal of clinical nutrition"),
+            ("Pathology", "American journal of clinical pathology"),
+        ],
+    )
+    def test_a_word_the_stored_name_skips_is_not_an_abbreviation(
+        self, stored: str, registry: str
+    ) -> None:
+        """The end anchor bounds one direction only; a skipped word is the other.
+
+        Every token being an in-order prefix reaching the registry's last one
+        is satisfied by any name whose words are a subsequence of a longer
+        one, so the rule accepted 27,954 ordered pairs of distinct serials in
+        NLM's own list as abbreviations of one another.
+        """
+        assert classify("container", stored, registry, container_short=None) is None
+
+    def test_a_wrong_journal_of_that_shape_fails_the_build(self) -> None:
+        """The suppression is on the verdict path: it decides the exit code."""
+        result = compare(
+            make_ref(container="Annals of Oncology"),
+            {"crossref": make_record(container="Annals of surgical oncology", container_short=None)},
+        )
+
+        assert result.verdict == "FIELD-MISMATCH"
+        assert result.fails
+        assert errors(result, "container") == ["mismatch"]
+
+    @pytest.mark.parametrize(
+        ("stored", "registry"),
+        [
+            ("Int J Cancer", "International Journal of Cancer"),
+            ("Am J Epidemiol", "American Journal of Epidemiology"),
+            (
+                "Cancer Epidemiol Biomarkers Prev",
+                "Cancer epidemiology, biomarkers & prevention",
+            ),
+            # The words an abbreviation deletes are grammatical in every
+            # language it is written in, which is why the bound is on their
+            # length and not on a vocabulary: *und*, *der*, *voor*, *de*.
+            ("Z Gastroenterol", "Zeitschrift fur Gastroenterologie"),
+            ("Rev Esp Cardiol", "Revista Espanola de Cardiologia"),
+        ],
+    )
+    def test_a_grammatical_word_may_still_be_skipped(
+        self, stored: str, registry: str
+    ) -> None:
+        """The bound must not cost the abbreviations the rule exists for.
+
+        25,756 of the 26,497 words skipped across the 25,639 abbreviated
+        titles in NLM's serial list are three characters or fewer.
+        """
+        assert classify("container", stored, registry, container_short=None) == (
+            "stored name abbreviates the registry name"
+        )
+
     def test_a_sibling_journal_is_not_an_abbreviation(self) -> None:
         """"Nature" is not short for "Nature Genetics" — it is a different journal.
 

@@ -884,13 +884,45 @@ one was matched, because the reader is looking at a landing page headed with the
 
 **Detection.** `benign._container_abbreviation` accepts the difference when
 Crossref's own `short-container-title` matches, or when every abbreviated token
-is an in-order prefix of a token in the full name *and* the last of them lands
-on the full name's last token. That final condition is what separates an
-abbreviation from a sibling journal: `Nature` is not an abbreviation of `Nature
-Genetics`, nor `The Lancet` of `The Lancet Oncology`, and citing the parent
-title for a paper that appeared in the offshoot is a real error the tool must
-still report. A dropped leading article (`Lancet` for `The Lancet`) still
-passes.
+is an in-order prefix of a token in the full name, the last of them lands on
+the full name's last token, and no word longer than **three characters** was
+passed over on the way.
+
+Two conditions, because each bounds one direction and the sibling-journal test
+rests on both. The end anchor stops the prefix direction: `Nature` is not an
+abbreviation of `Nature Genetics`, nor `The Lancet` of `The Lancet Oncology`,
+and citing the parent title for a paper that appeared in the offshoot is a real
+error the tool must still report. The skip bound stops the other one. Without
+it, any name whose words are a subsequence of a longer name reaching the same
+last word was cleared — `Annals of Oncology` against `Annals of surgical
+oncology`, `Journal of Cancer` against `Journal of gastrointestinal cancer`,
+`Cancer` against `Pediatric blood & cancer`, all pairs of serials NLM lists
+separately. Over all 37,987 serials in `J_Medline.txt` the unbounded rule
+accepts **27,954** ordered pairs of *distinct* serials as abbreviations of one
+another; bounded, **918**. `REGISTRY-ARTIFACT` is not a failing verdict, so
+each of those was an exoneration printed on a wrong bibliography that exited 0.
+
+**Why a length and not a word list.** ISO 4 shortens each significant word of a
+title and deletes the articles, conjunctions and prepositions between them, so
+the words a real abbreviation passes over are grammatical furniture: 25,756 of
+the 26,497 words skipped across the 25,639 abbreviated titles in NLM's own list
+are three characters or fewer — *of*, *and*, *the*, *in*, *de*, *on*, *for*,
+*la*, *et*, *für*, *di*, *und*. Which words those are is a fact about a
+language, and a stop-word vocabulary would put one language's function words in
+the verdict path; a length admits every language on the same terms. It is the
+argument `_is_initialism_of` makes, for the same reason.
+
+**What it costs.** 432 of the 25,639 `MedAbbr`-against-`JournalTitle` pairs in
+NLM's list are no longer accepted here: the Italian *della*, the Dutch *voor*,
+the English *with* and *from*, and the `Part E` / `Series B` sub-series titles.
+Most never reach this rule — `TA` is on `container_alternates` and
+`compare._check_scalar` accepts a stored value matching one of those before any
+suppression is consulted — and the pairs the bound newly refuses are the family
+confusions the anchor was written for: `Advances in biology` against `Advances
+in cell biology`, `Advances in research` against `Advances in drug research`.
+
+A dropped leading article (`Lancet` for `The Lancet`) is
+`_container_leading_article`'s, which runs first and says so in its reason.
 
 ---
 

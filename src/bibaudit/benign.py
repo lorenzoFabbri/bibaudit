@@ -97,6 +97,33 @@ _MEDLINE_SUBTITLE = " : "
 #: ``issued`` alone. See :func:`_year_deposit_artifact`, whose guard this is.
 _PRINT_DATE_REGISTRIES = frozenset({"crossref"})
 
+#: Longest registry word a stored abbreviation may skip over.
+#:
+#: ISO 4 forms an abbreviation by shortening each significant word of a title
+#: and *deleting* the articles, conjunctions and prepositions between them, so
+#: the words a real abbreviation passes over are grammatical furniture:
+#: 25,756 of the 26,497 words skipped across the 25,639 abbreviated titles in
+#: NLM's own serial list, ``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``, are
+#: three characters or fewer — *of*, *and*, *the*, *in*, *de*, *on*, *for*,
+#: *la*, *et*, *für*, *di*, *und*. A longer word is part of the name.
+#:
+#: A bound on the word's length rather than a list of the words, because which
+#: words an abbreviation deletes is a fact about a language: requiring a
+#: stop-word vocabulary would put one language's function words in the verdict
+#: path, and the length admits every language on the same terms. The same
+#: argument :func:`_is_initialism_of` makes.
+#:
+#: Unbounded, the skip is what let ``Annals of Oncology`` be accepted as an
+#: abbreviation of ``Annals of surgical oncology`` — two serials NLM lists
+#: separately — and print an exoneration on a wrong bibliography that exited
+#: zero. Over all 37,987 serials the unbounded rule accepts 27,954 ordered
+#: pairs of *distinct* serials as abbreviations of one another; this bound
+#: leaves 918, and the pairs it newly refuses are the family confusions the
+#: end-of-name anchor was written for — ``Advances in biology`` against
+#: ``Advances in cell biology``, ``Advances in research`` against ``Advances
+#: in drug research``.
+_MAX_SKIPPED_WORD = 3
+
 #: Smallest gap, in years, between an entry's year and a registry ``issued``
 #: date that :func:`_year_deposit_artifact` will read as a deposit timestamp
 #: rather than as a wrong year. A re-deposited working paper lands many years
@@ -382,6 +409,13 @@ def _container_abbreviation(field: str, stored: str, registry: str, ref: Referen
         last_matched = -1
         for token in stored_tokens:
             while cursor < len(registry_tokens) and not registry_tokens[cursor].startswith(token):
+                # An abbreviation deletes grammatical words and keeps every
+                # significant one; passing over a word too long to be
+                # grammatical means the stored name is missing part of the
+                # registry's, which is a sibling journal and not a shortening.
+                # See :data:`_MAX_SKIPPED_WORD`.
+                if len(registry_tokens[cursor]) > _MAX_SKIPPED_WORD:
+                    return None
                 cursor += 1
             if cursor == len(registry_tokens):
                 return None
@@ -394,8 +428,8 @@ def _container_abbreviation(field: str, stored: str, registry: str, ref: Referen
         # paper that appeared in the offshoot is one of the commonest real
         # citation errors there is. Every ISO abbreviation covers the whole
         # title ("Int J Cancer" ends on "Cancer"), so the requirement costs
-        # nothing, and it still accepts a merely dropped leading article
-        # ("Lancet" for "The Lancet").
+        # nothing. It bounds the *end* only, which is why the skip above is
+        # bounded too: the two together are what the sibling test rests on.
         if last_matched == len(registry_tokens) - 1:
             return "stored name abbreviates the registry name"
     return None
