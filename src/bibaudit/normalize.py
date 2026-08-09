@@ -110,7 +110,7 @@ _PUNCT_TABLE = str.maketrans(_PUNCT_MAP)
 #: registries write. NLM romanises eth as ``d`` on the overwhelming majority of
 #: its bylines and as ``eth`` on a few \u2014 ``Gudmundsdottir[au]`` answers 884
 #: records and ``Guethmundsdottir[au]`` none, ``Sigurdsson[au]`` 2,433 against
-#: ``Sigurethsson[au]`` 10 \u2014 and the minority spelling is a difference this
+#: ``Sigurethsson[au]`` 5 \u2014 and the minority spelling is a difference this
 #: cannot fold away. A stated limit rather than a second row: a letter with two
 #: mappings is two keys, and nothing in the pair being compared says which of
 #: them the other side used. See ``docs/limits.md``.

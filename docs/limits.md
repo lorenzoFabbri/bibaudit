@@ -188,7 +188,7 @@ registries spell one person both ways) — and each of those letters has exactly
 NLM does not always pick the same one. Eth is `d` on the overwhelming majority
 of its bylines and `eth` on a few: `Gudmundsdottir[au]` answers 884 records and
 `Guethmundsdottir[au]` none, `Sigurdsson[au]` 2,433 against `Sigurethsson[au]`
-10, `Fridriksdottir[au]` 114 against `Friethriksdottir[au]` 2. On the minority
+5, `Fridriksdottir[au]` 114 against `Friethriksdottir[au]` 2. On the minority
 records the two spellings are two comparison keys — `Friðriksdóttir` against
 MEDLINE's `Friethriksdottir`, PMID 42541912 — and a correct entry reports
 `authors/mismatch`.

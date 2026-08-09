@@ -166,7 +166,7 @@ class TestALetterNfkdLeavesWhole:
 
         ``Gudmundsdottir[au]`` answers 884 records and
         ``Guethmundsdottir[au]`` none; ``Sigurdsson[au]`` 2,433 against
-        ``Sigurethsson[au]`` 10; ``Fridriksdottir[au]`` 114 against
+        ``Sigurethsson[au]`` 5; ``Fridriksdottir[au]`` 114 against
         ``Friethriksdottir[au]`` 2. The table holds one spelling per letter,
         and a second would be a second key rather than a wider match, so the
         minority spelling is a stated limit — ``docs/limits.md`` — and PMID
