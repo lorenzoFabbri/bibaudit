@@ -1087,6 +1087,21 @@ class TestARetractionSourceNobodyAsked:
 
         assert "retraction-watch was not queried on this run" in note
 
+    def test_a_book_names_the_pmid_pubmed_would_also_have_taken(self) -> None:
+        """PubMed is the one source with two keys, and the note has to say so.
+
+        A book resolved by its ISBN carries neither, so all three DOI-keyed
+        sources go unasked — but naming only the DOI would tell a reader a
+        PMID beside the ISBN changes nothing, when it would have reached
+        MEDLINE's own ``PT`` flag and its ``ECI`` cross-reference.
+        """
+        ref = make_ref(key="knuth1997art", kind="book", doi=None, isbn="0-201-89683-4")
+        record = Record(source="openlibrary", title=ref.title, authors=list(ref.authors))
+        result = compare(ref, {"openlibrary": record}, asked={"openlibrary"})
+        note = next(i.note for i in result.issues if i.kind == "not-asked")
+
+        assert "crossref, pubmed, retraction-watch take a DOI or a PMID" in note
+
     def test_the_verdict_and_the_exit_code_do_not_move(self) -> None:
         """Coverage a reference's own identifier denies it is not its defect."""
         result = compare(make_ref(), {"pubmed": make_pubmed()}, asked={"pubmed"})
