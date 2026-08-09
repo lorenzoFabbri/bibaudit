@@ -193,6 +193,14 @@ expression of concern, correction. Ranked above the concern it *softened* a
 finding — a DOI Retraction Watch logs a correction for and NLM carries an `ECI`
 against merged to the correction, and the concern went unreported.
 
+That merged kind is the answer to "what is the status of this DOI", and it is
+not what the report attributes to each source. Each keeps the kind it recorded,
+and `compare` takes the union across them, so a work Retraction Watch logs a
+correction for and NLM records as retracted is reported as retracted *and* as
+corrected, under the name of the source that logged each. Stamped on both, the
+registry column stated a retraction Retraction Watch's export does not hold —
+and that column is the reader's only route to challenge a finding.
+
 The same order settles two rows of Retraction Watch's own export, which logs a
 DOI as often as its status is restated. **The strongest row wins, not the
 newest.** A work that has ever been retracted is retracted, and a correction

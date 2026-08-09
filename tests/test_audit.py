@@ -276,10 +276,14 @@ class _StubRetractions:
         self,
         *,
         notices: dict[str, RetractionNotice] | None = None,
+        by_source: dict[str, dict[str, RetractionNotice]] | None = None,
         transient: bool = False,
         rw_unreachable: bool = False,
     ) -> None:
         self.notices = dict(notices or {})
+        #: Only set where the two sources disagree, which is the one case the
+        #: merged notice cannot describe on its own.
+        self.by_source = dict(by_source or {})
         self.transient = transient
         #: The Retraction Watch export failing, which the real class reports
         #: through its return value rather than by raising -- ``transient``
@@ -299,9 +303,16 @@ class _StubRetractions:
         if self.transient:
             raise Transient("retractions: simulated outage")
         wanted = {normalize_doi(doi) for doi in dois}
+        answering = {doi: n for doi, n in self.notices.items() if doi in wanted}
         return RetractionStatus(
-            notices={doi: notice for doi, notice in self.notices.items() if doi in wanted},
+            notices=answering,
             unreachable=frozenset({"retraction-watch"}) if self.rw_unreachable else frozenset(),
+            # The real class keys this on each notice's own ``source``; a stub
+            # holding one notice per DOI says the same thing the same way.
+            by_source={
+                doi: self.by_source.get(doi, {n.source: n})
+                for doi, n in answering.items()
+            },
         )
 
 
@@ -1483,6 +1494,49 @@ class TestRetractionCorroboration:
         assert result.fails
         retracted_issue = next(i for i in result.issues if i.kind == "retracted")
         assert retracted_issue.source == "retraction-watch"
+
+    @pytest.mark.parametrize("citation_in_hand", [True, False])
+    def test_each_source_is_reported_under_the_kind_it_recorded(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, citation_in_hand: bool
+    ) -> None:
+        """10.1038/s41598-021-81751-1's shape: Retraction Watch logs a
+        correction, the curated records carry the retraction. Reported under
+        the merged kind, the registry column said Retraction Watch recorded a
+        retraction its export does not hold — and that column is the reader's
+        only route to challenge the finding.
+
+        Both ways PubMed's half is written: folded into the MEDLINE citation
+        ``resolve`` already fetched, and — under ``--no-corroborate``, where
+        there is none — inserted as an entry of its own.
+        """
+        retraction = RetractionNotice(
+            doi=DOI, kind="retraction", source="pubmed", notice_doi=None, date="2022",
+        )
+        correction = RetractionNotice(
+            doi=DOI, kind="correction", source="retraction-watch",
+            notice_doi=None, date="2022-07-05",
+        )
+        _install(
+            monkeypatch,
+            crossref=_StubRegistry("crossref", records={DOI: make_record()}),
+            pubmed=_StubRegistry(
+                "pubmed",
+                records={DOI: make_record(source="pubmed")} if citation_in_hand else {},
+            ),
+            retractions=_StubRetractions(
+                notices={DOI: retraction},
+                by_source={DOI: {"pubmed": retraction, "retraction-watch": correction}},
+            ),
+        )
+
+        result = audit([make_ref()], _options(tmp_path))[0]
+
+        assert result.verdict == "RETRACTED"
+        retracted = next(i for i in result.issues if i.kind == "retracted")
+        assert retracted.source == "pubmed"
+        corrected = next(i for i in result.issues if i.kind == "correction")
+        assert corrected.source == "retraction-watch"
+        assert "does not undo the retraction" in corrected.note
 
     def test_a_retraction_notice_never_resolves_an_otherwise_unresolved_doi(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

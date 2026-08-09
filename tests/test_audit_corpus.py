@@ -183,7 +183,7 @@ class _RetractionsRecorder:
 
     def status_for(self, dois: list[str]) -> RetractionStatus:
         self.status_for_calls.append(list(dois))
-        return RetractionStatus(notices={}, unreachable=frozenset())
+        return RetractionStatus(notices={}, unreachable=frozenset(), by_source={})
 
 
 @dataclass(slots=True)

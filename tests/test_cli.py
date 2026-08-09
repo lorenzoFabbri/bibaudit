@@ -205,9 +205,11 @@ class _StubRetractions:
         if self.transient:
             raise Transient("retractions: stubbed outage")
         wanted = {normalize_doi(doi) for doi in dois}
+        answering = {doi: n for doi, n in self.notices.items() if doi in wanted}
         return RetractionStatus(
-            notices={doi: notice for doi, notice in self.notices.items() if doi in wanted},
+            notices=answering,
             unreachable=frozenset({"retraction-watch"}) if self.rw_unreachable else frozenset(),
+            by_source={doi: {n.source: n} for doi, n in answering.items()},
         )
 
 

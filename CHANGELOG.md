@@ -184,6 +184,14 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **Each retraction source is reported under the kind it recorded.** Two
+  sources' notices about one DOI were merged to the more definitive kind and
+  that kind was then stamped on both, so a work Retraction Watch logs a
+  *correction* for and NLM records as retracted printed
+  `pubmed=retraction; retraction-watch=retraction`. The retraction is still
+  reported — `compare` takes the union across sources — but the correction is
+  now attributed to the source that logged one.
+
 - **A retraction is stated even on a DOI no bibliographic registry resolved.**
   Retraction Watch's export is keyed on the original paper's DOI whether or not
   Crossref, DataCite or PubMed carry it — 3 of a random 400 of its retraction

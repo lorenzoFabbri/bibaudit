@@ -446,14 +446,26 @@ def _resolve_retractions(
         unreachable |= getattr(exc, "unreachable", frozenset({"pubmed"}))
         return
     unreachable |= status.unreachable
-    _merge_retraction_notices(records, status.notices)
+    _merge_retraction_notices(records, status.by_source)
 
 
 def _merge_retraction_notices(
     records: Mapping[str, dict[str, Record]],
-    notices: Mapping[str, RetractionNotice],
+    by_source: Mapping[str, Mapping[str, RetractionNotice]],
 ) -> None:
-    """Fold *notices* into *records* in place, one DOI at a time.
+    """Fold each source's own notice into *records* in place, one DOI at a time.
+
+    Each source keeps the kind *it* recorded. The merged notice beside this one
+    (``RetractionStatus.notices``) is the module's single answer about a DOI and
+    the right thing to read where one answer is wanted; stamped on every source
+    that contributed, it puts the strongest kind under the name of a source that
+    recorded something milder. 10.1038/s41598-021-81751-1 is the witnessed case:
+    Retraction Watch's only row for it is a ``Correction``, Crossref and MEDLINE
+    both carry the retraction, and the report read ``crossref=retraction;
+    pubmed=retraction; retraction-watch=retraction``. Nothing is lost by keeping
+    them apart — ``compare._status_issues`` takes the union across sources
+    itself, so the retraction is still reported, beside a correction attributed
+    to the source that actually logged one.
 
     A notice never makes a DOI *resolve*, and ``compare`` is what enforces
     that: it will not take a source carrying only post-publication status as
@@ -487,27 +499,31 @@ def _merge_retraction_notices(
     ``registries/retractions.py`` already stamps on a notice sourced from it,
     so the two modules cannot drift into naming the same source two ways.
     """
-    for doi, notice in notices.items():
+    for doi, answers in by_source.items():
         found = records.get(doi)
         if found is None:
             # A DOI ``resolve`` never asked about, so there is no slot for it.
             continue
-        sources = [source for source in notice.source.split(",") if source]
-        if "pubmed" in sources and found:
+        from_pubmed = answers.get("pubmed")
+        if from_pubmed is not None and found:
             existing = found.get("pubmed")
             found["pubmed"] = (
-                replace(existing, retracted=True, retraction_kind=notice.kind)
+                replace(existing, retracted=True, retraction_kind=from_pubmed.kind)
                 if existing is not None
                 else Record(
-                    source="pubmed", doi=doi, retracted=True, retraction_kind=notice.kind
+                    source="pubmed",
+                    doi=doi,
+                    retracted=True,
+                    retraction_kind=from_pubmed.kind,
                 )
             )
-        if "retraction-watch" in sources:
+        from_rw = answers.get("retraction-watch")
+        if from_rw is not None:
             found["retraction-watch"] = Record(
                 source="retraction-watch",
                 doi=doi,
                 retracted=True,
-                retraction_kind=notice.kind,
+                retraction_kind=from_rw.kind,
             )
 
 
@@ -806,7 +822,7 @@ def _audit_unidentified(
             # which `asked` above has already promised to report on — is
             # through the returned set.
             failed = failed | status.unreachable
-            _merge_retraction_notices({record.doi: found_records}, status.notices)
+            _merge_retraction_notices({record.doi: found_records}, status.by_source)
 
     result = compare(
         ref,

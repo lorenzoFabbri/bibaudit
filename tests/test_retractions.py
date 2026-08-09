@@ -597,6 +597,28 @@ class TestSourcesThatDisagree:
         ).notices
         assert result[RW_RETRACTION_PUBMED_CONCERN_DOI].kind == "retraction"
 
+    def test_each_source_keeps_the_kind_it_recorded(self, tmp_path: Path) -> None:
+        """The merged kind answers "what is the status of this DOI"; it is not
+        what each source said, and a caller that names its sources needs the
+        second. Stamped on both, the strongest kind is reported under the name
+        of a source whose export records something milder — and the registry
+        column is the reader's only route to challenge a finding.
+        """
+        stub = _client(
+            rw_csv=_rw_sample(),
+            pmid_by_doi={RW_CORRECTION_PUBMED_RETRACTION_DOI: RW_CORRECTION_PUBMED_RETRACTION_PMID},
+            medline_by_pmid={
+                RW_CORRECTION_PUBMED_RETRACTION_PMID: _pubmed_fixture("retracted_erratum")
+            },
+        )
+        status = Retractions(stub, cache_dir=tmp_path).status_for(
+            [RW_CORRECTION_PUBMED_RETRACTION_DOI]
+        )
+        answers = status.by_source[RW_CORRECTION_PUBMED_RETRACTION_DOI]
+        assert answers["retraction-watch"].kind == "correction"
+        assert answers["pubmed"].kind == "retraction"
+        assert status.notices[RW_CORRECTION_PUBMED_RETRACTION_DOI].kind == "retraction"
+
     def test_both_sources_are_named_even_though_only_one_kind_survives(
         self, tmp_path: Path
     ) -> None:

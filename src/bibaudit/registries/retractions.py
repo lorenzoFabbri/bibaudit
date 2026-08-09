@@ -254,6 +254,20 @@ class RetractionStatus:
     #: :class:`~bibaudit.registries.http.Transient` out of this module rather
     #: than being reported through here.
     unreachable: frozenset[str]
+    #: What each source said on its own, ``doi -> source -> notice``, before
+    #: :func:`_combine` reconciled them.
+    #:
+    #: :attr:`notices` answers "what is the status of this DOI" in one kind,
+    #: which is what a caller wanting one answer needs. A caller that *names
+    #: its sources* needs this instead: merging the kinds and then stamping the
+    #: winner on every source that contributed reports a retraction under the
+    #: name of a source whose export records a correction, and the registry
+    #: column is the reader's only route to challenge a finding. Witnessed on
+    #: 10.1038/s41598-021-81751-1, whose only Retraction Watch row is a
+    #: ``Correction`` and whose Crossref and MEDLINE records both carry the
+    #: retraction: the report read ``crossref=retraction; pubmed=retraction;
+    #: retraction-watch=retraction``.
+    by_source: Mapping[str, Mapping[str, RetractionNotice]]
 
 
 def _fold_nature(raw: str) -> str:
@@ -605,7 +619,7 @@ class Retractions:
             # Nothing was asked, so nothing went unanswered: an empty request
             # must not manufacture an outage any more than it may manufacture
             # a finding.
-            return RetractionStatus(notices={}, unreachable=frozenset())
+            return RetractionStatus(notices={}, unreachable=frozenset(), by_source={})
 
         from_rw, rw_unreachable = self._rw_signals(wanted)
         try:
@@ -621,10 +635,21 @@ class Retractions:
             ) from exc
 
         merged: dict[str, RetractionNotice] = {}
+        by_source: dict[str, Mapping[str, RetractionNotice]] = {}
         for doi in {*from_rw, *from_pubmed}:
-            candidates = [n for n in (from_rw.get(doi), from_pubmed.get(doi)) if n is not None]
-            merged[doi] = _combine(candidates)
-        return RetractionStatus(notices=merged, unreachable=rw_unreachable)
+            # Keyed on what each notice says its own source is, rather than on
+            # the two strings restated here, so this mapping and the notices in
+            # it cannot come to name one source two ways.
+            answers = {
+                n.source: n
+                for n in (from_rw.get(doi), from_pubmed.get(doi))
+                if n is not None
+            }
+            by_source[doi] = answers
+            merged[doi] = _combine(list(answers.values()))
+        return RetractionStatus(
+            notices=merged, unreachable=rw_unreachable, by_source=by_source
+        )
 
     def _rw_signals(
         self, dois: Sequence[str]
