@@ -1340,6 +1340,33 @@ class TestPmidOnlyReferences:
         assert (issue.field, issue.kind, issue.stored) == ("identifier", "unresolved", "99999999")
         assert Summary([result]).exit_code() == 1
 
+    def test_the_consulted_map_credits_pubmed_for_that_answer(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The evidence behind the finding above, as the report states it.
+
+        ``BAD-ID`` rests entirely on PubMed having answered "not mine", so a
+        map reading ``pubmed: not-asked`` beside it is a failing verdict
+        credited to nobody. On a PMID that *resolves*, ``compare`` reads the
+        registry off the record it was handed and the ``asked`` set the audit
+        passes changes nothing — which is why every existing assertion on this
+        map survived replacing that set with a registry name the tool has
+        never heard of. Only an empty answer reaches it.
+
+        The key set is asserted whole for the same reason: a wrong name in
+        that set does not remove PubMed's row, it adds a second one.
+        """
+        _install(monkeypatch, pubmed=_StubRegistry("pubmed"))
+
+        result = audit([make_pmid_ref(pmid="99999999")], _options(tmp_path))[0]
+
+        assert result.verdict == "BAD-ID"
+        assert result.consulted["pubmed"] == ANSWERED
+        assert set(result.consulted) == {"crossref", "datacite", "pubmed", "retraction-watch"}
+        assert [
+            name for name, state in result.consulted.items() if state != NOT_ASKED
+        ] == ["pubmed"]
+
     def test_pubmed_answering_under_another_number_is_not_that_finding(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
