@@ -725,26 +725,38 @@ def _is_initialism_of(acronym: str, rest: str) -> bool:
     return True
 
 
-def _container_names(registry: str, rec: Record) -> list[str]:
-    """Every folded name this record offers for one journal.
+def _container_names(registry: str, rec: Record) -> list[tuple[str, str]]:
+    """Every folded name this record offers for one journal, and what it cost.
 
-    ``JT`` whole, each ``container_alternates`` entry, and the two reductions
-    NLM's own filing conventions call for: the text before its spaced colon and
-    the text before a trailing balanced parenthetical, through the same two
-    functions :func:`_container_medline_subtitle` and
-    :func:`_container_medline_qualifier` reduce with, so the guards on those
-    reductions are written once.
+    ``JT`` whole and each ``container_alternates`` entry are names the record
+    carries as they stand, and pair with an empty clause. The two reductions
+    NLM's own filing conventions call for — the text before its spaced colon,
+    the text before a trailing balanced parenthetical — pair with the clause a
+    caller appends to its reason, because a suppression that edits the stored
+    side *and* the registry's is not described by a sentence naming one of
+    them. ``JACCP: JOURNAL OF THE AMERICAN COLLEGE OF CLINICAL PHARMACY``
+    against ``JT - Journal of the American College of Clinical Pharmacy :
+    JACCP`` (PMID 42522049) lost an acronym from the left-hand side and a
+    subtitle from the right, and said so about the acronym only.
 
-    What is *not* shared is the leading article those two rules also take off
-    their base. This caller has already edited the stored side, and one edit
-    per comparison is what keeps a printed reason true of what it suppresses.
+    The reductions go through the same functions
+    :func:`_container_medline_subtitle` and :func:`_container_medline_qualifier`
+    use, so the guards on them are written once. What is *not* shared is the
+    leading article those two rules also take off their base: a third edit in
+    one comparison, and no reason here claims it.
     """
-    names = [fold(registry), *(fold(value) for value in rec.container_alternates)]
-    for reduce in (_without_medline_subtitle, _without_trailing_qualifier):
+    named: list[tuple[str, str]] = [
+        (fold(registry), ""),
+        *((fold(value), "") for value in rec.container_alternates),
+    ]
+    for reduce, cost in (
+        (_without_medline_subtitle, ", and the registry adds its own subtitle"),
+        (_without_trailing_qualifier, ", and the registry adds a parenthetical qualifier"),
+    ):
         reduced = reduce(registry)
         if reduced is not None:
-            names.append(fold(reduced))
-    return [name for name in names if name]
+            named.append((fold(reduced), cost))
+    return [(name, cost) for name, cost in named if name]
 
 
 def _container_acronym_prefix(field: str, stored: str, registry: str, ref: Reference, rec: Record) -> str | None:
@@ -784,9 +796,12 @@ def _container_acronym_prefix(field: str, stored: str, registry: str, ref: Refer
     *Cancer Epidemiology, Biomarkers & Prevention* differs by a word and fires
     here as it does everywhere else.
 
-    The **registry** side is never stripped of an article here. The stored side
-    has already been edited once, and taking a word off both is how a
-    suppression comes to be printed under a sentence that is false of it.
+    The **registry** side is never stripped of an article here. Where it is
+    reduced at all — NLM's spaced colon, its trailing parenthetical — the
+    reason says so beside the acronym, because a suppression that edited both
+    sides and named one of them is a sentence that is not true of what it
+    suppresses. An article would be a third edit in one comparison and is not
+    taken.
     """
     if field != "container":
         return None
@@ -797,8 +812,11 @@ def _container_acronym_prefix(field: str, stored: str, registry: str, ref: Refer
     if not rest.strip() or not _is_initialism_of(acronym, rest):
         return None
     folded_rest = fold(rest)
-    if folded_rest and folded_rest in _container_names(registry, rec):
-        return "stored name prefixes the journal's own acronym"
+    if not folded_rest:
+        return None
+    for name, cost in _container_names(registry, rec):
+        if folded_rest == name:
+            return "stored name prefixes the journal's own acronym" + cost
     return None
 
 

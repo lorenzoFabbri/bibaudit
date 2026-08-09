@@ -568,7 +568,12 @@ and both still report `container/mismatch`. `benign._container_abbreviation`
 reaches neither: it needs the stored tokens to be in-order prefixes of the
 registry's, and the acronym is a token the registry's name does not contain.
 
-**Reported as.** `stored name prefixes the journal's own acronym`.
+**Reported as.** `stored name prefixes the journal's own acronym`, and where
+the registry's value had to be reduced to reach the match, the clause that says
+so: `, and the registry adds its own subtitle` or `, and the registry adds a
+parenthetical qualifier`. Two edits in one comparison, and the sentence names
+both — PMID 42522049 lost an acronym from the left-hand side and ` : JACCP`
+from the right, and said so about the acronym only.
 
 **Detection.** `benign._container_acronym_prefix`. The prefix must be two to
 ten characters with no lowercase — a lowercase word before a colon is a title's
@@ -590,10 +595,9 @@ substring: `CE: Cancer Epidemiology`, whose prefix *is* an initialism of what
 follows it, leaves *Cancer Epidemiology*, which differs from *Cancer
 Epidemiology, Biomarkers & Prevention* by a word and is no name that record
 carries, so the difference still fires. `CEBP:` before the same two words never
-reaches that test at all — it fails the initialism check on `B`. The registry side is never
-stripped of a leading article here, because the stored side has already been
-edited once and one edit per comparison is what keeps the printed reason true
-of what it suppresses.
+reaches that test at all — it fails the initialism check on `B`. A leading
+article is never taken off the registry side here: that would be a third edit
+in one comparison, and no reason printed here claims it.
 
 ---
 

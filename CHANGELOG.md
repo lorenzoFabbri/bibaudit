@@ -169,6 +169,16 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A suppression that edited both sides now says so.** Taking a journal's own
+  acronym off the front of a stored name is matched against the names the
+  record carries *and* against two reductions of them — NLM's spaced colon and
+  its trailing parenthetical — so `JACCP: JOURNAL OF THE AMERICAN COLLEGE OF
+  CLINICAL PHARMACY` against `JT - Journal of the American College of Clinical
+  Pharmacy : JACCP` (PMID 42522049) lost the acronym from one side and
+  ` : JACCP` from the other under a reason naming only the acronym. Where the
+  registry's value was reduced to reach the match the reason now ends `, and
+  the registry adds its own subtitle` or `, and the registry adds a
+  parenthetical qualifier`.
 - **A modifier letter folds like the apostrophe it stands in for.** Removing
   every non-ASCII letter with no romanisation, added so an unmapped letter
   could never split a surname, also removed U+02B9 MODIFIER LETTER PRIME and

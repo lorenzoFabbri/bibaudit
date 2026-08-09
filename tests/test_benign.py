@@ -948,7 +948,10 @@ class TestTheAcronymPrefixRuleReadsNamesTheRecordCarries:
         assert classify(
             "container", "JNCI: Journal of the National Cancer Institute",
             "Journal of the National Cancer Institute (Bethesda, Md.)",
-        ) == "stored name prefixes the journal's own acronym"
+        ) == (
+            "stored name prefixes the journal's own acronym, and the registry "
+            "adds a parenthetical qualifier"
+        )
 
     def test_the_subtitle_stripped_name_is_offered_too(self) -> None:
         """PMID 42522049: ``JT - ... Clinical Pharmacy : JACCP``."""
@@ -958,7 +961,10 @@ class TestTheAcronymPrefixRuleReadsNamesTheRecordCarries:
         assert classify(
             "container", "JACCP: JOURNAL OF THE AMERICAN COLLEGE OF CLINICAL PHARMACY",
             jt, container_alternates=ta,
-        ) == "stored name prefixes the journal's own acronym"
+        ) == (
+            "stored name prefixes the journal's own acronym, and the registry "
+            "adds its own subtitle"
+        )
 
     def test_half_a_qualifier_is_not_one_of_them(self) -> None:
         """NLM writes a spaced colon *inside* a qualifier, PMID 42552576.
@@ -1210,7 +1216,10 @@ class TestContainerAcronymPrefix:
             "JACCP: JOURNAL OF THE AMERICAN COLLEGE OF CLINICAL PHARMACY",
             "Journal of the American College of Clinical Pharmacy : JACCP",
             container_alternates=["J Am Coll Clin Pharm"],
-        ) == "stored name prefixes the journal's own acronym"
+        ) == (
+            "stored name prefixes the journal's own acronym, and the registry "
+            "adds its own subtitle"
+        )
 
     def test_an_acronym_that_is_not_the_names_own_still_fires(self) -> None:
         """The whole of what makes removing the prefix information-free."""
