@@ -466,6 +466,23 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
     )
 
 
+def _retracted_first(records: Sequence[Record]) -> Record | None:
+    """One record for a DOI PubMed answered for under several PMIDs.
+
+    Two citations of one work agree on title, byline and year, so any of them
+    describes the work — but they need not agree on ``PT``, and the retracted
+    one is the only one that says the work was pulled back. A tie breaks
+    towards the finding, on the rule ``crossref._reciprocal_updates`` states:
+    naming a retraction a second citation of the same work does not carry
+    costs a line a reader can check, and missing one puts a retracted paper in
+    a manuscript.
+    """
+    for record in records:
+        if record.retracted:
+            return record
+    return records[0] if records else None
+
+
 @dataclass(frozen=True)
 class PmidAnswers:
     """What ``efetch`` said about a batch of PMIDs — three states, not two.
@@ -586,6 +603,15 @@ class PubMed:
         storing a PMID beside its DOI can be checked against it — unless
         PubMed answered for that DOI under more than one PMID, in which case
         it carries none. See the comment on ``ambiguous`` below.
+
+        **Every** PMID a DOI came back under is fetched, not one of them. Two
+        citations of one work carry the same title, byline and year, so which
+        of them supplies those was and remains arbitrary — but they need not
+        carry the same ``PT``, and taking retraction status off whichever
+        number happened to sort last reported a retracted paper as clean. That
+        is the worst miss available here, and it defeats the stated reason
+        PubMed is consulted at all. :func:`_retracted_first` breaks the tie
+        towards the finding, exactly as ``crossref._reciprocal_updates`` does.
         """
         candidates = self._pmids_by_doi(dois)
         if not candidates:
@@ -596,18 +622,19 @@ class PubMed:
         # rather than dropping all but the last.
         pmid_to_dois: dict[str, list[str]] = {}
         for doi, pmids in candidates.items():
-            pmid_to_dois.setdefault(pmids[-1], []).append(doi)
+            for pmid in pmids:
+                pmid_to_dois.setdefault(pmid, []).append(doi)
 
         # The other direction, and it is not the same fact. Any of the PMIDs a
-        # DOI came back under fetches a usable citation, so the record still
-        # goes out; *which* one it is, is arbitrary. The record therefore
-        # carries no PMID, because the only thing that reads one —
-        # `compare._check_pmid` — would otherwise report a bibliography storing
-        # the PMID this line happened not to pick as disagreeing with PubMed,
-        # when PubMed named both.
+        # DOI came back under fetches a usable citation, so a record still goes
+        # out; *which* one supplies the bibliographic fields is arbitrary. The
+        # record therefore carries no PMID, because the only thing that reads
+        # one — `compare._check_pmid` — would otherwise report a bibliography
+        # storing the PMID that lost the tie as disagreeing with PubMed, when
+        # PubMed named both.
         ambiguous = {doi for doi, pmids in candidates.items() if len(pmids) > 1}
 
-        out: dict[str, Record] = {}
+        found: dict[str, list[Record]] = {}
         for batch in _chunk(list(pmid_to_dois), _EFETCH_BATCH):
             text = self._efetch_medline(batch)
             if text is None:
@@ -619,13 +646,18 @@ class PubMed:
                     continue
                 record = _record_from_medline(fields)
                 for doi in dois_for_pmid:
-                    # A fresh copy per DOI: Record is mutable, and two DOIs
-                    # sharing one Record instance would make the second
-                    # assignment's `.doi` silently override the first's.
-                    out[doi] = replace(
-                        record, doi=doi, pmid=None if doi in ambiguous else record.pmid
-                    )
-        return out
+                    found.setdefault(doi, []).append(record)
+
+        # A fresh copy per DOI: Record is mutable, and two DOIs sharing one
+        # instance would make the second assignment's `.doi` override the
+        # first's.
+        return {
+            doi: replace(
+                chosen, doi=doi, pmid=None if doi in ambiguous else chosen.pmid
+            )
+            for doi, records in found.items()
+            if (chosen := _retracted_first(records)) is not None
+        }
 
     def by_pmids(self, pmids: Sequence[str]) -> PmidAnswers:
         """Fetch full MEDLINE records for *pmids*. See :class:`PmidAnswers`.

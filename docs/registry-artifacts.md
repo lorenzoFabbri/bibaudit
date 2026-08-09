@@ -579,10 +579,20 @@ no `REGISTRY-ARTIFACT` line is printed, because there is no difference to
 explain. The comparison never runs.
 
 **Detection.** In `registries/pubmed.py`, not in `benign.py`.
-`PubMed._pmids_by_doi` keeps every PMID a DOI came back under, and `by_dois`
-hands the record on with `Record.pmid` unset whenever there is more than one.
-The DOI still resolves — either record's title, authors and retraction status
-are the work's — so nothing is lost but the one comparison that had no basis.
+`PubMed._pmids_by_doi` keeps every PMID a DOI came back under, `by_dois`
+**fetches all of them**, and the record it hands on carries no `Record.pmid`
+whenever there was more than one. The DOI still resolves — two citations of one
+work carry the same title, byline and year, so which of them supplies those is
+arbitrary and nothing is lost but the one comparison that had no basis.
+
+They need not carry the same `PT`, which is the part that is not arbitrary.
+Fetching one of the two took retraction status off whichever number sorted
+last, so a work PubMed records as retracted under one citation and not the
+other reported clean — the worst miss available here, and the one that defeats
+the stated reason PubMed is consulted at all. `_retracted_first` breaks the tie
+towards the finding, on the rule `crossref._reciprocal_updates` states: naming
+a retraction a second citation does not carry costs a line a reader can check,
+and missing one puts a retracted paper in a manuscript.
 
 **Why it matters.** A work with two PubMed citations makes either number a
 correct thing to store. Keeping the arbitrary one would fail a bibliography for

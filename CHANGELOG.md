@@ -169,6 +169,13 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **Every PubMed citation a DOI resolves to is fetched, not one of them.**
+  Where `esummary` attributed two PMIDs to one DOI, only the number that sorted
+  last was fetched, and its `PT` decided the entry's retraction status — so a
+  work PubMed records as retracted under one citation and not the other
+  reported clean. Both are now fetched and the tie breaks towards the finding.
+  Which citation supplies the title and byline is still arbitrary and
+  `Record.pmid` is still withheld: two citations of one work agree on those.
 - **`status/not-asked` says which of its two reasons applied.** "Were never
   asked" covered a source that takes an identifier the reference does not carry
   — which no rerun changes — and one that had a key and was left out by

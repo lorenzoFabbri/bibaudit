@@ -702,6 +702,58 @@ class TestByDois:
             "Ileal-lymphoid-nodular hyperplasia"
         )
 
+    def test_every_citation_a_doi_came_back_under_is_fetched(self) -> None:
+        """One of two was fetched, and it decided the retraction status.
+
+        ``esummary`` attributing two PMIDs to one DOI means PubMed holds two
+        citations of the work. Both describe the same paper, so which supplies
+        the title and byline is arbitrary — but they need not carry the same
+        ``PT``, and asking for one of them took retraction status off whichever
+        number happened to sort last.
+        """
+        client = _StubClient(
+            esearch_ids=[WAKEFIELD_PMID, "28338828"],
+            doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI, "28338828": WAKEFIELD_DOI},
+            medline=f"{_fixture('wrapped_title')}\n{_fixture('retracted')}",
+        )
+        PubMed(client).by_dois([WAKEFIELD_DOI])
+
+        [efetch] = [url for url in client.urls if "efetch" in url]
+        assert set(_params(efetch)["id"].split(",")) == {WAKEFIELD_PMID, "28338828"}
+
+    def test_the_retracted_citation_wins_the_tie(self) -> None:
+        """A tie breaks towards the finding, as it does everywhere else here.
+
+        The non-retracted citation is placed *first* in the ``efetch`` body on
+        purpose: a rule that keeps whichever record arrived first reports a
+        retracted paper as clean, and that is the worst miss this tool has.
+        """
+        client = _StubClient(
+            esearch_ids=[WAKEFIELD_PMID, "28338828"],
+            doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI, "28338828": WAKEFIELD_DOI},
+            medline=f"{_fixture('wrapped_title')}\n{_fixture('retracted')}",
+        )
+        record = PubMed(client).by_dois([WAKEFIELD_DOI])[normalize_doi(WAKEFIELD_DOI)]
+
+        assert record.retracted
+        assert record.retraction_kind == "Retracted Publication"
+
+    def test_an_ambiguous_doi_still_carries_no_pmid(self) -> None:
+        """Which citation supplied the fields is arbitrary, and stays unstated.
+
+        ``compare._check_pmid`` would otherwise report a bibliography storing
+        the number that lost the tie as disagreeing with PubMed, when PubMed
+        named both.
+        """
+        client = _StubClient(
+            esearch_ids=[WAKEFIELD_PMID, "28338828"],
+            doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI, "28338828": WAKEFIELD_DOI},
+            medline=f"{_fixture('wrapped_title')}\n{_fixture('retracted')}",
+        )
+        record = PubMed(client).by_dois([WAKEFIELD_DOI])[normalize_doi(WAKEFIELD_DOI)]
+
+        assert record.pmid is None
+
     def test_efetch_answering_404_yields_no_records_rather_than_raising(self) -> None:
         """``None`` from the client is a confirmed 404, not an outage.
 
