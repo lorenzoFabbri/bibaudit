@@ -389,6 +389,33 @@ letter prefix, so both forms compare equal.
 
 ---
 
+## A volume or issue number with a leading zero
+
+**What happens.** One registry writes the number padded and the other does not.
+Crossref deposits `"issue": "05"` for `10.1055/a-2760-7307` (*Clinics in Colon
+and Rectal Surgery*); MEDLINE writes `IP - 5` on the same work, PMID 42553907.
+A bibliography exported from either carries that registry's spelling, and on the
+PMID path the other one is the only value there is to compare against — so a
+correct entry reported `issue/mismatch` and the run exited 1.
+
+**Observed.** `10.1055/a-2760-7307`, both records fetched live 2026-08-09. The
+opposite pairing is the same shape and is accepted the same way.
+
+**Reported as.** `one side writes the number with a leading zero`. It blames
+nobody, because neither side is wrong: `05` and `5` are one issue, exactly as
+an article number and a page range are one article in the section below.
+
+**Detection.** `benign._number_zero_padded`, on `volume` and `issue` only, and
+only where **both** sides are ASCII digits differing by leading zeros alone.
+
+**What it deliberately does not cover.** `Volume 18` against `18` — five
+entries in the same live sample, all from one publisher's own rendering of its
+volume line. That is a label a reference manager copied into a numeric field:
+the entry really is wrong about what the field holds, and the fix is one the
+user can make. Suppressing it would hide a defect the tool exists to report.
+
+---
+
 ## Article number recorded against a page range
 
 **What happens.** One side records `e0123456` or `693933`, the other a span.

@@ -169,6 +169,13 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A volume or issue number is no longer a mismatch for its leading zero.**
+  Crossref deposits `"issue": "05"` where MEDLINE writes `IP - 5` for the same
+  work, so an entry exported from either failed against the other — and on the
+  PMID path the other one is the only value there is. It is a
+  `REGISTRY-ARTIFACT` reading `one side writes the number with a leading zero`,
+  which blames neither. `Volume 18` against `18` is untouched: that is a label
+  copied into a numeric field, and the fix is one the user can make.
 - **`TI - [Not Available].` is read as an empty field, not as a title.** NLM
   writes that placeholder where it holds no English title for an article
   published in another language, on 66,776 citations. Compared as a title it

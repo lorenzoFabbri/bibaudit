@@ -306,6 +306,39 @@ def _pages_article_number(field: str, stored: str, registry: str, ref: Reference
     return None
 
 
+def _number_zero_padded(field: str, stored: str, registry: str, ref: Reference, rec: Record) -> str | None:
+    """Volume or issue written with a leading zero on one side and not the other.
+
+    Instance: 10.1055/a-2760-7307 (*Clinics in Colon and Rectal Surgery*, PMID
+    42553907). Crossref deposits ``"issue": "05"``; MEDLINE writes ``IP - 5``.
+    A bibliography exported from either carries that registry's spelling, and
+    on the PMID path the other one is the only value there is to compare
+    against, so a correct entry reported ``issue/mismatch`` and failed the
+    build.
+
+    ``05`` and ``5`` are the same issue and neither side is wrong, which is why
+    the reason blames nobody — the same shape as
+    :func:`_pages_article_number`, where two registries record one article in
+    two notations. It is a suppression rather than a normalisation because a
+    difference this tool passes over in silence is one nobody can audit.
+
+    Only where both sides are ASCII digits and differ by leading zeros alone,
+    so ``18`` against ``Volume 18`` is untouched: that one is a label a
+    reference manager copied off a publisher's page into a numeric field, the
+    entry is wrong about the field's contents, and the fix is one the user can
+    make.
+    """
+    if field not in {"volume", "issue"}:
+        return None
+    if not (stored.isascii() and stored.isdigit()):
+        return None
+    if not (registry.isascii() and registry.isdigit()):
+        return None
+    if stored.lstrip("0") != registry.lstrip("0"):
+        return None
+    return "one side writes the number with a leading zero"
+
+
 def _container_abbreviation(field: str, stored: str, registry: str, ref: Reference, rec: Record) -> str | None:
     """Stored journal name is the ISO abbreviation of the registry's full name.
 
@@ -637,6 +670,7 @@ CHECKS: tuple[ArtifactCheck, ...] = (
     _year_online_first,
     _year_deposit_artifact,
     _pages_article_number,
+    _number_zero_padded,
     _container_abbreviation,
     _container_leading_article,
     _container_medline_subtitle,

@@ -397,6 +397,49 @@ class TestPages:
         assert errors(result, "pages") == ["mismatch"]
 
 
+class TestZeroPaddedVolumeAndIssue:
+    """Two registries write one issue number two ways, and neither is wrong.
+
+    Crossref deposits ``"issue": "05"`` for 10.1055/a-2760-7307 (*Clinics in
+    Colon and Rectal Surgery*); MEDLINE writes ``IP - 5`` on the same work,
+    PMID 42553907. On the PMID path the other registry's spelling is the only
+    value there is, so a correct entry reported ``issue/mismatch``.
+    """
+
+    def test_a_padded_issue_against_a_bare_one_is_an_artifact(self) -> None:
+        result = compare(make_ref(issue="05"), {"crossref": make_record(issue="5")})
+
+        assert artifacts(result, "issue") == [
+            "one side writes the number with a leading zero"
+        ]
+        assert not result.fails
+
+    def test_the_other_direction_is_the_same_shape(self) -> None:
+        result = compare(make_ref(volume="18"), {"crossref": make_record(volume="018")})
+
+        assert artifacts(result, "volume") == [
+            "one side writes the number with a leading zero"
+        ]
+
+    def test_two_different_numbers_still_fire(self) -> None:
+        assert classify("issue", "05", "6") is None
+        result = compare(make_ref(issue="05"), {"crossref": make_record(issue="6")})
+
+        assert errors(result, "issue") == ["mismatch"]
+
+    def test_a_label_copied_into_the_field_is_still_reported(self) -> None:
+        """``Volume 18`` is the entry being wrong about what the field holds.
+
+        Five entries in the same live sample carry a publisher's own rendering
+        of its volume line. That is a defect the user can fix, and suppressing
+        it would hide exactly what this tool is for.
+        """
+        assert classify("volume", "Volume 18", "18") is None
+        result = compare(make_ref(volume="Volume 18"), {"crossref": make_record(volume="18")})
+
+        assert errors(result, "volume") == ["mismatch"]
+
+
 class TestContainerAbbreviation:
     def test_the_registrys_own_short_title_is_accepted(self) -> None:
         reason = classify(
@@ -929,6 +972,12 @@ class TestRuleScoping:
             # those digits is excused against the registry's — a PMC accession
             # explains a wrong PMID and nothing else about the entry.
             ("volume", "5860629", "47", {"raw": {"PMC": ["PMC5860629"]}}, "_pmid_pmc_accession"),
+            # _number_zero_padded accepts two ASCII digit strings differing by
+            # leading zeros. Unscoped, a stored page of "07" is excused against
+            # an opening page of 7 on a work that starts at 7 in one registry
+            # and 07 in neither — pages have their own first-page rule, and a
+            # DOI's suffix or a PMID would be excused the same way.
+            ("pages", "027004", "27004", {}, "_number_zero_padded"),
         ],
     )
     def test_no_rule_leaks_into_a_field_it_was_not_written_for(
