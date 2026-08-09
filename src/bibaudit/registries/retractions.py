@@ -658,11 +658,28 @@ class Retractions:
 
         Raises :class:`~bibaudit.registries.http.Transient` on a genuine
         network outage; callers within this module catch it at the one place
-        that must (:meth:`_rw_signals`). A confirmed-empty response (this
-        endpoint has never been observed to 404, but nothing here assumes it
-        cannot) is treated as "nothing found" rather than as an outage: it is
-        a fact about this fetch, like any other confirmed absence in this
-        project, not ignorance.
+        that must (:meth:`_rw_signals`).
+
+        **A fetch that yields no usable row raises too.** Everywhere else in
+        this project a confirmed absence is a fact — a 404 on ``/works/10.x/y``
+        settles that this registry does not hold that work. This request is not
+        of that shape: it asks for the whole database, so a 404 is a fact about
+        the *endpoint* and says nothing whatever about whether Retraction Watch
+        has retractions. The endpoint has already moved once under this file
+        (see :data:`_RW_CSV_URL`), and a body that is not the export — a
+        maintenance page, a rate-limit notice, a truncated download — reaches
+        :func:`_parse_rw_csv` as zero usable rows and is indistinguishable from
+        a 404 by the time it gets here. Read as "nothing found", either one
+        turns the source that exists solely to carry this signal into a source
+        that answered and had nothing, and the report then states no gap: a
+        clean bill of health issued over an unread database, which is the one
+        output CLAUDE.md's retraction rule forbids outright.
+
+        No sanity floor decides that: the test is that the export yielded
+        nothing at all, so nothing here has to be told how big Retraction
+        Watch is. Nor is the emptiness cached — with a seven-day TTL on this
+        index (:data:`_RW_CACHE_TTL_DAYS`) it would survive a week of healthy
+        runs, and ``--refresh`` does not reach this cache.
         """
         if self._index is not None:
             return self._index
@@ -674,6 +691,10 @@ class Retractions:
 
         text = self._client.get_text(_RW_CSV_URL)
         index = _parse_rw_csv(text) if text is not None else {}
+        if not index:
+            raise Transient(
+                f"{_RW_CSV_URL}: the export answered with no usable rows"
+            )
         self._cache.put(_RW_INDEX_CACHE_KEY, {"url": _RW_CSV_URL, "payload": _index_to_payload(index)})
         self._index = index
         return index

@@ -279,6 +279,21 @@ Silence from a source nobody could reach is not a clean bill of health, and on
 this field a miss is the one with no remedy. The two independent sources fail
 through different channels, and both end in the run's unreachable set.
 
+**An export that carries no usable row is an outage too**, and not a database
+with nothing in it. Everywhere else in this project a confirmed absence is a
+fact: `/works/10.x/y` answering 404 settles that the registry does not hold that
+work. This request asks for the whole database, so the same 404 is a fact about
+the endpoint — one that has already moved once under this tool — and a body that
+is not the export (a maintenance page, a rate-limit notice, a truncated
+download) reaches the parser as zero rows and cannot be told apart from it. Read
+as "nothing found", either turns the one source that exists to carry this signal
+into a source that answered and had nothing, and the report then states no gap
+at all. Nothing decides that on a row count: the test is that the export yielded
+nothing whatsoever, so nobody has to tell this tool how big Retraction Watch is.
+The emptiness is not written to the index cache either — with a seven-day TTL
+and no `--refresh` reaching it, one such fetch would answer a week of healthy
+runs.
+
 A Retraction Watch outage is caught at that source's own boundary, so PubMed's
 independent answer is not lost with it. It does not vanish: `status_for` returns
 it in `RetractionStatus.unreachable`, naming `retraction-watch`, and `audit.py`

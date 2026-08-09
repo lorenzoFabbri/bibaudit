@@ -83,6 +83,22 @@ RW_RETRACTION_PUBMED_CONCERN_PMID = "10475862"
 RW_RETRACTION_NOTICE_DOI = "10.1093/ageing/afz156"
 
 
+#: A Retraction Watch export that downloaded intact and simply does not mention
+#: the DOI under test. It is the stub's default because an *empty* body is no
+#: longer that: since :meth:`Retractions._load_index` reads an export with no
+#: usable row as an outage, a test wanting "Retraction Watch answered and had
+#: nothing for this DOI" has to hand it an export with a row in it. The DOI is
+#: one no fixture in this file uses.
+RW_EXPORT_WITHOUT_THIS_DOI = (
+    "Record ID,Title,Subject,Institution,Journal,Publisher,Country,Author,"
+    "URLS,ArticleType,RetractionDate,RetractionDOI,RetractionPubMedID,"
+    "OriginalPaperDate,OriginalPaperDOI,OriginalPaperPubMedID,"
+    "RetractionNature,Reason,Paywalled,Notes,\n"
+    "1,T,,,J,P,,A,,,1/2/2020 0:00,10.1000/notice,0,1/1/2019 0:00,"
+    "10.1000/unrelated,0,Retraction,,No,,\n"
+)
+
+
 def _pubmed_fixture(name: str) -> str:
     return (DATA / f"pubmed_{name}.txt").read_text(encoding="utf-8")
 
@@ -129,7 +145,7 @@ class _StubClient:
     def __init__(
         self,
         *,
-        rw_csv: str | None = "",
+        rw_csv: str | None = RW_EXPORT_WITHOUT_THIS_DOI,
         rw_transient: bool = False,
         pmid_by_doi: dict[str, str] | None = None,
         medline_by_pmid: dict[str, str] | None = None,
@@ -747,6 +763,86 @@ class TestOutageHandling:
         # ...and the absence is explicitly qualified rather than left to read as
         # a clean answer, which is the whole difference this class encodes.
         assert status.unreachable == frozenset({"retraction-watch"})
+
+
+class TestAnExportThatCarriesNothing:
+    """A whole-database fetch that yields no row is ignorance, not an answer.
+
+    Every other confirmed absence in this project is a fact about one work:
+    ``/works/10.x/y`` answering 404 settles that this registry does not hold
+    that DOI. This request asks for the entire database, so the same 404 is a
+    fact about the endpoint — one that has already moved once under this
+    file — and read as "nothing found" it turns the only source that exists
+    to carry this signal into a source that answered and had nothing.
+    """
+
+    def test_a_404_on_the_export_is_an_outage_not_an_empty_database(
+        self, tmp_path: Path
+    ) -> None:
+        stub = _client(rw_csv=None)
+        with pytest.warns(RuntimeWarning, match="Retraction Watch"):
+            status = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        assert status.unreachable == frozenset({"retraction-watch"})
+
+    def test_a_body_that_is_not_the_export_is_an_outage_too(self, tmp_path: Path) -> None:
+        """A maintenance page or a rate-limit notice served with a 200 parses
+        to zero usable rows and is indistinguishable from the 404 by the time
+        it reaches the index. Both are the endpoint failing to answer.
+        """
+        stub = _client(rw_csv="<html><body>Service unavailable</body></html>")
+        with pytest.warns(RuntimeWarning, match="Retraction Watch"):
+            status = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        assert status.unreachable == frozenset({"retraction-watch"})
+
+    def test_the_header_row_alone_is_an_outage(self, tmp_path: Path) -> None:
+        """A truncated download that got the header and no rows. ``DictReader``
+        reads it without complaint and yields nothing, which is the same
+        emptiness by a third route.
+        """
+        header = RW_EXPORT_WITHOUT_THIS_DOI.splitlines()[0] + "\n"
+        stub = _client(rw_csv=header)
+        with pytest.warns(RuntimeWarning, match="Retraction Watch"):
+            status = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        assert status.unreachable == frozenset({"retraction-watch"})
+
+    def test_pubmeds_own_answer_survives_an_unreadable_export(self, tmp_path: Path) -> None:
+        """Degrade, never fail: the other source's finding still comes back,
+        exactly as it does for a network outage.
+        """
+        stub = _client(
+            rw_csv=None,
+            pmid_by_doi={WAKEFIELD_DOI: WAKEFIELD_PMID},
+            medline_by_pmid={WAKEFIELD_PMID: _pubmed_fixture("retracted")},
+        )
+        with pytest.warns(RuntimeWarning, match="Retraction Watch"):
+            status = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        assert status.notices[WAKEFIELD_DOI.lower()].kind == "retraction"
+
+    def test_the_emptiness_is_not_cached_over_the_next_seven_days(
+        self, tmp_path: Path
+    ) -> None:
+        """The cost of getting this wrong is not one run. This index has a
+        seven-day TTL and ``--refresh`` does not reach it, so an empty index
+        written to disk answers every healthy run for a week.
+        """
+        with pytest.warns(RuntimeWarning, match="Retraction Watch"):
+            Retractions(_client(rw_csv=None), cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        assert list(tmp_path.rglob("*.json")) == []
+
+        later = Retractions(_client(rw_csv=_rw_sample()), cache_dir=tmp_path)
+        status = later.status_for([WAKEFIELD_DOI])
+        assert status.notices[WAKEFIELD_DOI.lower()].kind == "retraction"
+        assert status.unreachable == frozenset()
+
+    def test_an_export_with_one_row_is_an_answer(self, tmp_path: Path) -> None:
+        """The true-negative half. An export that parsed is an answer even
+        about a DOI it does not mention, or every ordinary run would report a
+        retraction gap and the gap would stop meaning anything.
+        """
+        stub = _client(rw_csv=RW_EXPORT_WITHOUT_THIS_DOI)
+        status = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        assert status.notices == {}
+        assert status.unreachable == frozenset()
 
 
 class TestCaching:

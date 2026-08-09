@@ -184,6 +184,16 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A Retraction Watch export that carries no usable row is reported as an
+  outage**, not as a database with nothing in it. A 404 on the bulk endpoint —
+  which has already moved once under this tool — and a 200 whose body is a
+  maintenance page, a rate-limit notice or a truncated download both reach the
+  parser as zero rows, and both were read as "Retraction Watch answered and has
+  no retractions". The source that exists solely to carry this signal then
+  reported no gap, and the empty index was written to a cache with a seven-day
+  TTL that `--refresh` does not reach, so one such fetch answered a week of
+  healthy runs.
+
 - **A correct journal abbreviation is no longer failed for a qualifier NLM
   appends to it.** The rule that drops NLM's trailing parenthetical ran on the
   record's primary container title alone, while `MedAbbr` carries the same
