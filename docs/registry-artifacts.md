@@ -963,7 +963,11 @@ record, and Crossref's would explain nothing.
 accession and a PMID are both bare ascending integers, so a rule that accepted
 a naked number would read every PMID as an accession.
 
-**Reported as.** `REGISTRY-ARTIFACT`, with both numbers printed.
+**Reported as.** `REGISTRY-ARTIFACT`, with both numbers printed, under the
+name of the registry that carries them. That is PubMed on every entry reaching
+this check: only PubMed sets `Record.pmid`, so the primary registry of a
+DOI-resolved entry supplied neither number and has no `PMC` line for a reader
+to check the suppression against.
 
 **Why it matters.** The check's whole claim is that the entry's two identifiers
 name two citations. A number that names the record in hand is the one case

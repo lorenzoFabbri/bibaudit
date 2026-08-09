@@ -745,7 +745,12 @@ def _check_pmid(ctx: _Context) -> None:
     record it is being compared against. The record :func:`benign.classify`
     is handed is therefore the one the registry PMID came from, not
     ``ctx.primary`` — MEDLINE's ``PMC`` line is only on PubMed's record, and
-    Crossref's would explain nothing.
+    Crossref's would explain nothing — and the suppression is printed under
+    that record's source for the same reason. This is the one check where the
+    holder can never be the primary of a DOI-resolved entry: only PubMed sets
+    :attr:`~bibaudit.model.Record.pmid`, so ``ctx.primary``'s name beside the
+    suppression would invite the reader to check a claim against a registry
+    that supplied neither of the two numbers in it.
     """
     stored = normalize_pmid(ctx.ref.pmid)
     if not stored or not ctx.ref.doi:
@@ -758,7 +763,7 @@ def _check_pmid(ctx: _Context) -> None:
         return
     reason = benign.classify("pmid", stored, registry, ctx.ref, holder)
     if reason:
-        ctx.add_artifact("pmid", stored, registry, reason)
+        ctx.add_artifact("pmid", stored, registry, reason, source=holder.source)
         return
     ctx.add(
         "pmid", "mismatch", "warning", stored, registry, source=holder.source,

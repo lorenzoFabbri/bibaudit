@@ -2091,6 +2091,28 @@ class TestPmidCheck:
 
         assert any(i.field == "pmid" and i.kind == "mismatch" for i in result.issues)
 
+    def test_the_suppression_names_the_registry_that_carries_both_numbers(self) -> None:
+        """Crossref supplies no PMID and no ``PMC`` line, so it explains nothing.
+
+        Every suppression invites a reader to check it against the registry
+        printed beside it, and this is the one check whose right-hand value can
+        never have come from the primary: only PubMed sets ``Record.pmid``.
+        Under Crossref's name the line asks the reader to look for a ``PMC``
+        accession on a record that has no such field.
+        """
+        result = compare(
+            make_ref(pmid="5860629"),
+            {
+                "crossref": make_record(),
+                "pubmed": make_record(
+                    source="pubmed", pmid="28520842", raw={"PMC": ["PMC5860629"]}
+                ),
+            },
+        )
+
+        [artifact] = [i for i in result.suppressed if i.field == "pmid"]
+        assert artifact.source == "pubmed"
+
 
 class TestAnAnswerAboutAnotherRecord:
     """A registry that answered *around* an identifier has not answered about it.
