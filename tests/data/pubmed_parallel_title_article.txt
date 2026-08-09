@@ -1,0 +1,70 @@
+PMID- 42559441
+OWN - NLM
+STAT- Publisher
+LR  - 20260807
+IS  - 0319-5724 (Print)
+IS  - 1708-945X (Electronic)
+IS  - 0319-5724 (Linking)
+DP  - 2026 Aug 4
+TI  - Improved risk prediction via cross-domain calibration in a retrospective 
+      case-control study.
+LID - e70058 [pii]
+LID - 10.1002/cjs.70058 [doi]
+AB  - Given a well calibrated standard model involving standard predictors, we propose 
+      a constrained maximum likelihood approach to incorporate the biomarker sampled 
+      from a different population without having to correctly model them to improve the 
+      prediction. The constraints ensure that the averaged risk with the biomarker 
+      included is as close as that from the standard model. Our method allows different 
+      distributions of the standard risk predictors between the target population and 
+      the source population of the study data, and relies on the study data to inform 
+      the relationship between biomarker and standard predictors. We develop large 
+      sample theory of our method for parameters and measures for predictive accuracy, 
+      and perform simulation studies to assess the finite sample performance of our 
+      method. We apply our method to analyze a case-control study of breast cancer to 
+      develop a model that includes both standard breast cancer risk predictors and the 
+      biomarker mammographic density.
+FAU - Zhao, Ge
+AU  - Zhao G
+AUID- ORCID: 0000-0002-2875-8652
+AD  - Department of Mathematics and Statistics, Portland State University, Portland, 
+      U.S.
+FAU - Ma, Yanyuan
+AU  - Ma Y
+AD  - Department of Statistics, Penn State University, University Park, U.S.
+FAU - Cao, Yaqi
+AU  - Cao Y
+AD  - Department of Statistics, School of Science, Minzu University of China, Beijing, 
+      China.
+AD  - Department of Biostatistics, Epidemiology and Informatics, University of 
+      Pennsylvania, Philadelphia, U.S.
+LA  - eng
+GR  - R01 NS131225/NS/NINDS NIH HHS/United States
+PT  - Journal Article
+DEP - 20260804
+PL  - Canada
+TA  - Can J Stat
+JT  - The Canadian journal of statistics = Revue canadienne de statistique
+JID - 101092391
+PMC - PMC13441221
+MID - NIHMS2149909
+OTO - NOTNLM
+OT  - 62P10
+OT  - 90C30
+OT  - Calibration
+OT  - Case-control data
+OT  - Constrained optimization
+OT  - Primary 62-02
+OT  - Retrospective likelihood
+OT  - Secondary 90-01
+EDAT- 2026/08/06 12:37
+MHDA- 2026/08/06 12:37
+PMCR- 2026/08/06
+CRDT- 2026/08/06 07:22
+PHST- 2026/08/06 12:37 [medline]
+PHST- 2026/08/06 12:37 [pubmed]
+PHST- 2026/08/06 07:22 [entrez]
+PHST- 2026/08/06 00:00 [pmc-release]
+AID - e70058 [pii]
+AID - 10.1002/cjs.70058 [doi]
+PST - aheadofprint
+SO  - Can J Stat. 2026 Aug 4:e70058. doi: 10.1002/cjs.70058.

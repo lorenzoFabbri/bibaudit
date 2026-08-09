@@ -169,6 +169,17 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A journal name the registry files under a leading article is reachable
+  from the masthead form.** The rule took the article off the stored side
+  only, so an entry storing *Canadian Journal of Statistics* failed against
+  `JT - The Canadian journal of statistics = Revue canadienne de statistique`
+  (PMID 42559441) — the article-free form is what Crossref deposits and what a
+  bibliography exports, and 26 of the 63 parallel titles in NLM's list whose
+  half opens with an article reported `container/mismatch` for it. One article
+  now comes off one side per comparison, either side, and the reason printed
+  says which; `A Journal of Cancer` against `The Journal of Cancer` is still a
+  difference. `Lancet` against `The Lancet` is reported as the article it is
+  rather than as `stored name abbreviates the registry name`.
 - **A work its registry files under two types is compared against both.** NLM
   writes MEDLINE's `PT` list alphabetically, so the type leading a citation is
   not the structural one: PMID 42557261, a data descriptor in *Scientific

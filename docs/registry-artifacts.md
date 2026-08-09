@@ -961,17 +961,38 @@ entry has to match a name, and `JT` stays what the record holds.
 
 `benign._container_leading_article` covers the entry that stores the masthead
 name. It accepts a stored value whose opening `The`/`A`/`An`, taken off, leaves
-exactly `JT` or exactly one of the titles on `container_alternates`. The article
-comes off the **stored** side only — that is what the printed reason claims
-happened, so `A Journal of Cancer` against `The Journal of Cancer` is a
-difference and not an artifact — and it has to be the opening word: `Journal of
-the National Cancer Institute` against `Journal of National Cancer Institute`
-still fires. The qualifier is not stripped here at all — this rule compares
-whole titles, and what may come off the registry's side is decided by the two
-rules below. `The Lancet Oncology` against `Lancet (London, England)`
-therefore still fires under all three: strip its article and what is left
-matches neither title that record carries, and take the qualifier off and
-`Lancet` is still not `The Lancet Oncology`.
+exactly `JT` or exactly one of the titles on `container_alternates`, and it
+accepts the mirror: a `JT` or an alternate whose own opening article, taken
+off, leaves exactly the stored name. One article comes off **one** side per
+comparison, never both — that is what the printed reason claims happened, and
+the two reasons differ — so `A Journal of Cancer` against `The Journal of
+Cancer` is a difference and not an artifact. It has to be the opening word:
+`Journal of the National Cancer Institute` against `Journal of National Cancer
+Institute` still fires.
+
+The registry direction is where NLM's parallel titles arrive. `JT - The
+Canadian journal of statistics = Revue canadienne de statistique` (PMID
+42559441, `tests/data/pubmed_parallel_title_article.txt`) puts each half on
+`container_alternates` verbatim, article and all, while Crossref deposits the
+journal as *Canadian Journal of Statistics* — the spelling a bibliography
+exports. 63 of the 607 parallel titles in NLM's own list open a half with an
+article and 26 of those reported `container/mismatch` against the masthead
+form. NLM keeps an article on a whole `JT` too: `The Alaska nurse`, `Der
+Anaesthesist`, `L'Auxiliaire` are filed with one and abbreviated without it.
+
+The qualifier is not stripped here at all — this rule compares whole titles,
+and what may come off the registry's side beyond an article is decided by the
+two rules below. `The Lancet Oncology` against `Lancet (London, England)`
+therefore still fires under all three: strip an article from either side and
+what is left matches no title that record carries, and take the qualifier off
+and `Lancet` is still not `The Lancet Oncology`.
+
+`_container_leading_article` is placed **ahead of** `_container_abbreviation`
+in `benign.CHECKS`, which is the only thing that order decides. The wider rule
+accepts the same pairing — a dropped article is a token subsequence reaching
+the registry's last token — and calls it `stored name abbreviates the registry
+name`, which is not true of `Lancet` against `The Lancet`: nothing was
+abbreviated. The narrower reason is the one a reader can check.
 
 The `BMJ` record is worth spelling out, because the two spellings a bibliography
 uses reach the same destination by different routes. Against `JT` `BMJ (Clinical

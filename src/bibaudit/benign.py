@@ -424,21 +424,34 @@ def _container_leading_article(field: str, stored: str, registry: str, ref: Refe
     :func:`_container_medline_qualifier`, which is where the case for removing
     it is made.
 
-    The article comes off the **stored** value only, because that is what the
-    reason printed beside the suppression says happened. Taking it off both
-    sides suppressed ``A Journal of Cancer`` against ``The Journal of Cancer``
-    — two different articles, and a difference the registry did not drop
-    anything to produce — under a sentence that is false of it. The reverse
-    direction, an entry storing ``Lancet`` against a registry's ``The
-    Lancet``, is :func:`_container_abbreviation`'s and stays there.
+    One article comes off **one** side per comparison, never both, and the
+    reason printed says which. Taking it off both suppressed ``A Journal of
+    Cancer`` against ``The Journal of Cancer`` — two different articles, and a
+    difference the registry did not drop anything to produce — under a
+    sentence that is false of it.
+
+    The registry side is the direction NLM's parallel titles arrive from.
+    ``JT - The Canadian journal of statistics = Revue canadienne de
+    statistique`` (PMID 42559441) puts each half on
+    :attr:`~bibaudit.model.Record.container_alternates` verbatim, article and
+    all, while Crossref deposits the journal as *Canadian Journal of
+    Statistics* and that is the spelling a bibliography exports. 63 of the 607
+    parallel titles in NLM's own list open a half with an article, and 26 of
+    those reported ``container/mismatch`` against the masthead form. NLM keeps
+    an article on a whole ``JT`` too — ``The Alaska nurse``, ``Der
+    Anaesthesist``, ``L'Auxiliaire`` — and the same branch reaches those.
     """
     if field != "container":
         return None
-    stored_bare = _LEADING_ARTICLE.sub("", fold(stored))
-    for candidate in (registry, *rec.container_alternates):
-        folded = fold(candidate)
+    folded_stored = fold(stored)
+    stored_bare = _LEADING_ARTICLE.sub("", folded_stored)
+    candidates = [fold(value) for value in (registry, *rec.container_alternates)]
+    for folded in candidates:
         if folded and folded == stored_bare:
             return "registry files the journal without its leading article"
+    for folded in candidates:
+        if folded and _LEADING_ARTICLE.sub("", folded) == folded_stored:
+            return "registry files the journal under a leading article"
     return None
 
 
@@ -770,8 +783,10 @@ def _pmid_pmc_accession(field: str, stored: str, registry: str, ref: Reference, 
     return None
 
 
-#: Order matters only for which reason is reported first; the checks are
-#: independent and none of them consumes another's input.
+#: Order decides which reason is reported when two rules recognise one
+#: difference; the checks are independent and none of them consumes another's
+#: input. The reason printed beside a suppression is the whole of the account a
+#: reader gets of it, so the narrower, truer one goes first.
 CHECKS: tuple[ArtifactCheck, ...] = (
     _title_shortened,
     _title_mathml,
@@ -780,8 +795,12 @@ CHECKS: tuple[ArtifactCheck, ...] = (
     _year_deposit_artifact,
     _pages_article_number,
     _number_zero_padded,
-    _container_abbreviation,
+    # Ahead of :func:`_container_abbreviation`, which accepts the same pairing
+    # by a wider route and calls it an abbreviation. Where an article is the
+    # whole of the difference nothing was abbreviated, and ``Lancet`` against
+    # ``The Lancet`` was reported under a reason that is not true of it.
     _container_leading_article,
+    _container_abbreviation,
     _container_medline_subtitle,
     _container_medline_qualifier,
     _container_acronym_prefix,

@@ -460,11 +460,6 @@ class TestContainerAbbreviation:
         )
         assert reason == "stored name abbreviates the registry name"
 
-    def test_a_dropped_leading_article_is_accepted(self) -> None:
-        assert classify("container", "Lancet", "The Lancet", container_short=None) == (
-            "stored name abbreviates the registry name"
-        )
-
     def test_a_sibling_journal_is_not_an_abbreviation(self) -> None:
         """"Nature" is not short for "Nature Genetics" — it is a different journal.
 
@@ -557,6 +552,62 @@ class TestContainerLeadingArticle:
         assert classify(
             "container", "中华肿瘤杂志", "Chinese Journal of Oncology",
             container_alternates=["中华肿瘤杂志"],
+        ) is None
+
+    def test_the_article_the_registry_keeps_is_the_same_shape(self) -> None:
+        """NLM keeps a serial's article on some titles and drops it on most.
+
+        ``The Alaska nurse``, ``Der Anaesthesist``, ``L'Auxiliaire`` are ``JT``
+        values whose ``MedAbbr`` is the name without it, and *The Lancet*
+        against a stored *Lancet* is the shape a bibliography exported from
+        PubMed or EndNote carries. Nothing is abbreviated in any of them.
+        """
+        assert classify("container", "Lancet", "The Lancet", container_alternates=[]) == (
+            "registry files the journal under a leading article"
+        )
+
+    def test_a_parallel_title_half_that_opens_with_an_article_is_reachable(self) -> None:
+        """PMID 42559441: ``JT`` joins two names and the English one keeps its article.
+
+        Crossref deposits the journal as *Canadian Journal of Statistics*, so
+        the article-free masthead form is the exported spelling and the one
+        that failed. 63 of the 607 parallel titles in NLM's own list open a
+        half with an article.
+        """
+        journal, alternates = medline_journal("pubmed_parallel_title_article.txt")
+
+        assert journal == (
+            "The Canadian journal of statistics = Revue canadienne de statistique"
+        )
+        assert classify(
+            "container", "Canadian Journal of Statistics", journal,
+            container_alternates=alternates,
+        ) == "registry files the journal under a leading article"
+
+    def test_the_other_half_is_still_matched_whole(self) -> None:
+        """The French half carries no article and needs no editing at all."""
+        _, alternates = medline_journal("pubmed_parallel_title_article.txt")
+
+        assert "Revue canadienne de statistique" in alternates
+
+    def test_a_sibling_journal_is_not_a_kept_article_either(self) -> None:
+        """The pairing for the new direction, and the reason it is a whole-title test."""
+        assert classify(
+            "container", "Canadian Journal of Surgery",
+            "The Canadian journal of statistics = Revue canadienne de statistique",
+            container_alternates=["Can J Stat", "The Canadian journal of statistics"],
+        ) is None
+
+    def test_only_one_side_loses_an_article_in_any_comparison(self) -> None:
+        """``A X`` against ``The X`` is two articles, and neither rule may join them.
+
+        The stored branch strips the entry's, the registry branch strips the
+        record's, and running both would suppress a difference the registry
+        dropped nothing to produce under a sentence false of it.
+        """
+        assert classify(
+            "container", "A Journal of Cancer", "The Journal of Cancer",
+            container_alternates=[],
         ) is None
 
     def test_an_unrelated_journal_is_not_a_dropped_article(self) -> None:
