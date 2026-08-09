@@ -44,7 +44,7 @@ citation. Three gaps, each found by running the tool against real DOIs:
 (c) **A DOI only DataCite answers for gets no retraction check whatsoever.**
     DataCite's schema does carry a ``relatedIdentifiers`` relation named
     ``IsObsoletedBy``, which looked at first like a candidate. It is not one:
-    querying the live DataCite API for it (2026-08-01) turns up thousands of
+    querying the live DataCite API for it (2026-08-09) answers 8,277 DOIs,
     ordinary Zenodo preprint version bumps and PANGAEA dataset updates —
     ``10.5281/zenodo.19216416``, superseded by a later version of the same
     preprint at ``10.5281/zenodo.21729616``, is typical, not exceptional.
@@ -326,8 +326,8 @@ def _kind_rank(kind: str) -> int:
 
 def _looks_like_doi(value: str) -> bool:
     """Cheap shape check, not a validity one — good enough to reject blanks
-    and RW's own "no DOI available" sentinel (``Unavailable``, 3,419 rows in
-    the 2026-08-01 snapshot) without writing a second DOI regex.
+    and RW's own "no DOI available" sentinel (``Unavailable``, 3,422 rows in
+    the 2026-08-09 snapshot) without writing a second DOI regex.
     ``normalize.DOI_PATTERN`` is not reused here because these are already
     isolated CSV cells, not free text a pattern needs to be found *within* —
     see :func:`~bibaudit.normalize.normalize_doi`'s own docstring for why a
