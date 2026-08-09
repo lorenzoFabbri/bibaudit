@@ -76,7 +76,7 @@ build-backend = "hatchling.build"
 packages = ["src/bibaudit"]
 
 [tool.coverage.report]
-# Branch coverage sits at 94.44%. The floor is a ratchet against a change that
+# Branch coverage sits at 94.55%. The floor is a ratchet against a change that
 # quietly deletes coverage, not a target to chase: set close enough to bite and
 # far enough that an ordinary refactor moving lines around does not fail the
 # build for a reason nobody can act on. A number reported to a log nobody reads
