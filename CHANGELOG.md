@@ -120,8 +120,9 @@ so `uv sync --all-extras` does not install it into the test environment.
   checkers in projects that depend on it, and a `Typing :: Typed` classifier.
 - `RetractionStatus`, returned by `Retractions.status_for`, carrying the
   retraction notices and the names of sources that could not be reached, and
-  `RetractionOutage`, a `Transient` naming every retraction source a raised
-  outage took down rather than only the leg that raised.
+  `RetractionOutage`, a `Transient` carrying a whole `RetractionStatus` — every
+  notice the sources that *did* answer produced, beside the names of every
+  source the outage took down rather than only the leg that raised.
 - Per-version `Programming Language :: Python :: 3.11/3.12/3.13` classifiers.
 - `names.Reason`, an enum of every explanation the author comparison can attach
   to a position, and `names.ARTIFACT_REASONS` derived from it, so the set of
@@ -203,13 +204,120 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
-- **A zero-padded article number is one.** `is_article_number` measured the
-  value after `first_page` normalised the padding away, so `085001` counted as
-  five digits and fell under the six-digit floor while the unpadded `85001` for
-  the same article cleared it — the predicate answered differently about one
-  item depending on which registry deposited it, and
-  `benign._pages_article_number` never fired. Three correct entries in one
-  1,923-entry live sweep were reported `pages/mismatch` and failed the build.
+- **A creator the entry names past the registry's last is reported.**
+  `names.compare_author_lists` walks two bylines in step and stops at the
+  shorter one, so a name appended to the end of an entry's byline was compared
+  against nothing and the only trace was an author-*count* warning, which does
+  not fail. Appending one fabricated name to an otherwise correct byline
+  produced no failing verdict on **4,255 of 4,255** live entries — the
+  documented failure mode of a generated bibliography, and the reason
+  `compare._check_authors` compares the whole list rather than the first
+  author. It is now `authors/uncorroborated` at error severity, one line per
+  creator, naming the creator, because a count line names nobody and the
+  reader's question is *which* name no record carries. Appending a fabricated
+  name to each of 1,177 entries written from the MEDLINE record now fails every
+  one of them, and the same 1,177 unmutated fail none.
+
+  A registry whose byline is short at the tail produces the identical shape and
+  no author list can separate the two, so three kinds of tail position are kept
+  out of the claim: a **collective** creator, since an organisation is not an
+  invented co-author (PMID 38236418, `on behalf of the STAAB consortium`); a
+  **surname the registry's own byline carries elsewhere**, without which the
+  line contradicts the record it quotes; and a creator the **corroborating**
+  registry names, since *uncorroborated* is a claim about every record that
+  answered while only one byline is ever compared. After those, the cost on
+  3,040 works whose MEDLINE and Crossref records were both fetched is 7
+  (0.23%), all of them on the PMID path, where there is no second witness;
+  on the DOI path it is none.
+
+- **A byline that lost an author is no longer excused as a reordering.** The
+  escape tested set membership of surnames position by position, so a byline in
+  which a surname repeats — routine in Chinese, Korean and Japanese author
+  lists — read a whole one-position shift as an exchange: 104 of 2,551 live
+  entries missing their first author came back non-failing, 94 with every
+  shifted position excused. `docs/registry-artifacts.md` promised "a genuine
+  exchange, not a name that merely went missing", and the code did not
+  implement it. Both bylines must now hold the **same creators counted**, which
+  makes a length difference impossible. Of 3,040 live pairs, 9 carry a
+  `reordered` position; the 3 that lose it are the 3 whose lengths differ. A
+  reordering compounded with a spelling difference is now reported.
+
+- **Two page locators neither side can read no longer agree with each other.**
+  `first_page` read an optional letter, any zero padding and the digits, and
+  returned `""` for anything else — and `""` compares equal to `""`, so every
+  unreadable locator agreed with every other one. A bibliography storing
+  `NP585-NP599` against a record holding `NP580-NP599` came back `OK`. SAGE's
+  online-only `NP…` numbering and Roman front matter are the live shapes: 24 of
+  4,548 MEDLINE `PG` values (0.53%) in a fresh 4,800-citation sample spanning
+  1992-2026, 22 of them `NP…`, `i-xv` on PMID 38284210 and `suppl 4 p.` on PMID
+  10118706. An unreadable locator now falls back to the folded text ahead of
+  the range separator, and `compare._check_pages` accepts an empty opening only
+  against identical text.
+
+- **A MEDLINE `FAU` written without its comma is read MEDLINE's way.** `FAU` is
+  `Surname, Initials` and the comma says which half is which; without it the
+  value reached `names.parse_name`, whose comma-less convention is BibTeX's
+  "Given Family", and `Okano J` arrived as a creator surnamed `J`. A registry
+  surname of one character is what `Reason.REGISTRY_INITIAL_ONLY` accepts *any*
+  stored surname against, so the entry's byline stopped being checked at that
+  position. 13 of 24,456 `FAU` values on 11 of 4,800 citations carry no comma,
+  each written character-for-character as its own `AU` line. The one citation
+  written the other way round — PMID 31128948's `K Sikorska`, where
+  `"Sikorska K"[au]` answers 215 citations and `"K Sikorska"[au]` exactly one —
+  is rewritten on two conditions, because 67 of 48,919 `FAU`/`AU` values open
+  with a single letter and the rest are surnames of one or two letters followed
+  by their initials (`S DMTS`, `A LK`, `N AK`, `T T`), which is NLM's order
+  already.
+
+- **A PubMed outage no longer deletes Retraction Watch's answer.** The outage
+  raised a `RetractionOutage` carrying the names of the downed sources, and
+  everything Retraction Watch had already said died with the frame — so a DOI
+  Retraction Watch records as retracted and Crossref does not linked read
+  `OK` / `retraction-unverified` / exit 0 during any NCBI hiccup, with
+  `consulted` reporting `retraction-watch: answered` and the note asserting
+  that no registry which answered records a retraction. 8 of 300 randomly
+  sampled Retraction Watch retraction DOIs carry no Crossref `updated-by`
+  linkage at all, which is ~1,600 DOIs across the export where that was the
+  whole of the evidence. The exception now carries a whole `RetractionStatus`,
+  built by the same merge the clean return uses, and both call sites read it
+  through `audit._outage_status`.
+
+- **The Retraction Watch export is fetched past the shared registry cache, so
+  its seven days bound.** The index has a seven-day TTL, but the fetch behind
+  it went through the ordinary registry cache on `--cache-ttl-days`, default
+  90 — so when the index expired the "refetch" was served from a body up to 90
+  days old, and a retraction logged in that window read clean on the one source
+  that exists to catch what Crossref and NLM do not. `Client.get_text` gained
+  `bypass_cache`, detaching the store on the read side, on the body write and
+  on the 404 marker, and the 64 MB `json.dump` of the CSV into the cache is
+  gone with it. `docs/retraction.md`, `docs/cli.md` and `docs/ci.md` stated the
+  rule the code did not implement, and now state the one it does.
+
+- **A suppression on a stored PMID names the registry that carries both
+  numbers.** `_check_pmid` reads its right-hand value off whichever record
+  holds a PMID, which is never the primary of a DOI-resolved entry — Crossref
+  and DataCite set `Record.pmid` on nothing — but the `REGISTRY-ARTIFACT` line
+  beside it was attributed to the primary, so "stored number is this record's
+  own PMC accession" printed under Crossref's name, inviting a reader to check
+  the claim against a record with no `PMC` field. The mismatch branch in the
+  same function was already right.
+
+- **A zero-padded article number is one.** `is_article_number` counted the
+  value after `first_page` had normalised the padding away, and `085001` and
+  `85001` are both five digits there — so neither cleared the six-digit floor,
+  `benign._pages_article_number` never fired, and three correct entries in one
+  1,923-entry live sweep (PMIDs 42571480, 42571556, 42571506, *J Biomed Opt*,
+  `PG` `085001`/`086003`/`086004` against a Crossref `page` of
+  `1-15`/`1-16`/`1-37`) were reported `pages/mismatch` and failed the build.
+  Both floors now count the value as the source wrote it, padding included,
+  because the padding is the evidence: no journal files a page number with
+  leading zeros. 177 of 4,548 MEDLINE `PG` values in a fresh 4,800-citation
+  sample are padded numerics and every one of them is six characters written.
+  The predicate reads notation and not the article behind it, so the same
+  number written bare stays under the floor — a residual with no witnessed
+  instance, and stated in `docs/registry-artifacts.md` alongside the other one:
+  once either side looks like an article number the other is not examined at
+  all.
 
 - **The "not asked" note names each source beside the key it is looked up by.**
   The keyless sources were pooled into one clause, so a book carrying neither
@@ -228,12 +336,18 @@ so `uv sync --all-extras` does not install it into the test environment.
   directory is unchanged for a run that does not pass `--cache-dir`.
 
 - **A `RetractionNature` this build cannot rank is announced rather than
-  dropped in silence.** Such a row is still skipped — guessing "retraction" for
-  a category that may be milder is the false alarm the third rule exists to
-  prevent — but the run now warns, naming the value and its row count, because
-  skipping is a missed notice on the one field where a miss has no remedy and
-  nothing else in the run mentioned it. Every value in the 2026-08-09 export is
-  recognised, so an ordinary run is silent.
+  dropped in silence, on every run and not only the one that parsed.** Such a
+  row is still skipped — guessing "retraction" for a category that may be
+  milder is the false alarm the third rule exists to prevent — but the run now
+  warns, naming the value and its row count, because skipping is a missed
+  notice on the one field where a miss has no remedy and nothing else in the
+  run mentioned it. The warning was raised inside the CSV parse, which a run
+  reaches only on a cache miss, so for the life of the index every later run
+  was silent about a row it had skipped. The counts are cached beside the
+  notices and said once per process from the one point both routes to an index
+  pass through; the payload gained a shape, so an index written by an earlier
+  build is refetched rather than read back as one that skipped nothing. Every
+  value in the 2026-08-09 export is recognised, so an ordinary run is silent.
 
 - **A retraction whose date Retraction Watch left blank is no longer withdrawn
   by a reinstatement.** An unreadable date sorted as the earliest date there
