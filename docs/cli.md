@@ -163,12 +163,13 @@ cache is still read.
 
 `--cache-dir` defaults to `$XDG_CACHE_HOME/bibaudit` when that variable is set on
 any platform, otherwise `~/Library/Caches/bibaudit` on macOS and
-`~/.cache/bibaudit` elsewhere. It relocates the per-request registry cache only:
-the parsed Retraction Watch index is kept separately, in a `retraction-watch/`
-subdirectory of the *default* cache directory, on its own seven-day lifetime
-that `--cache-ttl` does not change. Ninety days is right for bibliographic
-fields, which do not change under a fixed DOI; seven is right for a status,
-which does.
+`~/.cache/bibaudit` elsewhere. It relocates everything the run caches, the
+parsed Retraction Watch index included: that index lives in a
+`retraction-watch/` subdirectory of whichever cache root the run was given, so
+`bibaudit cache info` counts it and `bibaudit cache clear` discards it. It keeps
+its own seven-day lifetime, which `--cache-ttl` does not change and `--refresh`
+does not shorten. Ninety days is right for bibliographic fields, which do not
+change under a fixed DOI; seven is right for a status, which does.
 
 `--timeout` bounds one request. A logical lookup is retried — one attempt plus
 four retries, backing off 1, 2, 4 and 8 seconds, or by whatever a `Retry-After`
