@@ -543,6 +543,22 @@ class TestContainerLeadingArticle:
             container_alternates=["Lancet"],
         ) is None
 
+    def test_a_title_the_comparison_alphabet_cannot_represent_matches_nothing(
+        self,
+    ) -> None:
+        """Both sides fold to nothing, and nothing is not a match.
+
+        MEDLINE files a Chinese-language serial under a ``TA`` written in Han,
+        which ``fold`` discards entirely. Without the emptiness guard the
+        stored name — discarded the same way — equals that empty alternate, and
+        a journal nobody compared is suppressed under a sentence claiming the
+        registry dropped an article it never had.
+        """
+        assert classify(
+            "container", "中华肿瘤杂志", "Chinese Journal of Oncology",
+            container_alternates=["中华肿瘤杂志"],
+        ) is None
+
     def test_an_unrelated_journal_is_not_a_dropped_article(self) -> None:
         assert classify(
             "container", "BMJ", "Lancet (London, England)", container_alternates=["Lancet"]
@@ -646,6 +662,41 @@ class TestContainerMedlineSubtitle:
             "for Adolescent Medicine",
             container_alternates=["J Adolesc Health"],
         ) == "registry files the journal under a leading article and a subtitle"
+
+    def test_the_first_spaced_colon_is_the_separator_not_the_last(self) -> None:
+        """NLM writes a second one, and everything before it is not the name.
+
+        ``Arthroscopy : the journal of arthroscopic & related surgery :
+        official publication of the Arthroscopy Association of North America
+        and the International Arthroscopy Association`` is NlmId 8506498's own
+        filing title, verbatim from NLM's serial list
+        (``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``), where 401 of 37,987
+        serials carry two spaced colons. The masthead is *Arthroscopy*.
+        Splitting on the last colon would compare the stored name against
+        ``Arthroscopy : the journal of arthroscopic & related surgery`` and
+        report a correct entry as a mismatch.
+        """
+        jt = (
+            "Arthroscopy : the journal of arthroscopic & related surgery : "
+            "official publication of the Arthroscopy Association of North America "
+            "and the International Arthroscopy Association"
+        )
+
+        assert classify("container", "Arthroscopy", jt) == (
+            "registry appends its own subtitle to the journal name"
+        )
+
+    def test_the_text_between_two_separators_is_not_the_journals_name(self) -> None:
+        """The pairing, and what a last-colon split would have accepted."""
+        jt = (
+            "Arthroscopy : the journal of arthroscopic & related surgery : "
+            "official publication of the Arthroscopy Association of North America "
+            "and the International Arthroscopy Association"
+        )
+
+        assert classify(
+            "container", "Arthroscopy : the journal of arthroscopic & related surgery", jt
+        ) is None
 
     def test_a_different_article_on_the_stored_side_still_fires(self) -> None:
         """The pairing: only one side is ever stripped, so *A* is not *The*.

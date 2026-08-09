@@ -1744,6 +1744,28 @@ class TestAnAnswerAboutAnotherRecord:
         assert result.verdict == "UNCHECKED"
         assert result.issues[0].note.startswith("pubmed did not answer for it")
 
+    def test_the_note_says_that_an_answer_about_another_record_settles_nothing(
+        self,
+    ) -> None:
+        """Without that clause the line reads as an accusation, which is the
+        one thing an ``UNCHECKED`` may never be.
+
+        "pubmed answered with 20137807 instead" on its own invites the reader
+        to conclude the stored number is wrong. It is not evidence of that: no
+        registry was ever asked what 9500320 names, and only an *absence* may
+        accuse a bibliography.
+        """
+        result = compare(
+            make_ref(doi=None, pmid="9500320"),
+            {},
+            asked={"pubmed"},
+            inconclusive={"pubmed": ("20137807",)},
+        )
+
+        assert result.issues[0].note.endswith(
+            "an answer about another record is not one about this identifier"
+        )
+
     def test_an_answer_of_no_such_record_is_still_bad_id(self) -> None:
         """The finding this must not swallow.
 

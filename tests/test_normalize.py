@@ -286,6 +286,21 @@ class TestPmidExtraction:
     def test_a_label_inside_a_sentence_declares_nothing(self, note: str) -> None:
         assert extract_pmid(note) is None
 
+    def test_a_label_alone_on_its_line_reaches_across_no_break(self) -> None:
+        """The case the *horizontal*-whitespace separator class decides alone.
+
+        The label opens its line here, so the anchor is satisfied and only the
+        separator stands between it and the digits on the next one. ``\\s``
+        there would read them as the declared identifier and resolve the entry
+        by a year — the same wrong-lookup-key failure as a label read out of a
+        sentence, reached by the one route the anchor cannot close.
+        """
+        assert extract_pmid("PMID\n2017 reanalysis in the same journal") is None
+
+    def test_a_tab_between_the_label_and_the_number_still_declares_it(self) -> None:
+        """And the class is horizontal whitespace, not a single space."""
+        assert extract_pmid("PMID:\t28520842") == "28520842"
+
     def test_a_label_opening_a_wrapped_continuation_line_declares_nothing(self) -> None:
         """The shape MEDLINE itself emits, and the one that costs the most.
 
