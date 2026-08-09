@@ -801,8 +801,8 @@ class TestCorrection:
 class TestAMilderNoticeBesideARetraction:
     """One report may not say a work has been withdrawn and that it stands.
 
-    Two sources reporting different kinds for one work is ordinary: of 200 DOIs
-    sampled whose strongest Retraction Watch row is a correction, 18 carry a
+    Two sources reporting different kinds for one work is ordinary: of the 650
+    DOIs whose strongest Retraction Watch row is a correction, 19 carry a
     Crossref ``updated-by`` retraction — 10.1111/anec.12955 among them, and
     10.1080/09513590600604673 for the concern. Both findings are printed — they
     are separate statements and all of them are true — but the milder note's

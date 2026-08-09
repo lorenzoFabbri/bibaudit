@@ -227,8 +227,8 @@ so `uv sync --all-extras` does not install it into the test environment.
   holds rather than only the first.
 - **A concern or a correction printed beside a retraction no longer says the
   work stands.** Two sources reporting different kinds for one work is
-  ordinary: of 200 DOIs sampled whose strongest Retraction Watch row is a
-  correction, 18 carry a Crossref `updated-by` retraction. Both findings are
+  ordinary: of the 650 DOIs whose strongest Retraction Watch row is a
+  correction, 19 carry a Crossref `updated-by` retraction. Both findings are
   still printed, because they are separate statements and all of them are
   true. What changed is the milder note's
   closing clause: where a retraction is recorded for the same work it now reads
