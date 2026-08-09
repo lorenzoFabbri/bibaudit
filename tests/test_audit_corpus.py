@@ -178,7 +178,7 @@ class _RetractionsRecorder:
     def __init__(self) -> None:
         self.status_for_calls: list[list[str]] = []
 
-    def make(self, client: object) -> _RetractionsRecorder:
+    def make(self, client: object, cache_dir: object = None) -> _RetractionsRecorder:
         return self
 
     def status_for(self, dois: list[str]) -> RetractionStatus:

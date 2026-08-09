@@ -101,7 +101,12 @@ from .registries.datacite import DataCite
 from .registries.http import Cache, Client, Transient, default_cache_dir
 from .registries.openlibrary import OpenLibrary, normalize_isbn13
 from .registries.pubmed import PubMed
-from .registries.retractions import RetractionNotice, Retractions, concern_in
+from .registries.retractions import (
+    RW_CACHE_SUBDIR,
+    RetractionNotice,
+    Retractions,
+    concern_in,
+)
 from .registries.search import Search
 from .suppress import Suppressions
 
@@ -209,7 +214,18 @@ def _build(options: AuditOptions) -> _Registries:
             client, use_europepmc=options.use_europepmc, use_openalex=options.use_openalex
         ),
         openlibrary=OpenLibrary(client) if options.use_isbn else None,
-        retractions=Retractions(client) if options.retraction_check else None,
+        retractions=(
+            # Under the chosen cache root, not this module's own default: the
+            # index is the one cache holding retraction status, and left at the
+            # default it was invisible to ``--cache-dir`` — so ``bibaudit cache
+            # info`` under-reported by the whole index and ``cache clear`` could
+            # not clear it. Read together with the seven-day TTL that
+            # ``--refresh`` does not shorten, a run that cached a bad index had
+            # no route back from the command line at all.
+            Retractions(client, cache_dir=options.cache_dir / RW_CACHE_SUBDIR)
+            if options.retraction_check
+            else None
+        ),
     )
 
 

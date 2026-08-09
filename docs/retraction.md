@@ -301,7 +301,10 @@ the 90 days ordinary registry lookups get by default, because retraction status
 changes under a DOI whose bibliographic metadata never changes again. A
 retraction logged there in the last few days may not yet be reflected. The
 seven-day window belongs to that index's own cache; `--refresh` does not shorten
-it.
+it. The index lives in a `retraction-watch` subdirectory of whichever cache root
+the run was given, so `bibaudit cache info` counts it and `bibaudit cache clear`
+is the way to discard it — which, with `--refresh` not reaching it, is the only
+way.
 
 **`--no-retraction-check` turns the independent pair off.** The pair is
 Retraction Watch's export and PubMed's `ECI`, so the flag costs a concern NLM

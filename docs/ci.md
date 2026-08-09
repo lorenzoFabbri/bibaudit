@@ -130,10 +130,12 @@ Why it is shaped that way:
   the ones the first step failed — and `continue-on-error: true` keeps that
   second step from failing the job a second time for the same finding.
 - `--cache-dir` is given explicitly rather than left to the per-user default,
-  because the cache path is what `actions/cache` has to be told to restore.
-  Cached answers stay valid for `--cache-ttl` days, 90 by default. If the
-  directory cannot be created the run continues without a cache and warns; it
-  does not fail.
+  because the cache path is what `actions/cache` has to be told to restore. It
+  holds the Retraction Watch index too, in a `retraction-watch` subdirectory, so
+  restoring it saves a ~66 MB download; that index has its own seven-day TTL
+  rather than `--cache-ttl`'s 90 days. Cached answers stay valid for
+  `--cache-ttl` days, 90 by default. If the directory cannot be created the run
+  continues without a cache and warns; it does not fail.
 
 ## As a `make` target
 

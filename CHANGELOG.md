@@ -184,6 +184,13 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **`--cache-dir` reaches the Retraction Watch index.** It was built under the
+  default cache root whatever the run was given, so `bibaudit cache info`
+  under-reported by the whole index and `bibaudit cache clear` left it in
+  place — and with a seven-day TTL that `--refresh` does not shorten, a run
+  that cached a bad index had no route back from the command line. The
+  directory is unchanged for a run that does not pass `--cache-dir`.
+
 - **A `RetractionNature` this build cannot rank is announced rather than
   dropped in silence.** Such a row is still skipped — guessing "retraction" for
   a category that may be milder is the false alarm the third rule exists to

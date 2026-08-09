@@ -116,7 +116,7 @@ from ..normalize import clean, extract_dois, fold, normalize_doi, parse_year
 from .http import Cache, Client, Transient, default_cache_dir
 from .pubmed import PubMed
 
-__all__ = ["RetractionNotice", "Retractions", "concern_in"]
+__all__ = ["RW_CACHE_SUBDIR", "RetractionNotice", "Retractions", "concern_in"]
 
 #: Crossref Labs' distribution of the Retraction Watch database. Verified
 #: live (2026-08-01): a keyless, unauthenticated ``GET`` streams a ~66 MB,
@@ -141,6 +141,13 @@ _RW_CACHE_TTL_DAYS = 7
 #: unparsed rows again, and reparsing a cached raw CSV every run would defeat
 #: the point of caching at all.
 _RW_INDEX_CACHE_KEY = "index-v1"
+
+#: Subdirectory the parsed index lives in, under whichever cache root the
+#: caller chose. Named rather than written out at the two places that build the
+#: path, so ``audit.py`` cannot point ``--cache-dir`` at one directory while
+#: this module's default reads another — which is how ``bibaudit cache clear``
+#: came to leave the one cache holding retraction status untouched.
+RW_CACHE_SUBDIR = "retraction-watch"
 
 #: RW's ``RetractionNature`` values (2026-08-01 snapshot, 71,496 rows) mapped
 #: onto this module's kind vocabulary. Keys are :func:`~bibaudit.normalize.fold`ed
@@ -639,7 +646,7 @@ class Retractions:
         """
         self._client = client
         self._cache = Cache(
-            cache_dir if cache_dir is not None else default_cache_dir() / "retraction-watch",
+            cache_dir if cache_dir is not None else default_cache_dir() / RW_CACHE_SUBDIR,
             ttl_days=_RW_CACHE_TTL_DAYS,
         )
         self._pubmed = PubMed(client)

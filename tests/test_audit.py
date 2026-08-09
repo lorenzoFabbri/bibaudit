@@ -291,11 +291,16 @@ class _StubRetractions:
         self.rw_unreachable = rw_unreachable
         self.constructions = 0
         self.client: object = None
+        self.cache_dir: Path | None = None
         self.status_for_calls: list[list[str]] = []
 
-    def make(self, client: object) -> _StubRetractions:
+    def make(self, client: object, cache_dir: Path | None = None) -> _StubRetractions:
         self.constructions += 1
         self.client = client
+        #: Which cache root ``_build`` chose for the index. Recorded because
+        #: this is the one cache holding retraction status, and left at the
+        #: module's own default it was out of ``--cache-dir``'s reach.
+        self.cache_dir = cache_dir
         return self
 
     def status_for(self, dois: Sequence[str]) -> RetractionStatus:
@@ -1661,6 +1666,25 @@ class TestRetractionCorroboration:
         result = audit([make_ref(doi=doi)], options)[0]
 
         assert result.verdict == "BAD-ID"
+
+    def test_the_index_lives_under_the_cache_dir_the_run_was_given(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The Retraction Watch index is the one cache holding retraction
+        status, and it was built with the module's own default root whatever
+        ``--cache-dir`` said. ``bibaudit cache info`` then under-reported by
+        the whole index and ``cache clear`` left it in place — and with a
+        seven-day TTL that ``--refresh`` does not shorten, a run that cached a
+        bad index had no route back from the command line at all.
+        """
+        stubs = _install(monkeypatch)
+
+        audit([make_ref()], _options(tmp_path))
+
+        # The subdirectory is spelled out rather than read from the source: a
+        # rename orphans every existing installation's index, silently, and
+        # this is the assertion that would notice.
+        assert stubs.retractions.cache_dir == tmp_path / "cache" / "retraction-watch"
 
     def test_no_retraction_check_disables_independent_corroboration(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

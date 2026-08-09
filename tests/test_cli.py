@@ -1175,3 +1175,22 @@ class TestCacheCommand:
 
         assert list(cache_dir.rglob("*.json")) == []
         assert "cleared" in capsys.readouterr().out
+
+    def test_the_retraction_index_is_counted_and_cleared_with_the_rest(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """It is the one cache holding retraction status, and it used to sit
+        outside ``--cache-dir`` entirely: ``info`` under-reported by the whole
+        index, and ``clear`` — the only route back from an index cached from a
+        bad fetch, since ``--refresh`` does not reach it — left it untouched.
+        """
+        cache_dir = tmp_path / "cache"
+        index = cache_dir / "retraction-watch" / "cd"
+        index.mkdir(parents=True)
+        (index / "0123.json").write_text("{}", encoding="utf-8")
+
+        assert main(["cache", "info", "--cache-dir", str(cache_dir)]) == 0
+        assert "1 cached responses" in capsys.readouterr().out
+
+        assert main(["cache", "clear", "--cache-dir", str(cache_dir)]) == 0
+        assert list(cache_dir.rglob("*.json")) == []
