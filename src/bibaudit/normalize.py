@@ -98,6 +98,44 @@ _PUNCT_TABLE = str.maketrans(_PUNCT_MAP)
 #: record for the same DOI, 10.1001/jamanetworkopen.2026.26893, and the entry
 #: failed on ``authors/mismatch``.
 #:
+#: Confined to the letters that occur in living orthographies \u2014 German,
+#: Danish, Norwegian, Icelandic, Faroese, Polish, Croatian, Maltese, Turkish,
+#: French, Northern Sami, Greenlandic \u2014 rather than the whole of CLDR's table,
+#: whose remaining rows are IPA and Africanist orthography that no byline in
+#: this literature carries. A letter with no row here is *removed* by
+#: :func:`fold` rather than spaced, so it can still never break a surname into
+#: two tokens; what it cannot do is make the two spellings agree.
+#:
+#: One spelling per letter, which is all a table can hold and less than the
+#: registries write. NLM romanises eth as ``d`` on the overwhelming majority of
+#: its bylines and as ``eth`` on a few \u2014 ``Gudmundsdottir[au]`` answers 884
+#: records and ``Guethmundsdottir[au]`` none, ``Sigurdsson[au]`` 2,433 against
+#: ``Sigurethsson[au]`` 10 \u2014 and the minority spelling is a difference this
+#: cannot fold away. A stated limit rather than a second row: a letter with two
+#: mappings is two keys, and nothing in the pair being compared says which of
+#: them the other side used. See ``docs/limits.md``.
+#:
+#: Capitals need no rows: :func:`fold` lowercases first, and the accented
+#: composites arrive here already reduced \u2014 ``\u01fd`` is ``\u00e6`` once NFKD has taken
+#: its acute off.
+_ROMANISED_MAP = {
+    "\u00df": "ss",  # German. Wei\u00df / Weiss, Gro\u00df / Gross
+    "\u00e6": "ae",  # Danish, Norwegian, Icelandic. Kj\u00e6r / Kjaer
+    "\u00f8": "o",  # Danish, Norwegian. J\u00f8rgensen / Jorgensen
+    "\u00f0": "d",  # Icelandic, Faroese. PMID 38747246: Crossref deposits
+    #                Gu\u00f0mundsd\u00f3ttir, MEDLINE writes Gudmundsdottir.
+    "\u00fe": "th",  # Icelandic. \u00de\u00f3rsson / Thorsson
+    "\u0111": "d",  # Croatian, Serbian, Vietnamese. \u0110or\u0111evi\u0107 / Dordevic
+    "\u0127": "h",  # Maltese
+    "\u0131": "i",  # Turkish dotless i
+    "\u0142": "l",  # Polish. \u0141ukszo / Lukszo, \u0141api\u0144ska / Lapinska
+    "\u0153": "oe",  # French
+    "\u014b": "n",  # Northern Sami
+    "\u0167": "t",  # Northern Sami
+    "\u0138": "q",  # Greenlandic
+}
+_ROMANISED_TABLE = str.maketrans(_ROMANISED_MAP)
+
 #: Unicode's category for a letter that modifies the one beside it rather than
 #: standing for a sound of its own. ALA-LC romanisation writes the Russian soft
 #: sign as U+02B9 MODIFIER LETTER PRIME and the Hawaiian and Uzbek glottal
@@ -112,34 +150,6 @@ _PUNCT_TABLE = str.maketrans(_PUNCT_MAP)
 #: stands in for does, and the removal in :func:`fold` is for letters that
 #: carry a sound.
 _MODIFIER_LETTER = "Lm"
-
-#: Confined to the letters that occur in living orthographies \u2014 German,
-#: Danish, Norwegian, Icelandic, Faroese, Polish, Croatian, Maltese, Turkish,
-#: French, Northern Sami, Greenlandic \u2014 rather than the whole of CLDR's table,
-#: whose remaining rows are IPA and Africanist orthography that no byline in
-#: this literature carries. A letter with no row here is *removed* by
-#: :func:`fold` rather than spaced, so it can still never break a surname into
-#: two tokens; what it cannot do is make the two spellings agree.
-#:
-#: Capitals need no rows: :func:`fold` lowercases first, and the accented
-#: composites arrive here already reduced \u2014 ``\u01fd`` is ``\u00e6`` once NFKD has taken
-#: its acute off.
-_ROMANISED_MAP = {
-    "\u00df": "ss",  # German. Wei\u00df / Weiss, Gro\u00df / Gross
-    "\u00e6": "ae",  # Danish, Norwegian, Icelandic. Kj\u00e6r / Kjaer
-    "\u00f8": "o",  # Danish, Norwegian. J\u00f8rgensen / Jorgensen
-    "\u00f0": "d",  # Icelandic, Faroese. Fri\u00f0riksd\u00f3ttir / Fridriksdottir
-    "\u00fe": "th",  # Icelandic. \u00de\u00f3rsson / Thorsson
-    "\u0111": "d",  # Croatian, Serbian, Vietnamese. \u0110or\u0111evi\u0107 / Dordevic
-    "\u0127": "h",  # Maltese
-    "\u0131": "i",  # Turkish dotless i
-    "\u0142": "l",  # Polish. \u0141ukszo / Lukszo, \u0141api\u0144ska / Lapinska
-    "\u0153": "oe",  # French
-    "\u014b": "n",  # Northern Sami
-    "\u0167": "t",  # Northern Sami
-    "\u0138": "q",  # Greenlandic
-}
-_ROMANISED_TABLE = str.maketrans(_ROMANISED_MAP)
 
 
 def clean(value: object) -> str:

@@ -415,7 +415,9 @@ class TestARomanisedByline:
             ("Heß-Busch", "Hess-Busch"),
             ("Dreßen", "Dressen"),
             ("Łapińska", "Lapinska"),
-            ("Friðriksdóttir", "Fridriksdottir"),
+            # PMID 38747246, 10.1093/eurheartj/ehae331: MEDLINE writes
+            # Gudmundsdottir where Crossref deposits Guðmundsdóttir.
+            ("Guðmundsdóttir", "Gudmundsdottir"),
         ],
     )
     def test_the_two_registries_spellings_agree(
@@ -429,6 +431,24 @@ class TestARomanisedByline:
         # And on the strongest ground there is: the two keys are equal, not
         # excused by a documented escape.
         assert reason is None
+
+    def test_the_registrys_second_romanisation_of_a_letter_is_not_reached(self) -> None:
+        """NLM writes eth as ``d`` on nearly every byline, and ``eth`` on a few.
+
+        PMID 42541912 is one of them — ``FAU - Friethriksdottir, Nanna``
+        against Crossref's ``Friðriksdóttir`` for 10.1016/j.ejca.2026.116959 —
+        and the length difference puts the pair past the one-substitution rule
+        the spelling-variant escape allows, so a correct entry reports
+        ``authors/mismatch``. A table holds one spelling per letter and a
+        second is a second key, not a wider match: ``docs/limits.md`` says so
+        where a reader of the report will find it.
+        """
+        agreed, _ = names_agree(
+            Name(family="Friethriksdottir", given="N"),
+            Name(family="Friðriksdóttir", given="N"),
+        )
+
+        assert not agreed
 
     def test_a_different_surname_is_still_reported(self) -> None:
         """Romanising must not make one Danish surname stand for another."""

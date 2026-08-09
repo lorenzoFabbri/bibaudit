@@ -146,7 +146,9 @@ class TestALetterNfkdLeavesWhole:
             ("Kjær", "Kjaer"),
             ("Jørgensen", "Jorgensen"),
             ("Łukszo", "Lukszo"),
-            ("Friðriksdóttir", "Fridriksdottir"),
+            # PMID 38747246, 10.1093/eurheartj/ehae331: Crossref deposits
+            # Guðmundsdóttir and MEDLINE writes Gudmundsdottir on one byline.
+            ("Guðmundsdóttir", "Gudmundsdottir"),
             ("Þórsson", "Thorsson"),
             ("Đorđević", "Dordevic"),
             ("Ħamed", "Hamed"),
@@ -158,6 +160,19 @@ class TestALetterNfkdLeavesWhole:
         self, written: str, romanised: str
     ) -> None:
         assert fold(written) == fold(romanised)
+
+    def test_the_registrys_other_romanisation_is_not_folded_away(self) -> None:
+        """NLM writes eth as ``d`` on nearly every byline and as ``eth`` on a few.
+
+        ``Gudmundsdottir[au]`` answers 884 records and
+        ``Guethmundsdottir[au]`` none; ``Sigurdsson[au]`` 2,433 against
+        ``Sigurethsson[au]`` 10; ``Fridriksdottir[au]`` 114 against
+        ``Friethriksdottir[au]`` 2. The table holds one spelling per letter,
+        and a second would be a second key rather than a wider match, so the
+        minority spelling is a stated limit — ``docs/limits.md`` — and PMID
+        42541912 is a live instance of it.
+        """
+        assert fold("Friðriksdóttir") != fold("Friethriksdottir")
 
     def test_an_accent_on_top_of_one_comes_off_first(self) -> None:
         """``ǽ`` is ``æ`` plus an acute, so NFKD reduces it before the table."""

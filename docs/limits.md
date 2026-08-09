@@ -176,6 +176,29 @@ and how they are combined; these are their edges.
   says `answered` and no `not-asked` line names it. [Retraction](retraction.md)
   says why there is no fourth consultation state for it.
 
+## One registry romanises a byline and the other does not
+
+MEDLINE writes an author's surname in ASCII; Crossref deposits it as the author
+writes it. `fold` closes most of that gap by romanising the letters NFKD leaves
+whole — `Kjær` and `Kjaer`, `Weiß` and `Weiss`, `Guðmundsdóttir` and
+`Gudmundsdottir` (PMID 38747246, `10.1093/eurheartj/ehae331`, where the two
+registries spell one person both ways) — and each of those letters has exactly
+**one** ASCII spelling in the table.
+
+NLM does not always pick the same one. Eth is `d` on the overwhelming majority
+of its bylines and `eth` on a few: `Gudmundsdottir[au]` answers 884 records and
+`Guethmundsdottir[au]` none, `Sigurdsson[au]` 2,433 against `Sigurethsson[au]`
+10, `Fridriksdottir[au]` 114 against `Friethriksdottir[au]` 2. On the minority
+records the two spellings are two comparison keys — `Friðriksdóttir` against
+MEDLINE's `Friethriksdottir`, PMID 42541912 — and a correct entry reports
+`authors/mismatch`.
+
+That is a stated limit and not a second table row. A letter with two mappings
+produces two keys, and nothing in the pair being compared says which of them
+the other side used; picking one silently reintroduces the failure on the other
+spelling. A run that hits it prints both surnames in full, which is what the
+report is for.
+
 ## Registries are sometimes wrong
 
 The registry is a witness, not an authority, and bibaudit has no standing to
