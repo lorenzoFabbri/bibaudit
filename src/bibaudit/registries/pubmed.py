@@ -275,7 +275,7 @@ def _container_book(fields: dict[str, list[str]]) -> str | None:
 #: whichever its house style uses. 607 of the 37,989 serials in NLM's own list,
 #: ``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``, carry one; **34** of those
 #: have a part equal to some other serial's whole title, 38 once
-#: :func:`~bibaudit.normalize.fold` has run \u2014 ``Dong wu xue yan jiu =
+#: :func:`~bibaudit.normalize.fold` has run — ``Dong wu xue yan jiu =
 #: Zoological research`` beside ``Zoological research``, ``Noshuyo byori =
 #: Brain tumor pathology`` beside ``Brain tumor pathology``. That is why the
 #: parts are offered as alternates the entry may match rather than substituted

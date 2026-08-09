@@ -773,8 +773,8 @@ def _container_acronym_prefix(field: str, stored: str, registry: str, ref: Refer
     10.1002/jac5.70263, ``pubmed_acronym_prefix_subtitle.txt``). Several
     publishers put the acronym on the masthead that way and a reference
     manager copies it whole; NLM never does. Four entries in a 386-entry live
-    sample take this shape \u2014 PMIDs 42550479, 42544784 and 42528271, all
-    *JNCI*, and 42522049 \u2014 and on the PMID path ``JT`` is the only container
+    sample take this shape — PMIDs 42550479, 42544784 and 42528271, all
+    *JNCI*, and 42522049 — and on the PMID path ``JT`` is the only container
     there is to be compared against.
 
     Two more were first counted with them and are a different difference:
