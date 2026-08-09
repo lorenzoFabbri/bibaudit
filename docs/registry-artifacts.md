@@ -34,8 +34,9 @@ record it there.
 around* guard against something the registries' responses make representable
 but that no probe has caught one doing. They are kept because the two outcomes
 are not symmetrical: adopting another work's record hands an entry that work's
-metadata and that work's retraction status, which no later check recovers from,
-while declining one costs a lookup.
+metadata, which no later check recovers from, while declining one costs a
+lookup. Post-publication status is the one thing carried across a work's
+citations regardless, and the first of those two sections says why.
 
 *Doubled tokens from mangled MathML*, *Bracketed parent title on comments and
 replies* and *Deposit timestamps recorded as publication years* are the other
@@ -636,14 +637,29 @@ whenever there was more than one. The DOI still resolves — two citations of on
 work carry the same title, byline and year, so which of them supplies those is
 arbitrary and nothing is lost but the one comparison that had no basis.
 
-They need not carry the same `PT`, which is the part that is not arbitrary.
-Fetching one of the two took retraction status off whichever number sorted
-last, so a work PubMed records as retracted under one citation and not the
-other reported clean — the worst miss available here, and the one that defeats
-the stated reason PubMed is consulted at all. `_retracted_first` breaks the tie
-towards the finding, on the rule `crossref._reciprocal_updates` states: naming
-a retraction a second citation does not carry costs a line a reader can check,
-and missing one puts a retracted paper in a manuscript.
+Post-publication status is the part that is not arbitrary, and it is read off
+every citation rather than off the one that supplied the fields. Fetching one
+of the two took retraction status off whichever number sorted last, so a work
+PubMed records as retracted under one citation and not the other reported clean
+— the worst miss available here, and the one that defeats the stated reason
+PubMed is consulted at all. `_merged_citation` carries the `PT` retraction flag
+across, and MEDLINE's `ECI` cross-reference with it: a concern is filed on the
+citation it was raised against, and reading it off one record left whether it
+was reported at all to `efetch`'s ordering. The tie breaks towards the finding,
+on the rule `crossref._reciprocal_updates` states: naming a status a second
+citation does not carry costs a line a reader can check, and missing one puts a
+retracted paper in a manuscript.
+
+**The fields do not cross over, and that is the half this section turns on.**
+Handing the retracted citation on whole would resolve the second case above —
+one record listing another work's identifier as its own — towards adopting that
+work's record, chosen *because* it carries the accusation, and give the entry
+its title, byline, container and year. Carrying the status alone is the one
+asymmetry kept deliberately: in that residual case a status this DOI's other
+citation does not carry becomes a line a reader can check against two named
+PMIDs, and dropping it would put a retracted paper in a manuscript. Ignorance
+about retraction may never render as a clean bill of health; nothing else in a
+citation is carried this way.
 
 **Why it matters.** A work with two PubMed citations makes either number a
 correct thing to store. Keeping the arbitrary one would fail a bibliography for

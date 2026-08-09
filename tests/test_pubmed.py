@@ -756,6 +756,49 @@ class TestByDois:
         assert record.retracted
         assert record.retraction_kind == "Retracted Publication"
 
+    def test_the_status_crosses_over_but_the_fields_do_not(self) -> None:
+        """The other thing two PMIDs for one DOI can mean.
+
+        ``_pmids_by_doi``'s own docstring names it: one record listing another
+        work's identifier among its own article ids, in the residual form where
+        both claim a DOI that was asked for. Handing that record on whole
+        because it is the retracted one gives the entry another work's title,
+        byline, container and year — picked *because* it carries the accusation
+        — and no later check recovers from the swap. The title asserted here is
+        the citation that arrived first, and the retraction is still reported.
+        """
+        client = _StubClient(
+            esearch_ids=[WAKEFIELD_PMID, "28338828"],
+            doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI, "28338828": WAKEFIELD_DOI},
+            medline=f"{_fixture('wrapped_title')}\n{_fixture('retracted')}",
+        )
+        record = PubMed(client).by_dois([WAKEFIELD_DOI])[normalize_doi(WAKEFIELD_DOI)]
+
+        assert record.title is not None
+        assert record.title.startswith("Night shift work, chronotype")
+        assert record.retracted
+
+    def test_a_concern_on_the_citation_that_did_not_supply_the_fields_survives(
+        self,
+    ) -> None:
+        """``PT`` is not the only per-citation status field.
+
+        NLM records a concern as an ``ECI`` cross-reference on the citation it
+        was raised against, and ``registries/retractions.py`` reads it off one
+        record's ``raw``. Whichever citation ``efetch`` happened to return
+        first therefore decided whether the concern was reported at all.
+        """
+        client = _StubClient(
+            esearch_ids=["28338828", "23741377"],
+            doi_by_pmid={"28338828": WAKEFIELD_DOI, "23741377": WAKEFIELD_DOI},
+            medline=f"{_fixture('wrapped_title')}\n{_fixture('eci_concern')}",
+        )
+        record = PubMed(client).by_dois([WAKEFIELD_DOI])[normalize_doi(WAKEFIELD_DOI)]
+
+        assert record.title is not None
+        assert record.title.startswith("Night shift work, chronotype")
+        assert "ECI" in record.raw
+
     def test_an_ambiguous_doi_still_carries_no_pmid(self) -> None:
         """Which citation supplied the fields is arbitrary, and stays unstated.
 

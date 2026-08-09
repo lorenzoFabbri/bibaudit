@@ -224,9 +224,14 @@ so `uv sync --all-extras` does not install it into the test environment.
   Where `esummary` attributed two PMIDs to one DOI, only the number that sorted
   last was fetched, and its `PT` decided the entry's retraction status — so a
   work PubMed records as retracted under one citation and not the other
-  reported clean. Both are now fetched and the tie breaks towards the finding.
-  Which citation supplies the title and byline is still arbitrary and
-  `Record.pmid` is still withheld: two citations of one work agree on those.
+  reported clean. Both are now fetched, and the post-publication status of
+  either is the entry's: the `PT` retraction flag and MEDLINE's `ECI`
+  cross-reference, which is filed on the citation a concern was raised against
+  and so was previously reported or lost according to `efetch`'s ordering. The
+  title and byline still come from the citation that arrived first, and
+  `Record.pmid` is still withheld: two citations of one work agree on those,
+  and a record listing another work's identifier as its own must not be able to
+  supply an entry's metadata by being the retracted one.
 - **`status/not-asked` says which of its two reasons applied.** "Were never
   asked" covered a source that takes an identifier the reference does not carry
   — which no rerun changes — and one that had a key and was left out by

@@ -508,21 +508,54 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
     )
 
 
-def _retracted_first(records: Sequence[Record]) -> Record | None:
+#: MEDLINE's "Expression of Concern In:" cross-reference, filed on the
+#: concerned paper's own citation. Named here only so :func:`_merged_citation`
+#: can carry it across the citations of one work; what it *asserts* is read in
+#: ``registries/retractions.py``, the one module that reads ``ECI`` at all, and
+#: nothing in this one interprets it.
+_MEDLINE_CONCERN_IN = "ECI"
+
+
+def _merged_citation(records: Sequence[Record]) -> Record | None:
     """One record for a DOI PubMed answered for under several PMIDs.
 
-    Two citations of one work agree on title, byline and year, so any of them
-    describes the work — but they need not agree on ``PT``, and the retracted
-    one is the only one that says the work was pulled back. A tie breaks
+    Two citations of one work agree on title, byline and year, so the first of
+    them describes the work and which one that is stays arbitrary. Post-
+    publication status is what they need not agree on, and it is read off all
+    of them: ``PT - Retracted Publication`` on either is this work retracted,
+    and NLM files its ``ECI`` cross-reference on the citation the concern was
+    raised against, which need not be the one that arrived first. A tie breaks
     towards the finding, on the rule ``crossref._reciprocal_updates`` states:
-    naming a retraction a second citation of the same work does not carry
-    costs a line a reader can check, and missing one puts a retracted paper in
-    a manuscript.
+    naming a status a second citation of the same work does not carry costs a
+    line a reader can check, and missing one puts a retracted paper in a
+    manuscript.
+
+    The fields are deliberately not taken off the citation that carries the
+    status. Two PMIDs for one DOI can also mean that one record lists another
+    work's identifier among its own article ids — see :meth:`PubMed._pmids_by_doi`
+    — and handing that record on whole would give the entry that work's title,
+    byline, container and year, chosen *because* it carries the accusation, in
+    a swap no later check recovers from. The status crosses over; the
+    description of the work does not.
     """
-    for record in records:
-        if record.retracted:
-            return record
-    return records[0] if records else None
+    if not records:
+        return None
+
+    merged = records[0]
+    retracted = next((record for record in records if record.retracted), None)
+    if retracted is not None and retracted is not merged:
+        merged = replace(merged, retracted=True, retraction_kind=retracted.retraction_kind)
+
+    if _MEDLINE_CONCERN_IN not in merged.raw:
+        concerned = next(
+            (record for record in records if _MEDLINE_CONCERN_IN in record.raw), None
+        )
+        if concerned is not None:
+            merged = replace(
+                merged,
+                raw={**merged.raw, _MEDLINE_CONCERN_IN: concerned.raw[_MEDLINE_CONCERN_IN]},
+            )
+    return merged
 
 
 @dataclass(frozen=True)
@@ -649,11 +682,14 @@ class PubMed:
         **Every** PMID a DOI came back under is fetched, not one of them. Two
         citations of one work carry the same title, byline and year, so which
         of them supplies those was and remains arbitrary — but they need not
-        carry the same ``PT``, and taking retraction status off whichever
-        number happened to sort last reported a retracted paper as clean. That
-        is the worst miss available here, and it defeats the stated reason
-        PubMed is consulted at all. :func:`_retracted_first` breaks the tie
-        towards the finding, exactly as ``crossref._reciprocal_updates`` does.
+        carry the same ``PT`` or the same ``ECI``, and taking retraction status
+        off whichever number happened to sort last reported a retracted paper
+        as clean. That is the worst miss available here, and it defeats the
+        stated reason PubMed is consulted at all. :func:`_merged_citation`
+        collects the status off every citation while the fields stay with the
+        first, so the tie breaks towards the finding, exactly as
+        ``crossref._reciprocal_updates`` does, without the entry taking a
+        second record's description of the work along with it.
         """
         candidates = self._pmids_by_doi(dois)
         if not candidates:
@@ -698,7 +734,7 @@ class PubMed:
                 chosen, doi=doi, pmid=None if doi in ambiguous else chosen.pmid
             )
             for doi, records in found.items()
-            if (chosen := _retracted_first(records)) is not None
+            if (chosen := _merged_citation(records)) is not None
         }
 
     def by_pmids(self, pmids: Sequence[str]) -> PmidAnswers:
