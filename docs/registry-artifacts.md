@@ -47,9 +47,11 @@ for deletion. What each searched, and what the search found instead, is in its
 own section. One author escape, *One-character spelling variants*, is in
 the same position and says so in its own words.
 
-`tests/test_benign.py::TestRuleScoping` fails the build when a rule marked
-**NO WITNESSED INSTANCE** in the source is not marked in its section here, so
-the two cannot drift.
+`tests/test_benign.py::TestRuleScoping` fails the build when a rule in
+`benign.CHECKS` **or** an escape in `names.py` is marked **NO WITNESSED
+INSTANCE** in the source and its section here is not, so the two cannot drift.
+The author escape names the reason it belongs to on the same line as the
+marker, which is how the scan finds the section a reader would look it up in.
 
 Not every section documents a defect, and the ones that do not say so in their
 own opening lines: *Registries disagreeing with each other* and *Open Library*
@@ -335,7 +337,7 @@ together, each of which names what it excludes:
 The forename initials must also agree, which is what defeats `Kowalski, Anna`
 against `Kowalska, Piotr`.
 
-**No witnessed instance.** No entry in the 438-entry corpus this tool was
+**NO WITNESSED INSTANCE.** No entry in the 438-entry corpus this tool was
 developed against reaches this branch. It is kept, narrowly, for the
 transliteration variants a multilingual bibliography does produce, and it is a
 candidate for deletion rather than for widening. An earlier form of it accepted

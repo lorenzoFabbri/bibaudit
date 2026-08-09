@@ -634,7 +634,8 @@ def names_agree(stored: Name, registry: Name) -> tuple[bool, Reason | None]:
     if len(registry_key) <= 1:
         return True, Reason.REGISTRY_INITIAL_ONLY
 
-    # **NO WITNESSED INSTANCE.** No entry in the 438-entry corpus reaches this
+    # **NO WITNESSED INSTANCE** (Reason.SPELLING_VARIANT). No entry in the
+    # 438-entry corpus reaches this
     # branch: the run flagged eight author differences and every one of them is a
     # collective author, an et-al marker, the E3N omission or Latin-1 mojibake.
     # The corpus is private and the baseline that recorded those eight is not in

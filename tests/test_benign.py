@@ -1339,6 +1339,50 @@ class TestRuleScoping:
             "their section in docs/registry-artifacts.md does not."
         )
 
+    def test_an_author_escape_with_no_instance_says_so_where_the_reader_looks(
+        self,
+    ) -> None:
+        """The author half of the marker contract, which only ``CHECKS`` had.
+
+        ``names.py`` marks one escape **NO WITNESSED INSTANCE** and the file a
+        reader actually reaches marked it in a different case, so the scan
+        above could never have matched it even had it looked. Editing the
+        marker out of the section left the suite green.
+
+        The source names the reason on the marker's own line, because an
+        escape is a branch inside a byline walk rather than a function in a
+        registry, and nothing else ties the two together mechanically.
+        """
+        prose = ARTIFACT_DOCS.read_text(encoding="utf-8")
+        source = Path(str(names.__file__)).read_text(encoding="utf-8")
+        marked = [
+            reason
+            for reason in names.Reason
+            for line in source.splitlines()
+            if _UNWITNESSED in line and f"Reason.{reason.name}" in line
+        ]
+
+        assert marked, (
+            f"no line of names.py carries {_UNWITNESSED} beside a Reason member. "
+            "Either the marker moved or it stopped naming its reason, and "
+            "either way this test now proves nothing."
+        )
+        unmarked = [
+            reason.name
+            for reason in marked
+            for section in [
+                next(
+                    (s for s in prose.split("\n## ") if f"`{_documented(reason)}`" in s),
+                    "",
+                )
+            ]
+            if _UNWITNESSED not in section
+        ]
+        assert unmarked == [], (
+            f"{unmarked} carry a {_UNWITNESSED} note in names.py and their "
+            "section in docs/registry-artifacts.md does not."
+        )
+
     def test_every_author_escape_is_written_up_too(self) -> None:
         """The author half of the same contract.
 
