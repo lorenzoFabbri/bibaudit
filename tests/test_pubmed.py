@@ -12,8 +12,8 @@ Two groups of tests matter more than the rest:
   perfectly correct entry — the false alarm this project says costs more than
   a miss.
 * **The retraction tests.** ``PT  - Retracted Publication`` is on the article
-  that was retracted; ``PT  - Retraction of Publication`` is on the notice
-  that retracted it. They are one word apart and mean opposite things, so both
+  that was retracted; ``PT  - Retraction Notice`` is on the notice that
+  retracted it. They open on the same stem and mean opposite things, so both
   directions are asserted: reading them backwards clears retracted work, which
   is the worst failure this tool can have.
 
@@ -641,20 +641,37 @@ class TestRetractionSignals:
         assert record.retracted is True
         assert record.retraction_kind == "Retracted Publication"
 
-    def test_retraction_of_publication_does_not_mark_the_notice_retracted(self) -> None:
+    def test_a_retraction_notice_is_not_marked_retracted(self) -> None:
         """PMID 20137807 is the Lancet's notice, not a defective paper.
 
-        It carries ``PT  - Retraction of Publication``: one word away from the
-        value above and the opposite meaning. Any check looser than an exact
-        match — a substring test for "retract", the obvious shortcut — reports
-        this citable notice as retracted work while clearing the paper it
-        retracted.
+        It carries ``PT  - Retraction Notice`` and no other type: the same
+        stem as the value above and the opposite meaning. Any check looser
+        than an exact match — a substring test for "retract", the obvious
+        shortcut — reports this citable notice as retracted work while
+        clearing the paper it retracted.
         """
         record = _resolve_one(
             "retraction_notice", pmid=RETRACTION_NOTICE_PMID, doi=RETRACTION_NOTICE_DOI
         )
         assert record.retracted is False
         assert record.retraction_kind is None
+
+    def test_the_notices_publication_type_is_the_one_nlm_emits(self) -> None:
+        """Pins the fixture to NLM's live vocabulary, not to a past snapshot.
+
+        Everything the test above proves is proved against whatever string the
+        fixture happens to hold, so a snapshot that has drifted keeps passing
+        while the comments around it describe a value NLM no longer sends.
+        ``Retraction of Publication`` was the preferred term for MeSH
+        descriptor D016440 until 2025 and is an entry term now:
+        ``"Retraction of Publication"[pt]`` matches no record in PubMed, so a
+        fixture carrying it is testing the direction rule against a string the
+        rule can never meet in the field.
+        """
+        record = _resolve_one(
+            "retraction_notice", pmid=RETRACTION_NOTICE_PMID, doi=RETRACTION_NOTICE_DOI
+        )
+        assert record.raw["PT"] == ["Retraction Notice"]
 
     def test_an_ordinary_article_is_not_retracted(self) -> None:
         """Guards the other tail: a ``PT`` list of ordinary types.

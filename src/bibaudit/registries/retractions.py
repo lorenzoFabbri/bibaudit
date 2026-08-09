@@ -641,10 +641,9 @@ def _notice_from_pubmed(doi: str, record: Record) -> RetractionNotice | None:
     ``record.retracted``/``record.retraction_kind`` are read straight off,
     not re-derived: ``registries.pubmed._retraction`` already tells
     ``Retracted Publication`` (this record was retracted) apart from
-    ``Retraction of Publication`` (this record *is* the notice, and
-    ``retracted`` is correctly ``False``) — see that function's docstring for
-    the one-word direction rule this module would otherwise have to
-    reimplement, incorrectly, to matter.
+    ``Retraction Notice`` (this record *is* the notice, and ``retracted`` is
+    correctly ``False``) — see that constant's comment for the direction rule
+    this module would otherwise have to reimplement, incorrectly, to matter.
 
     ``ECI`` — NLM's "Expression of Concern In:" cross-reference — is read
     through :func:`concern_in`, which is also what a caller holding a record

@@ -456,10 +456,10 @@ class TestRetraction:
     def test_a_retraction_notice_is_not_a_retracted_work(self) -> None:
         """The direction, which is the one thing here that must not be guessed.
 
-        ``Retracted Publication`` is a paper that was retracted.  ``Retraction
-        of Publication`` *is* the notice announcing one — an ordinary, citable
+        ``Retracted Publication`` is a paper that was retracted. ``Retraction
+        Notice`` *is* the notice announcing one — an ordinary, citable
         document, and citing it is not a defect in anybody's bibliography. The
-        two strings differ by one word, so any test looser than the equality
+        two strings open on the same stem, so any test looser than the equality
         ``registries.pubmed`` performs clears the retracted paper and flags the
         notice that retracted it: exactly backwards, and silently.
 
@@ -472,7 +472,7 @@ class TestRetraction:
         notice = make_record(
             title=notice_title,
             retracted=False,
-            retraction_kind="Retraction of Publication",
+            retraction_kind="Retraction Notice",
         )
         result = compare(make_ref(title=notice_title), {"crossref": notice})
         assert result.verdict != "RETRACTED"
@@ -685,10 +685,9 @@ class TestRetractionDirectionOnRealDeposits:
 
         The verdict test above would also pass if retraction detection had
         broken outright, so the four flags are asserted directly — including
-        NLM's, whose publication type for the notice is now ``Retraction
-        Notice`` where the older snapshot in ``tests/data/`` still reads
-        ``Retraction of Publication``. Both are one word away from ``Retracted
-        Publication``, which is why ``registries.pubmed`` matches on equality.
+        NLM's, whose publication type for the notice is ``Retraction Notice``.
+        It opens on the same stem as ``Retracted Publication``, which is why
+        ``registries.pubmed`` matches on equality.
         """
         assert crossref_record("compare_crossref_wakefield_retracted.json").retracted
         assert pubmed_record("compare_pubmed_wakefield_retracted.txt").retracted

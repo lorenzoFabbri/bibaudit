@@ -750,9 +750,9 @@ class TestPubMedEci:
         assert notice.source == "pubmed"
 
     def test_a_retraction_notice_is_not_reported(self, tmp_path: Path) -> None:
-        """``PT - Retraction of Publication`` means *this record is the
-        notice*; ``pubmed.py`` already reads ``retracted=False`` for it, and
-        it carries no ``ECI`` of its own either.
+        """``PT - Retraction Notice`` means *this record is the notice*;
+        ``pubmed.py`` already reads ``retracted=False`` for it, and it carries
+        no ``ECI`` of its own either.
         """
         stub = _client(
             pmid_by_doi={RETRACTION_NOTICE_DOI: RETRACTION_NOTICE_PMID},

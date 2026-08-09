@@ -101,16 +101,23 @@ _ABBREVIATION_TAIL_RE = re.compile(r"(?:[A-Za-z]\.){2,}$")
 #: The MEDLINE ``PT`` (publication type) value NLM puts on an article that has
 #: been retracted, folded for comparison.
 #:
-#: The neighbouring value is ``Retraction of Publication``, and it means the
-#: opposite: that record *is* the notice announcing a retraction, which is a
-#: perfectly citable document and not itself a defect. The two differ by one
-#: word, so any check looser than an exact match — a substring test for
-#: "retract", say — clears the retracted paper and flags the notice that
-#: retracted it. That is the worst mistake this tool can make, which is why
-#: this is an equality test against a single controlled-vocabulary value.
+#: The neighbouring value is ``Retraction Notice``, and it means the opposite:
+#: that record *is* the notice announcing a retraction, which is a perfectly
+#: citable document and not itself a defect. Both values open on the same stem,
+#: so any check looser than an exact match — a substring test for "retract",
+#: say — clears the retracted paper and flags the notice that retracted it.
+#: That is the worst mistake this tool can make, which is why this is an
+#: equality test against a single controlled-vocabulary value.
 #: PMID 9500320 (Wakefield et al., Lancet 1998) carries ``PT  - Retracted
 #: Publication``; PMID 20137807, the Lancet notice that retracted it, carries
-#: ``PT  - Retraction of Publication``.
+#: ``PT  - Retraction Notice`` and nothing else.
+#:
+#: ``Retraction of Publication`` was the preferred term for the notice until
+#: NLM renamed MeSH descriptor D016440 in 2025. It is an entry term now, so no
+#: MEDLINE record carries it and ``"Retraction of Publication"[pt]`` answers
+#: zero; a rule written against the old spelling would silently stop matching
+#: rather than fail. Nothing here reads either notice value — the direction is
+#: enforced by naming only the retracted paper's own type.
 _PT_RETRACTED = "retracted publication"
 
 #: What NLM writes in ``TI`` when it holds no English title for an article —
