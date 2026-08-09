@@ -470,10 +470,12 @@ def _container_leading_article(field: str, stored: str, registry: str, ref: Refe
     :attr:`~bibaudit.model.Record.container_alternates` verbatim, article and
     all, while Crossref deposits the journal as *Canadian Journal of
     Statistics* and that is the spelling a bibliography exports. 63 of the 607
-    parallel titles in NLM's own list open a half with an article, and 26 of
-    those reported ``container/mismatch`` against the masthead form. NLM keeps
-    an article on a whole ``JT`` too — ``The Alaska nurse``, ``Der
-    Anaesthesist``, ``L'Auxiliaire`` — and the same branch reaches those.
+    parallel titles in NLM's own list open a half with an article, and this
+    branch is what reaches 62 of them: without it an entry storing the
+    article-free masthead form of those 62 reports ``container/mismatch``,
+    where with it none does. NLM keeps an article on a whole ``JT`` too —
+    ``The Alaska nurse``, ``Der Anaesthesist``, ``L'Auxiliaire`` — and the same
+    branch reaches those.
     """
     if field != "container":
         return None

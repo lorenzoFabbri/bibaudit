@@ -1025,9 +1025,11 @@ Canadian journal of statistics = Revue canadienne de statistique` (PMID
 `container_alternates` verbatim, article and all, while Crossref deposits the
 journal as *Canadian Journal of Statistics* — the spelling a bibliography
 exports. 63 of the 607 parallel titles in NLM's own list open a half with an
-article and 26 of those reported `container/mismatch` against the masthead
-form. NLM keeps an article on a whole `JT` too: `The Alaska nurse`, `Der
-Anaesthesist`, `L'Auxiliaire` are filed with one and abbreviated without it.
+article, and this branch is what reaches 62 of them: strip the registry side
+back out and an entry storing the article-free masthead form of those 62
+reports `container/mismatch`, where today none does. NLM keeps an article on a
+whole `JT` too: `The Alaska nurse`, `Der Anaesthesist`, `L'Auxiliaire` are
+filed with one and abbreviated without it.
 
 The qualifier is not stripped here at all — this rule compares whole titles,
 and what may come off the registry's side beyond an article is decided by the
