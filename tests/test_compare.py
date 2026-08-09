@@ -1302,6 +1302,46 @@ class TestARecordWithNothingToCompare:
         assert result.verdict == "RETRACTED"
 
 
+def stamps_retracted(source: str) -> dict[str, bool]:
+    """``Record.source`` -> whether that same ``Record(...)`` call sets ``retracted``.
+
+    Per call rather than per module: one module may build records for more
+    than one registry, and a flag read off the module answers for a client
+    that never set it.
+
+    ``source=`` is a literal, an attribute of the client class, or a
+    module-level name; the last two are resolved against the module's own
+    string assignments.
+    """
+    tree = ast.parse(source)
+    literals = {
+        target.id: node.value.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
+    stamped: dict[str, bool] = {}
+    for call in ast.walk(tree):
+        if not (
+            isinstance(call, ast.Call)
+            and isinstance(call.func, ast.Name)
+            and call.func.id == "Record"
+        ):
+            continue
+        carries = any(kw.arg == "retracted" for kw in call.keywords)
+        holder = next((kw.value for kw in call.keywords if kw.arg == "source"), None)
+        if isinstance(holder, ast.Constant):
+            stamped[str(holder.value)] = carries
+        elif isinstance(holder, ast.Attribute):
+            stamped[literals[holder.attr]] = carries
+        elif isinstance(holder, ast.Name):
+            stamped[literals[holder.id]] = carries
+    return stamped
+
+
 class TestEveryRegistryClientIsAccountedFor:
     """``_NO_RETRACTION_SIGNAL`` is derived from the clients, not remembered.
 
@@ -1322,43 +1362,32 @@ class TestEveryRegistryClientIsAccountedFor:
         package = Path(str(bibaudit.__file__)).parent / "registries"
         stamped: dict[str, bool] = {}
         for path in sorted(package.glob("*.py")):
-            tree = ast.parse(path.read_text(encoding="utf-8"))
-            literals = {
-                target.id: node.value.value
-                for node in ast.walk(tree)
-                if isinstance(node, ast.Assign)
-                and isinstance(node.value, ast.Constant)
-                and isinstance(node.value.value, str)
-                for target in node.targets
-                if isinstance(target, ast.Name)
-            }
-            calls = [
-                node
-                for node in ast.walk(tree)
-                if isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Name)
-                and node.func.id == "Record"
-            ]
-            carries = any(
-                keyword.arg == "retracted" for call in calls for keyword in call.keywords
-            )
-            for call in calls:
-                source = next(
-                    (kw.value for kw in call.keywords if kw.arg == "source"), None
-                )
-                if isinstance(source, ast.Constant):
-                    stamped[str(source.value)] = carries
-                elif isinstance(source, ast.Attribute):
-                    # ``source=self.name``, where ``name`` is the client class's
-                    # own literal attribute.
-                    stamped[literals[source.attr]] = carries
-                elif isinstance(source, ast.Name):
-                    stamped[literals[source.id]] = carries
+            stamped.update(stamps_retracted(path.read_text(encoding="utf-8")))
         return stamped
 
     def test_the_clients_are_readable_at_all(self) -> None:
         """Guards the derivation itself: a silent empty scan proves nothing."""
         assert set(self._stamped()) >= {"crossref", "datacite", "pubmed", "openlibrary"}
+
+    def test_each_record_call_answers_for_its_own_source(self) -> None:
+        """One module stamps two sources, and the flag was read off the module.
+
+        ``registries/search.py`` builds a Europe PMC record and an OpenAlex
+        record, so a single ``retracted=`` anywhere in it credited both. The
+        day one of the two learns to read a retraction linkage the other is
+        credited with it as well, ``test_no_client_that_does_read_one_is_excluded``
+        goes red for the source that learnt nothing, and the mechanical way to
+        make it pass is to drop *both* from ``_NO_RETRACTION_SIGNAL`` —
+        reinstating exactly the manufactured doubt the set exists to prevent.
+        """
+        two_in_one_module = (
+            "def a():\n"
+            "    return Record(source='alpha', retracted=True)\n"
+            "def b():\n"
+            "    return Record(source='beta')\n"
+        )
+
+        assert stamps_retracted(two_in_one_module) == {"alpha": True, "beta": False}
 
     def test_every_client_that_reads_no_retraction_signal_is_excluded(self) -> None:
         missing = {
