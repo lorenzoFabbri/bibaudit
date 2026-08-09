@@ -391,12 +391,18 @@ def _number_zero_padded(field: str, stored: str, registry: str, ref: Reference, 
     reference manager copied off a publisher's page into a numeric field, the
     entry is wrong about the field's contents, and the fix is one the user can
     make.
+
+    One condition over both sides rather than one each. Written as two, neither
+    half could be shown to be doing anything: ``lstrip("0")`` strips only the
+    ASCII zero, so a pair surviving the equality below with either side ASCII
+    digits has the other side ASCII digits too, and the one pair that escapes
+    that — an empty value against a run of zeros — :func:`classify` refuses
+    before any rule here runs. Each half was therefore reachable only through
+    inputs the other already refused, and deleting either left the tests green.
     """
     if field not in {"volume", "issue"}:
         return None
-    if not (stored.isascii() and stored.isdigit()):
-        return None
-    if not (registry.isascii() and registry.isdigit()):
+    if not all(value.isascii() and value.isdigit() for value in (stored, registry)):
         return None
     if stored.lstrip("0") != registry.lstrip("0"):
         return None
