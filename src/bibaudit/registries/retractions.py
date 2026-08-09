@@ -359,11 +359,11 @@ def _parse_rw_csv(text: str) -> dict[str, RetractionNotice]:
         if nature == "reinstatement":
             kind: str | None = None
         elif not nature:
-            # Undocumented by RW itself but witnessed live (241 of 71,641
-            # rows): the whole database's subject is retractions, so an
-            # untagged row is read as one rather than silently dropped — a
-            # missed retraction costs more than a stray one whose specific
-            # nature could not be classified.
+            # Undocumented by RW itself but witnessed live (241 of the 71,641
+            # rows in the 2026-08-09 export): the whole database's subject is
+            # retractions, so an untagged row is read as one rather than
+            # silently dropped — a missed retraction costs more than a stray
+            # one whose specific nature could not be classified.
             kind = "retraction"
         else:
             kind = _RW_KIND_MAP.get(nature)
