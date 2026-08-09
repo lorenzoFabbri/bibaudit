@@ -404,11 +404,28 @@ def first_page(value: object) -> str:
     Leading zeros are stripped because *Environmental Health Perspectives* and
     similar journals zero-pad article numbers (``027004``) while the citing
     entry carries ``27004``. Both denote the same article.
+
+    A locator :data:`_PAGE_RE` cannot read falls back to the folded text ahead
+    of the range separator, which is still *the opening locator* — the thing
+    this function is for — and is not the empty string. Returning ``""`` there
+    made every unreadable value compare equal to every other unreadable value:
+    ``compare._check_pages`` asks whether the two openings match, and two
+    inabilities to read one matched. SAGE paginates its online-only articles
+    ``NP580-NP599`` and front matter runs ``i-xv``; 24 of 3,250 MEDLINE ``PG``
+    values (0.74%) on a live sample of 3,500 citations spanning 1992-2026 are
+    one of those two shapes, and a bibliography storing ``NP585-NP599`` against
+    a record holding ``NP580-NP599`` came back ``OK``.
+
+    Only the opening, on the fallback path as on the other one, so the closing
+    page keeps disagreeing harmlessly: MEDLINE writes ``NP2661-76`` where
+    Crossref writes ``NP2661-NP2676`` for 10.1177/1010539511421194 and both
+    open at ``np2661``. Of the 24, the 21 whose publisher deposited a page at
+    all agree with MEDLINE on the opening locator, character for character.
     """
     text = clean(value).replace("--", "-")
     match = _PAGE_RE.match(text)
     if not match:
-        return ""
+        return fold(text.split("-", 1)[0])
     prefix, digits = match.group(1).lower(), match.group(3)
     return f"{prefix}{digits}"
 

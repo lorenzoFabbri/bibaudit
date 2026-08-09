@@ -256,6 +256,53 @@ class TestPages:
     def test_letter_prefixes_are_preserved(self) -> None:
         assert first_page("e324-e336") == "e324"
 
+    def test_a_locator_the_pattern_cannot_read_is_still_an_opening_locator(self) -> None:
+        """``""`` compares equal to ``""``, so every unreadable value agreed.
+
+        SAGE paginates its online-only articles ``NP580-NP599`` and front
+        matter runs ``i-xv``; neither is a letter and digits, so the pattern
+        does not match and this returned nothing at all. 24 of 3,250 MEDLINE
+        ``PG`` values (0.74%) on a live sample of 3,500 citations spanning
+        1992-2026 take one of the two shapes.
+        """
+        assert first_page("NP580-NP599") == "np580"
+        assert first_page("i-xv") == "i"
+
+    def test_two_unreadable_locators_no_longer_agree_with_each_other(self) -> None:
+        """The true positive, and the miss that motivated this.
+
+        A bibliography storing ``NP585-NP599`` against a record holding
+        ``NP580-NP599`` came back ``OK``.
+        """
+        assert first_page("NP585-NP599") != first_page("NP580-NP599")
+
+    def test_the_closing_page_still_disagrees_harmlessly(self) -> None:
+        """Only the opening, on this path as on the other one.
+
+        MEDLINE writes ``PG - NP2661-76`` where Crossref deposits
+        ``NP2661-NP2676`` for 10.1177/1010539511421194. Of the 24 unreadable
+        ``PG`` values above, the 21 whose publisher deposited a page at all
+        agree with MEDLINE on the opening locator, character for character.
+        """
+        assert first_page("NP2661-76") == first_page("NP2661-NP2676")
+
+    def test_both_paths_return_one_case_convention(self) -> None:
+        """The readable path lowercases its prefix, so this one has to fold.
+
+        Otherwise one function answers in two conventions: ``N580`` would equal
+        ``n580`` and ``NP580`` would not equal ``np580``.
+        """
+        assert first_page("NP580-NP599") == first_page("np580-np599")
+
+    def test_a_locator_with_nothing_readable_in_it_is_nothing(self) -> None:
+        """The residue, and why ``compare._check_pages`` guards on emptiness.
+
+        A value carrying no alphanumeric at all is not a page locator, and the
+        empty string it yields must not be read as one that matched.
+        """
+        assert first_page("-") == ""
+        assert first_page("?") == ""
+
     def test_article_number_detection(self) -> None:
         assert is_article_number("693933")
         assert is_article_number("e0123456")

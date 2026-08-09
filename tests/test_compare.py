@@ -2616,6 +2616,51 @@ class TestYearTolerance:
         assert compare(make_ref(year=2017), {"crossref": record}).verdict == "FIELD-MISMATCH"
 
 
+class TestAPageLocatorNeitherSideCanRead:
+    """``first_page`` returned ``""`` for what it could not parse, and ``""``
+    equals ``""`` — so two unreadable locators agreed with each other and the
+    entry came back ``OK``.
+
+    SAGE's online-only pagination is the witnessed shape: 24 of 3,250 MEDLINE
+    ``PG`` values on a live sample of 3,500 citations spanning 1992-2026 are
+    ``NP…`` or Roman front matter, and the 21 whose publisher deposited a page
+    at all agree with MEDLINE on the opening locator character for character.
+    """
+
+    def test_a_different_opening_locator_is_an_error(self) -> None:
+        result = compare(
+            make_ref(pages="NP585-NP599"),
+            {"crossref": make_record(pages="NP580-NP599")},
+        )
+
+        assert result.verdict == "FIELD-MISMATCH"
+        assert any(i.field == "pages" and i.severity == "error" for i in result.issues)
+
+    def test_a_closing_page_written_short_is_still_the_same_article(self) -> None:
+        """MEDLINE's ``NP2661-76`` against Crossref's ``NP2661-NP2676``."""
+        result = compare(
+            make_ref(pages="NP2661-76"),
+            {"crossref": make_record(pages="NP2661-NP2676")},
+        )
+
+        assert result.verdict == "OK"
+
+    def test_two_locators_with_nothing_readable_agree_only_as_the_same_text(
+        self,
+    ) -> None:
+        """The residue the emptiness guard covers.
+
+        A value carrying no alphanumeric is not a locator, so the empty string
+        it yields is not a match — but reporting the identical text against
+        itself would be a finding about nothing.
+        """
+        same = compare(make_ref(pages="-"), {"crossref": make_record(pages="-")})
+        different = compare(make_ref(pages="-"), {"crossref": make_record(pages="?")})
+
+        assert same.verdict == "OK"
+        assert different.verdict == "FIELD-MISMATCH"
+
+
 class TestIncompleteness:
     def test_a_field_the_registry_has_and_the_entry_lacks_is_a_warning(self) -> None:
         """Incompleteness is worth surfacing but is not evidence of fabrication."""

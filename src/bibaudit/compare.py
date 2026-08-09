@@ -742,11 +742,16 @@ def _check_pages(ctx: _Context) -> None:
             return
         ctx.add("pages", "missing", "warning", "", registry, source=source)
         return
-    if first_page(stored) == first_page(registry):
+    # An inability to read a value is not evidence that two values match.
+    # ``first_page`` has nothing to return for a locator carrying no
+    # alphanumeric at all, and two of those agree only where they are the same
+    # text — otherwise every such value agreed with every other one.
+    opening = first_page(stored)
+    if opening == first_page(registry) and (opening or stored == registry):
         return
 
     alt = clean(ctx.corroborator.pages) if ctx.corroborator else ""
-    if alt and first_page(stored) == first_page(alt):
+    if alt and opening and opening == first_page(alt):
         ctx.add(
             "pages", "disputed", "info", stored,
             f"{ctx.primary.source}={registry!r} vs {ctx.corroborator.source}={alt!r}",  # type: ignore[union-attr]

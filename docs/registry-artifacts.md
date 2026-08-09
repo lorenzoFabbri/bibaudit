@@ -466,6 +466,45 @@ letter prefix, so both forms compare equal.
 
 ---
 
+## Page locators nothing can read as a number
+
+**What happens.** `normalize.first_page` reads an optional letter, any zero
+padding and the digits. Two live shapes are neither: SAGE paginates its
+online-only articles `NP580-NP599`, and front matter runs `i-xv`. The pattern
+did not match, the function returned `""`, and `""` compares equal to `""` — so
+every unreadable locator agreed with every other one. A bibliography storing
+`NP585-NP599` against a record holding `NP580-NP599` came back `OK`.
+
+That is the same collapse *404 is a fact, a timeout is ignorance* names
+elsewhere, in the pages field: an inability to read a value was being rendered
+as the values agreeing.
+
+**Observed.** 24 of 3,250 MEDLINE `PG` values (0.74%) on a live sample of 3,500
+citations drawn from five windows spanning 1992-2026 — 22 `NP…`, `i-xv` on PMID
+38284210, and `suppl 4 p.` on PMID 10118706.
+
+**Reported as.** Nothing where the openings agree; `pages/mismatch` where they
+do not. This is a normalisation rule, not a suppression.
+
+**Detection.** `normalize.first_page`. A locator the pattern cannot read falls
+back to the folded text ahead of the range separator — still the opening
+locator, which is what the function is for, and not the empty string.
+
+**Only the opening, on this path as on the other one.** MEDLINE writes
+`PG - NP2661-76` where Crossref deposits `NP2661-NP2676` for
+10.1177/1010539511421194, and both open at `np2661`. Of the 24 values above,
+the 21 whose publisher deposited a page at all agree with MEDLINE on the
+opening locator, character for character — so the rule that makes the miss fire
+reports nothing new on the shape it was measured against.
+
+**What is left, and where it is guarded.** A value carrying no alphanumeric at
+all still yields nothing, because there is nothing in it to read.
+`compare._check_pages` therefore accepts an empty opening only against the
+identical text: two such values are not evidence of a match, and reporting one
+against itself would be a finding about nothing.
+
+---
+
 ## A volume or issue number with a leading zero
 
 **What happens.** One registry writes the number padded and the other does not.
