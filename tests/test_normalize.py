@@ -122,6 +122,66 @@ class TestFold:
         assert "espana" in fold("Estudio en España")
 
 
+class TestALetterNfkdLeavesWhole:
+    """A letter that does not decompose still folds to a letter, not a space.
+
+    NFKD splits ``ü`` into ``u`` plus a combining diaeresis and the mark is
+    dropped. Sharp s, ash, o-with-stroke, l-with-stroke, eth, thorn,
+    d-with-stroke, h-with-stroke and dotless i are not a base plus a mark and
+    it leaves them alone. They then met a rule that replaced anything outside
+    ``[a-z0-9]`` with a space, so ``Straße`` folded to ``stra e`` and ``Kjær``
+    to ``kj r`` — CLAUDE.md's own banned shape, where a surname is compared on
+    a fragment of itself.
+
+    It fires because MEDLINE romanises a byline and Crossref deposits it as
+    written: Susanne Kjær is ``Kjaer, Susanne K`` on PMID 42550510 and ``Kjær``
+    in Crossref's record for the same DOI.
+    """
+
+    @pytest.mark.parametrize(
+        ("written", "romanised"),
+        [
+            ("Weiß", "Weiss"),
+            ("Straße", "Strasse"),
+            ("Kjær", "Kjaer"),
+            ("Jørgensen", "Jorgensen"),
+            ("Łukszo", "Lukszo"),
+            ("Friðriksdóttir", "Fridriksdottir"),
+            ("Þórsson", "Thorsson"),
+            ("Đorđević", "Dordevic"),
+            ("Ħamed", "Hamed"),
+            ("Irmak", "Irmak"),
+            ("Œuvre", "Oeuvre"),
+        ],
+    )
+    def test_the_two_spellings_of_one_name_agree(
+        self, written: str, romanised: str
+    ) -> None:
+        assert fold(written) == fold(romanised)
+
+    def test_an_accent_on_top_of_one_comes_off_first(self) -> None:
+        """``ǽ`` is ``æ`` plus an acute, so NFKD reduces it before the table."""
+        assert fold("Ǽsir") == fold("Aesir")
+
+    def test_no_letter_is_replaced_by_a_token_boundary(self) -> None:
+        """The damage the mapping exists to prevent, stated as itself.
+
+        A letter with no romanisation is removed rather than spaced, so even a
+        letter this table has never heard of cannot split a surname in two.
+        """
+        assert " " not in fold("Ɓello")
+        assert " " not in fold("Weiß")
+
+    def test_punctuation_still_separates_two_words(self) -> None:
+        """The other half: a space where a *mark* stood is information."""
+        assert fold("colorectal-cancer risk") == "colorectal cancer risk"
+
+    def test_a_title_in_another_script_folds_to_nothing_as_before(self) -> None:
+        """Removing rather than spacing must not start keeping Cyrillic."""
+        assert fold("Онкология") == ""
+        assert fold("TNF-α levels") == "tnf levels"
+
+
 class TestSimilarity:
     def test_identical_after_folding_is_one(self) -> None:
         assert similarity("A Study of X", "a study of x!") == 1.0

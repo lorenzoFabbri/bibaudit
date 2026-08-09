@@ -396,6 +396,49 @@ class TestSurnamesOutsideTheComparisonAlphabet:
         assert not diff.clean
 
 
+class TestARomanisedByline:
+    """MEDLINE romanises a surname and Crossref deposits it as written.
+
+    The two disagree systematically, not occasionally: Susanne Kjær is ``Kjaer,
+    Susanne K`` on PMID 42550510 and ``Kjær`` in Crossref's record for the same
+    DOI, 10.1001/jamanetworkopen.2026.26893, and five of her six most recent
+    papers are the same way. ``fold`` replaced the letter with a *space*, so the
+    two keys were ``kj r`` and ``kjaer`` and the entry failed on
+    ``authors/mismatch``. Two of the seven such entries in a 396-entry live
+    sample were one low title score away from being called a different paper.
+    """
+
+    @pytest.mark.parametrize(
+        ("written", "romanised"),
+        [
+            ("Kjær", "Kjaer"),
+            ("Heß-Busch", "Hess-Busch"),
+            ("Dreßen", "Dressen"),
+            ("Łapińska", "Lapinska"),
+            ("Friðriksdóttir", "Fridriksdottir"),
+        ],
+    )
+    def test_the_two_registries_spellings_agree(
+        self, written: str, romanised: str
+    ) -> None:
+        agreed, reason = names_agree(
+            Name(family=romanised, given="S K"), Name(family=written, given="S K")
+        )
+
+        assert agreed
+        # And on the strongest ground there is: the two keys are equal, not
+        # excused by a documented escape.
+        assert reason is None
+
+    def test_a_different_surname_is_still_reported(self) -> None:
+        """Romanising must not make one Danish surname stand for another."""
+        agreed, _ = names_agree(
+            Name(family="Kjaer", given="S K"), Name(family="Kjærgaard", given="S K")
+        )
+
+        assert not agreed
+
+
 class TestMojibake:
     @pytest.mark.parametrize(
         ("broken", "expected"),

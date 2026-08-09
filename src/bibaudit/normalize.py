@@ -79,6 +79,53 @@ _PUNCT_MAP = {
 }
 _PUNCT_TABLE = str.maketrans(_PUNCT_MAP)
 
+#: Latin letters that NFKD leaves whole, with the ASCII spelling a registry
+#: writes instead of them. Every value is the mapping CLDR's ``Latin-ASCII``
+#: transform gives \u2014 https://github.com/unicode-org/cldr, at
+#: ``common/transforms/Latin-ASCII.xml`` \u2014 and none of them is this project's
+#: invention, which matters because ``\u0138 \u2192 q`` and ``\u014b \u2192 n`` are not the
+#: spellings a reader would guess.
+#:
+#: NFKD splits a *precomposed* letter from its diacritic, so ``\u00fc`` becomes
+#: ``u`` and the mark is dropped. It does nothing for a letter that is not a
+#: base plus a mark, and those reached :data:`_NONWORD_RE`, which replaced each
+#: one with a **space**: ``Stra\u00dfe`` folded to ``stra e`` and ``Kj\u00e6r`` to
+#: ``kj r``. That is CLAUDE.md's own banned shape \u2014 ``Aragon\u00c3\u00a9s`` folding to
+#: ``aragona s``, whose last token is ``s`` \u2014 arriving by a second route, and
+#: it bites because the two registries disagree systematically: MEDLINE
+#: romanises a byline and Crossref deposits it as the author writes it. Susanne
+#: Kj\u00e6r is ``Kjaer, Susanne K`` on PMID 42550510 and ``Kj\u00e6r`` in Crossref's
+#: record for the same DOI, 10.1001/jamanetworkopen.2026.26893, and the entry
+#: failed on ``authors/mismatch``.
+#:
+#: Confined to the letters that occur in living orthographies \u2014 German,
+#: Danish, Norwegian, Icelandic, Faroese, Polish, Croatian, Maltese, Turkish,
+#: French, Northern Sami, Greenlandic \u2014 rather than the whole of CLDR's table,
+#: whose remaining rows are IPA and Africanist orthography that no byline in
+#: this literature carries. A letter with no row here is *removed* by
+#: :func:`fold` rather than spaced, so it can still never break a surname into
+#: two tokens; what it cannot do is make the two spellings agree.
+#:
+#: Capitals need no rows: :func:`fold` lowercases first, and the accented
+#: composites arrive here already reduced \u2014 ``\u01fd`` is ``\u00e6`` once NFKD has taken
+#: its acute off.
+_ROMANISED_MAP = {
+    "\u00df": "ss",  # German. Wei\u00df / Weiss, Gro\u00df / Gross
+    "\u00e6": "ae",  # Danish, Norwegian, Icelandic. Kj\u00e6r / Kjaer
+    "\u00f8": "o",  # Danish, Norwegian. J\u00f8rgensen / Jorgensen
+    "\u00f0": "d",  # Icelandic, Faroese. Fri\u00f0riksd\u00f3ttir / Fridriksdottir
+    "\u00fe": "th",  # Icelandic. \u00de\u00f3rsson / Thorsson
+    "\u0111": "d",  # Croatian, Serbian, Vietnamese. \u0110or\u0111evi\u0107 / Dordevic
+    "\u0127": "h",  # Maltese
+    "\u0131": "i",  # Turkish dotless i
+    "\u0142": "l",  # Polish. \u0141ukszo / Lukszo, \u0141api\u0144ska / Lapinska
+    "\u0153": "oe",  # French
+    "\u014b": "n",  # Northern Sami
+    "\u0167": "t",  # Northern Sami
+    "\u0138": "q",  # Greenlandic
+}
+_ROMANISED_TABLE = str.maketrans(_ROMANISED_MAP)
+
 
 def clean(value: object) -> str:
     """Return *value* as display text: no markup, no entities, no brace armour.
@@ -106,11 +153,22 @@ def fold(value: object) -> str:
     ``&`` becomes ``and`` before punctuation is dropped, so "Cancer Epidemiology
     & Prevention" and "Cancer Epidemiology and Prevention" agree rather than
     differing by a token.
+
+    Punctuation becomes a space and a letter never does. A space between two
+    words is information — it is what makes them two words — and a space where
+    a letter stood is an invented token boundary, which is how a surname comes
+    to be compared on a fragment of itself. So a letter is romanised where
+    :data:`_ROMANISED_MAP` has a spelling for it, and otherwise removed
+    outright: a Cyrillic or Greek title still folds to nothing, as it always
+    did, but ``Kjær`` folds to ``kjaer`` rather than to two tokens ``kj`` and
+    ``r``.
     """
     text = clean(value).lower().replace("&", " and ")
     # NFKD splits a letter from its diacritic so the combining marks can go.
     text = unicodedata.normalize("NFKD", text)
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = text.translate(_ROMANISED_TABLE)
+    text = "".join(ch for ch in text if ch.isascii() or not ch.isalpha())
     return _WS_RE.sub(" ", _NONWORD_RE.sub(" ", text)).strip()
 
 

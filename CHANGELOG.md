@@ -169,6 +169,18 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A surname is no longer split in two by a letter that does not decompose.**
+  `fold` reduced a precomposed letter to its base and dropped the mark, but
+  `ß`, `æ`, `ø`, `ł`, `ð`, `þ`, `đ`, `ħ` and `ı` are not a base plus a mark and
+  became a **space** — `Straße` folded to `stra e`, `Kjær` to `kj r`. MEDLINE
+  romanises a byline and Crossref deposits it as the author writes it, so the
+  two registries disagree on these names systematically rather than
+  occasionally, and a correct entry failed on `authors/mismatch`. Those letters
+  now fold to the spelling CLDR's `Latin-ASCII` transform gives them, and a
+  letter with no entry there is removed rather than spaced, so none of them can
+  break a name into fragments. Titles and journal names are compared on the
+  same key and gain the same fix; a title in a non-Latin script still folds to
+  nothing, as before.
 - **A source bibaudit reads no retraction signal from is neither a witness nor
   a dissenter.** Europe PMC and OpenAlex were added to the identifier-less
   search path without being excluded from the retraction notes, so an outage at
