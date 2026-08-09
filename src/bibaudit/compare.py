@@ -1010,6 +1010,7 @@ def _status_issues(
     ref: Reference,
     *,
     asked_stated: bool,
+    gaps: bool = True,
 ) -> tuple[list[Issue], bool]:
     """Every ``status`` finding for one work, and whether it is *retracted*.
 
@@ -1107,6 +1108,14 @@ def _status_issues(
         :func:`compare`'s ``identifier/not-asked`` branch already draws between
         an empty *asked* and ``None``. The map still shows ``not-asked``
         either way, so nothing that was visible stops being visible.
+
+    *gaps* is False where the entry's identifier resolved in no registry. The
+    four findings above are still made — a notice Retraction Watch answered
+    with is evidence about the work whether or not any registry could name it,
+    and it is the finding this tool exists for — but the last two are not:
+    nothing about that entry was corroborated, its verdict already says so, and
+    "retraction status not corroborated" beneath a failing identifier is a
+    caveat about a check that never ran.
 
     Direction — whether a record *is* a retraction notice or *was* retracted —
     is decided upstream in the registry clients and read here as a plain flag.
@@ -1206,7 +1215,7 @@ def _status_issues(
             )
         )
 
-    if not retracting:
+    if not retracting and gaps:
         # Both halves are read off the one consultation map rather than off two
         # sets that could disagree with it: it is what the report prints beside
         # the verdict, so a gap stated here and a gap shown there cannot differ.
@@ -1455,28 +1464,53 @@ def compare(
     result = Result(ref=ref)
     result.consulted = _consultations(records, unreachable, asked)
 
-    primary = records.get("crossref") or records.get("datacite")
-    corroborator = records.get("pubmed")
+    # A source that carries post-publication status and no bibliographic record
+    # cannot be the record an entry is compared against: it holds no title, no
+    # byline and no year, and reading it as one would give a DOI nothing can
+    # resolve a fieldless stub for a primary and take its ``BAD-ID`` away. That
+    # is the "a notice never promotes a DOI to resolved" rule, enforced where
+    # the choice is made rather than by refusing to record the notice at all.
+    resolving = {
+        name: record for name, record in records.items()
+        if name not in _NO_RESOLUTION_SIGNAL
+    }
+    primary = resolving.get("crossref") or resolving.get("datacite")
+    corroborator = resolving.get("pubmed")
     if primary is None and corroborator is not None:
         primary, corroborator = corroborator, None
-    if primary is None and records:
+    if primary is None and resolving:
         # A record from a registry this function does not name. Selecting by
         # explicit key alone meant such a record was ignored *and* the entry
         # then fell through to "resolves in no consulted registry" — a BAD-ID
         # reported on a DOI that a registry had, in the same run, resolved.
         # Whoever adds the next registry to REGISTRIES gets a sane default
         # instead of a fabrication warning.
-        primary = records[_in_registry_order(records)[0]]
+        primary = resolving[_in_registry_order(resolving)[0]]
 
     if primary is None:
+        # Whatever a status source did answer with is still reported. Retraction
+        # Watch answers about DOIs no bibliographic registry carries — 3 of a
+        # random 400 of its retraction DOIs resolve in none of Crossref,
+        # DataCite and PubMed — and dropping its answer because of that renders
+        # a logged retraction as an identifier problem and nothing else. The
+        # entry keeps the verdict the branches below reach: an identifier that
+        # resolved nowhere is what a reader has to act on first, and calling
+        # the entry ``RETRACTED`` would assert that the work Retraction Watch
+        # logged is the work this reference cites, which is exactly what no
+        # registry could confirm. Both statements are on the report; only one
+        # of them is provable from the evidence in hand.
+        status, _ = _status_issues(
+            records, result.consulted, ref, asked_stated=asked is not None, gaps=False
+        )
+        result.issues.extend(status)
         # Only registries that could have *held* the work count here. A
         # retraction side-channel going down says nothing about whether the
         # work exists, and letting it answer that question turns a fabricated
         # DOI into a network problem.
         blind_to_existence = set(unreachable) - _NO_RESOLUTION_SIGNAL
-        if blind_to_existence and not records:
-            # Nothing answered. Silence from an unreachable registry is not
-            # evidence of anything.
+        if blind_to_existence and not resolving:
+            # Nothing that could hold the work answered. Silence from an
+            # unreachable registry is not evidence of anything.
             result.verdict = "UNCHECKED"
             result.issues.append(
                 Issue(

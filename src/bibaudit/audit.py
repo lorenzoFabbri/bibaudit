@@ -455,12 +455,13 @@ def _merge_retraction_notices(
 ) -> None:
     """Fold *notices* into *records* in place, one DOI at a time.
 
-    Never creates the *first* entry for a DOI (``if not found: continue``): a
-    DOI no bibliographic registry could name would otherwise start looking
-    "resolved" on the strength of a retraction notice alone, promoting a
-    bare, fieldless stub to ``primary`` in ``compare`` and reporting a wall of
-    "missing title", "missing authors" findings about a citation that should
-    have been ``BAD-ID`` — see the module docstring.
+    A notice never makes a DOI *resolve*, and ``compare`` is what enforces
+    that: it will not take a source carrying only post-publication status as
+    the record an entry is compared against (``_NO_RESOLUTION_SIGNAL``). So the
+    notice is recorded even where nothing else answered. 3 of a random 400 of
+    Retraction Watch's retraction DOIs resolve in none of Crossref, DataCite
+    and PubMed, and dropping the one source that *did* answer left the report
+    saying the identifier is bad and nothing whatever about the retraction.
 
     PubMed's contribution is folded into the DOI's *existing* ``"pubmed"``
     entry when one is already there, in place, rather than added under a
@@ -469,10 +470,16 @@ def _merge_retraction_notices(
     see ``registries/retractions.py``'s module docstring), not a second
     witness, and giving it a second key would let ``compare._status_issues``
     attribute one fact to two named sources. When no ``"pubmed"`` entry
-    exists yet (``--no-corroborate``), a fresh one is inserted instead —
-    nothing to clobber, and the DOI is not "resolved" purely by this stub
-    because ``if not found: continue`` above already required a real entry to
-    exist under some *other* key first.
+    exists yet (``--no-corroborate``) but another registry resolved the DOI, a
+    fresh one is inserted instead — nothing to clobber, and the DOI is not
+    "resolved" purely by this stub because another registry already resolved
+    it. Where *nothing* resolved it, that entry is not created at all: a
+    bibliographic registry's record holding no field is the fieldless stub
+    ``compare`` would promote to ``primary``, and PubMed's own notice is read
+    off a MEDLINE citation ``PubMed.by_dois`` returned, so under the default
+    ``--corroborate`` the citation is in *records* already and there is
+    something to fold the flag into. Retraction Watch has no such problem:
+    ``compare`` cannot promote it whatever it holds.
 
     Retraction Watch is not a registry ``resolve`` ever asks about a DOI's
     bibliographic fields, so its contribution always becomes its own entry,
@@ -482,10 +489,11 @@ def _merge_retraction_notices(
     """
     for doi, notice in notices.items():
         found = records.get(doi)
-        if not found:
+        if found is None:
+            # A DOI ``resolve`` never asked about, so there is no slot for it.
             continue
         sources = [source for source in notice.source.split(",") if source]
-        if "pubmed" in sources:
+        if "pubmed" in sources and found:
             existing = found.get("pubmed")
             found["pubmed"] = (
                 replace(existing, retracted=True, retraction_kind=notice.kind)

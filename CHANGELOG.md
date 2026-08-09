@@ -184,6 +184,16 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A retraction is stated even on a DOI no bibliographic registry resolved.**
+  Retraction Watch's export is keyed on the original paper's DOI whether or not
+  Crossref, DataCite or PubMed carry it — 3 of a random 400 of its retraction
+  DOIs resolve in none of the three — and the notice was dropped for those,
+  leaving a report that said the identifier was bad and nothing whatever about
+  the retraction. The verdict is unchanged (`BAD-ID`: the identifier still
+  resolved nowhere, and the work Retraction Watch logged cannot be confirmed to
+  be the work cited), and a status source still cannot make an identifier look
+  resolved.
+
 - **A Retraction Watch export that carries no usable row is reported as an
   outage**, not as a database with nothing in it. A 404 on the bulk endpoint —
   which has already moved once under this tool — and a 200 whose body is a

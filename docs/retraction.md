@@ -240,11 +240,30 @@ mints no DOI to ask the first two about and holds no MEDLINE record to read the
 other two off. Its retraction status is not checked at all, and a clean report
 does not claim otherwise.
 
-**A notice never promotes a DOI to "resolved".** Retraction status is looked up
-for every stored DOI, resolved or not, but a notice is only attached where some
-bibliographic registry already answered. A DOI nothing can resolve stays
-`BAD-ID` rather than acquiring a fieldless stub record and a wall of "missing
-title" findings.
+**A notice never promotes a DOI to "resolved", and is reported anyway.**
+Retraction status is looked up for every stored DOI, resolved or not.
+Retraction Watch answers for DOIs no bibliographic registry carries — 3 of a
+random 400 of its retraction DOIs resolve in none of Crossref, DataCite and
+PubMed — and the finding is stated on those entries: the source that answered
+said the work was retracted, and dropping that because nobody else could name
+the work is the one source that did answer going unheard. What such an entry
+does *not* get is a verdict of `RETRACTED`. It stays `BAD-ID`: the identifier
+resolved nowhere, which is what the reader has to act on first, and calling the
+entry retracted would assert that the work Retraction Watch logged is the work
+this reference cites — the one thing no registry could confirm. Both statements
+are on the report; only one of them is provable from the evidence in hand.
+
+`compare` is where that separation lives. A source carrying post-publication
+status and no bibliographic record is never taken as the record an entry is
+compared against, so it cannot become a fieldless stub with a wall of "missing
+title" findings behind it. PubMed's own flag is held to the same line from the
+other side: it is a bibliographic registry, so on a DOI nothing resolved its
+notice is not turned into a record of its own — reachable only under
+`--no-corroborate`, where no MEDLINE citation is in hand to carry the flag.
+
+No "retraction status not corroborated" clause is added beneath a failing
+identifier. Nothing about that entry was corroborated, its verdict says so, and
+the caveat would print on every bad DOI in a file.
 
 **Crossref's and PubMed's own flags depend on a linkage existing.** A retraction
 nobody deposited and NLM never indexed is invisible to both.

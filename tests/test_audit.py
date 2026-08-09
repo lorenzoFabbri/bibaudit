@@ -1511,6 +1511,103 @@ class TestRetractionCorroboration:
         assert result.verdict == "BAD-ID"
         assert result.fails
 
+    def test_the_retraction_is_still_stated_on_a_doi_nothing_resolved(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The verdict is about the identifier; the finding is about the work.
+
+        Retraction Watch answers for DOIs no bibliographic registry carries —
+        3 of a random 400 of its retraction DOIs resolve in none of Crossref,
+        DataCite and PubMed. Dropping its answer because of that left the
+        report saying the identifier is bad and nothing at all about the
+        retraction, which is the one source that *did* answer going unheard.
+        """
+        doi = "10.9999/invented.doi"
+        notice = RetractionNotice(
+            doi=doi, kind="retraction", source="retraction-watch",
+            notice_doi="10.9999/notice", date="2021-04-01",
+        )
+        _install(
+            monkeypatch,
+            crossref=_StubRegistry("crossref"),
+            retractions=_StubRetractions(notices={doi: notice}),
+        )
+
+        result = audit([make_ref(doi=doi)], _options(tmp_path))[0]
+
+        retracted = next(i for i in result.issues if i.kind == "retracted")
+        assert retracted.source == "retraction-watch"
+        assert next(i for i in result.issues if i.kind == "unresolved")
+
+    def test_a_notice_does_not_turn_an_outage_into_an_accusation(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A DOI nobody could look up is unknown, notice or no notice.
+
+        The "nothing answered" test has to be over the registries that could
+        have *held* the work: counting a Retraction Watch record among them
+        makes a run with Crossref down report ``BAD-ID`` on a DOI it never
+        managed to ask about.
+        """
+        doi = "10.9999/unknown.today"
+        notice = RetractionNotice(
+            doi=doi, kind="retraction", source="retraction-watch",
+            notice_doi=None, date=None,
+        )
+        _install(
+            monkeypatch,
+            crossref=_StubRegistry("crossref", transient=True),
+            datacite=_StubRegistry("datacite", transient=True),
+            pubmed=_StubRegistry("pubmed", transient=True),
+            retractions=_StubRetractions(notices={doi: notice}),
+        )
+
+        result = audit([make_ref(doi=doi)], _options(tmp_path))[0]
+
+        assert result.verdict == "UNCHECKED"
+        assert next(i for i in result.issues if i.kind == "retracted")
+
+    def test_no_gap_clause_is_added_beneath_a_failing_identifier(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Nothing about the entry was corroborated and its verdict says so.
+
+        "retraction status not corroborated" printed under an identifier that
+        resolved nowhere is a caveat about a check that never ran, on every
+        bad DOI in a file.
+        """
+        _install(monkeypatch, crossref=_StubRegistry("crossref"))
+
+        result = audit([make_ref(doi="10.9999/invented.doi")], _options(tmp_path))[0]
+
+        assert result.verdict == "BAD-ID"
+        assert [i.kind for i in result.issues if i.field == "status"] == []
+
+    def test_pubmeds_own_flag_does_not_become_a_record_on_an_unresolved_doi(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """PubMed is a bibliographic registry, and a fieldless record from one
+        is the stub ``compare`` promotes to ``primary``: the entry would stop
+        being ``BAD-ID`` and start being compared against nothing. Reachable
+        only under ``--no-corroborate``, where there is no MEDLINE citation in
+        *records* to fold the flag into.
+        """
+        doi = "10.9999/invented.doi"
+        notice = RetractionNotice(
+            doi=doi, kind="retraction", source="pubmed", notice_doi=None, date="2020",
+        )
+        _install(
+            monkeypatch,
+            crossref=_StubRegistry("crossref"),
+            retractions=_StubRetractions(notices={doi: notice}),
+        )
+
+        options = _options(tmp_path)
+        options.corroborate = False
+        result = audit([make_ref(doi=doi)], options)[0]
+
+        assert result.verdict == "BAD-ID"
+
     def test_no_retraction_check_disables_independent_corroboration(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
