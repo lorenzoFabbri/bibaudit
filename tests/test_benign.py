@@ -432,6 +432,25 @@ class TestZeroPaddedVolumeAndIssue:
 
         assert errors(result, "issue") == ["mismatch"]
 
+    def test_a_number_carrying_a_letter_is_not_a_leading_zero(self) -> None:
+        """Both sides have to be *digits*, which ``lstrip("0")`` does not check.
+
+        `s1` and `0s1` differ by a leading zero on a supplement label, and
+        stripping it makes them equal — but a label is not a number and this
+        rule's reason says one side wrote a number with a leading zero.
+        """
+        assert classify("issue", "s1", "0s1") is None
+
+    def test_two_scripts_of_digit_are_not_the_same_number(self) -> None:
+        """Both sides have to be *ASCII* digits, which ``isdigit`` does not check.
+
+        ``str.isdigit`` is true of Arabic-Indic and superscript forms, and
+        ``lstrip("0")`` strips only the ASCII zero, so a value written in
+        another script keeps its own leading zero and compares equal to the
+        bare form of itself.
+        """
+        assert classify("issue", "0\u0665", "\u0665") is None
+
     def test_a_label_copied_into_the_field_is_still_reported(self) -> None:
         """``Volume 18`` is the entry being wrong about what the field holds.
 
@@ -878,6 +897,85 @@ class TestContainerMedlineSubtitle:
         ) is None
 
 
+class TestTheAcronymPrefixRuleReadsNamesTheRecordCarries:
+    """What is left after the acronym has to equal a name, and the record's own.
+
+    ``_container_names`` assembles them: ``JT`` whole, every alternate, and
+    the two reductions NLM's filing conventions call for. Each of those is
+    load-bearing on its own, and each is a way for the rule to accept
+    something that is not the journal.
+    """
+
+    def test_the_prefix_has_to_be_word_initials_and_not_letters(self) -> None:
+        """A subsequence of *characters* is not an acronym, it is any short word.
+
+        ``OU`` reads out of `journalofcancer` in order, so a rule matching
+        characters accepts an informative prefix as though it carried nothing
+        the rest does not — which is the whole of the argument for taking it
+        off.
+        """
+        assert classify(
+            "container", "OU: Journal of Cancer", "Journal of Cancer",
+        ) is None
+
+    def test_a_lowercase_prefix_is_an_opening_clause_and_not_an_acronym(self) -> None:
+        """The pattern's case requirement, which nothing else stands in for.
+
+        A lowercase word before a colon is how a title opens — `Circulation:
+        Cardiovascular Quality and Outcomes` is a different journal from
+        *Circulation* — and the rule must not see one. It refuses a genuinely
+        lowercase acronym for it, which is the direction a false alarm is
+        cheaper than a false clearance.
+        """
+        assert classify(
+            "container",
+            "pnas: Proceedings of the National Academy of Sciences",
+            "Proceedings of the National Academy of Sciences",
+        ) is None
+        assert classify(
+            "container",
+            "PNAS: Proceedings of the National Academy of Sciences",
+            "Proceedings of the National Academy of Sciences",
+        ) == "stored name prefixes the journal's own acronym"
+
+    def test_the_qualifier_stripped_name_is_one_of_the_names_offered(self) -> None:
+        """PMID 42550479's masthead spelling against a qualified ``JT``.
+
+        The two defects compose: the entry carries the journal's acronym and
+        NLM carries a place qualifier, so neither the whole ``JT`` nor any
+        alternate equals what is left after the acronym comes off.
+        """
+        assert classify(
+            "container", "JNCI: Journal of the National Cancer Institute",
+            "Journal of the National Cancer Institute (Bethesda, Md.)",
+        ) == "stored name prefixes the journal's own acronym"
+
+    def test_the_subtitle_stripped_name_is_offered_too(self) -> None:
+        """PMID 42522049: ``JT - ... Clinical Pharmacy : JACCP``."""
+        jt, ta = medline_journal("pubmed_acronym_prefix_subtitle.txt")
+
+        assert jt == "Journal of the American College of Clinical Pharmacy : JACCP"
+        assert classify(
+            "container", "JACCP: JOURNAL OF THE AMERICAN COLLEGE OF CLINICAL PHARMACY",
+            jt, container_alternates=ta,
+        ) == "stored name prefixes the journal's own acronym"
+
+    def test_half_a_qualifier_is_not_one_of_them(self) -> None:
+        """NLM writes a spaced colon *inside* a qualifier, PMID 42552576.
+
+        Reducing at that colon leaves `ASAIO journal (American Society for
+        Artificial Internal Organs`, which is a fragment rather than a name,
+        and an entry is never compared against a fragment.
+        """
+        jt = "ASAIO journal (American Society for Artificial Internal Organs : 1992)"
+
+        assert classify(
+            "container",
+            "AJASAIO: ASAIO journal (American Society for Artificial Internal Organs",
+            jt,
+        ) is None
+
+
 class TestContainerMedlineQualifier:
     """``JT`` also carries a parenthetical qualifier, and it comes off.
 
@@ -959,6 +1057,32 @@ class TestContainerMedlineQualifier:
         assert classify("container", "Neurologist", jt, container_alternates=ta) == (
             "registry files the journal under a leading article and a qualifier"
         )
+
+    def test_a_parenthetical_in_the_middle_of_a_title_is_not_a_qualifier(self) -> None:
+        """The walk starts at the *last* character, which is what makes it trailing.
+
+        Without that, the scan finds the first closing bracket from the right
+        wherever it is and throws away everything after it: `Journal of
+        Physics A (Math. Gen.) Letters` reduces to `Journal of Physics A`, a
+        different serial's whole name, and the entry that stores it is
+        suppressed against a title the record does not carry.
+        """
+        assert classify(
+            "container", "Journal of Physics A",
+            "Journal of Physics A (Math. Gen.) Letters",
+        ) is None
+
+    def test_the_remainder_has_to_equal_the_stored_name_outright(self) -> None:
+        """Never a prefix and never a substring, which is the rule next door's too.
+
+        *Cancer Epidemiology* is a different journal from *Cancer Epidemiology,
+        Biomarkers & Prevention*, and the qualified form of the second is what
+        a prefix test would explain the first away against.
+        """
+        assert classify(
+            "container", "Cancer Epidemiology",
+            "Cancer Epidemiology, Biomarkers & Prevention (Philadelphia, Pa.)",
+        ) is None
 
     def test_a_qualifier_left_unclosed_is_refused(self) -> None:
         """NlmId 101745449: ``Interventional radiology (Higashimatsuyama-shi (Japan)``.

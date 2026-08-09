@@ -530,14 +530,10 @@ def _container_medline_subtitle(field: str, stored: str, registry: str, ref: Ref
     :func:`_container_medline_qualifier`; this rule reads the colon and
     nothing else.
 
-    The *first* spaced colon in ``JT`` is not always NLM's own separator: it
-    writes one **inside** a parenthetical qualifier where the body named there
-    needs a date of its own to be unambiguous — ``ASAIO journal (American
-    Society for Artificial Internal Organs : 1992)``, PMID 42552576. Splitting
-    on that colon leaves a base ending mid-qualifier, and half a qualifier is
-    not a name any stored value should be compared against. An unclosed
-    parenthesis in the base is what that looks like, and it is refused — the
-    rule next door then takes the qualifier off whole.
+    Which colon is NLM's own, and what happens when the first one is not, is
+    :func:`_without_medline_subtitle`'s — shared with :func:`_container_names`,
+    which offers the same reduction as a name an entry may match. The rule next
+    door then takes the qualifier off whole.
 
     NLM drops a serial's leading article on most titles and keeps it on some,
     so the article has to come off the **registry's** base for the second
@@ -560,8 +556,8 @@ def _container_medline_subtitle(field: str, stored: str, registry: str, ref: Ref
     """
     if field != "container":
         return None
-    base, separator, _ = registry.partition(_MEDLINE_SUBTITLE)
-    if not separator or base.count("(") != base.count(")"):
+    base = _without_medline_subtitle(registry)
+    if base is None:
         return None
     folded_base, folded_stored = fold(base), fold(stored)
     if folded_base == folded_stored:
@@ -569,6 +565,29 @@ def _container_medline_subtitle(field: str, stored: str, registry: str, ref: Ref
     if _LEADING_ARTICLE.sub("", folded_base) == folded_stored:
         return "registry files the journal under a leading article and a subtitle"
     return None
+
+
+def _without_medline_subtitle(title: str) -> str | None:
+    """*title* up to NLM's own spaced colon, or ``None`` if there is nothing to take.
+
+    ``None`` when the separator is absent, and when the base is left holding an
+    unclosed ``(``: the *first* spaced colon in ``JT`` is not always NLM's own
+    separator, because it writes one **inside** a parenthetical qualifier where
+    the body named there needs a date of its own — ``ASAIO journal (American
+    Society for Artificial Internal Organs : 1992)``, PMID 42552576. Splitting
+    there leaves a base ending mid-qualifier, and half a qualifier is not a
+    name any stored value should be compared against.
+
+    The *first* colon and not the last, for the same reason: NLM writes its own
+    separator before anything it puts after it, and reading from the right
+    takes the inner one on exactly the titles this refuses.
+
+    Callers must treat ``None`` as "no comparison to make".
+    """
+    base, separator, _ = title.partition(_MEDLINE_SUBTITLE)
+    if not separator or base.count("(") != base.count(")"):
+        return None
+    return base
 
 
 def _without_trailing_qualifier(title: str) -> str | None:
@@ -711,21 +730,20 @@ def _container_names(registry: str, rec: Record) -> list[str]:
 
     ``JT`` whole, each ``container_alternates`` entry, and the two reductions
     NLM's own filing conventions call for: the text before its spaced colon and
-    the text before a trailing balanced parenthetical. Deliberately a union
-    assembled here rather than a reuse of
-    :func:`_container_medline_subtitle` and
-    :func:`_container_medline_qualifier`, because those two also take a
-    leading article off their base and this caller must not: it has already
-    edited the *stored* side, and one edit per comparison is what keeps a
-    printed reason true of what it suppresses.
+    the text before a trailing balanced parenthetical, through the same two
+    functions :func:`_container_medline_subtitle` and
+    :func:`_container_medline_qualifier` reduce with, so the guards on those
+    reductions are written once.
+
+    What is *not* shared is the leading article those two rules also take off
+    their base. This caller has already edited the stored side, and one edit
+    per comparison is what keeps a printed reason true of what it suppresses.
     """
     names = [fold(registry), *(fold(value) for value in rec.container_alternates)]
-    base, separator, _ = registry.partition(_MEDLINE_SUBTITLE)
-    if separator and base.count("(") == base.count(")"):
-        names.append(fold(base))
-    unqualified = _without_trailing_qualifier(registry)
-    if unqualified is not None:
-        names.append(fold(unqualified))
+    for reduce in (_without_medline_subtitle, _without_trailing_qualifier):
+        reduced = reduce(registry)
+        if reduced is not None:
+            names.append(fold(reduced))
     return [name for name in names if name]
 
 
