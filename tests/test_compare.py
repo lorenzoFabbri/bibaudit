@@ -173,6 +173,66 @@ class TestAnInventedCoauthorAppendedToTheByline:
     def test_a_correct_byline_is_untouched(self) -> None:
         assert self._appended().verdict == "OK"
 
+    def test_a_creator_the_corroborating_registry_names_is_not_reported(self) -> None:
+        """"Uncorroborated" is a claim about every record that answered.
+
+        Only one byline is ever compared — the primary's — so a Crossref
+        deposit that stops short of the paper's real byline had the entry's
+        remaining creators reported against it while PubMed, already fetched,
+        named every one of them.
+        """
+        full = [*make_record().authors, Name(family="Kaaks", given="R")]
+        result = compare(
+            make_ref(authors=full),
+            {"crossref": make_record(), "pubmed": make_pubmed(authors=full)},
+        )
+
+        assert result.verdict == "INCOMPLETE"
+        assert not result.fails
+        # What is left is the length difference, which is what it is: the
+        # primary's byline is short.
+        assert [i.kind for i in result.issues if i.field == "authors"] == ["count"]
+
+    def test_a_creator_neither_registry_names_still_fails(self) -> None:
+        """The counter-test: two bylines that answered, and neither has them."""
+        result = compare(
+            make_ref(authors=[*make_record().authors, Name(family="Fabricado", given="X")]),
+            {"crossref": make_record(), "pubmed": make_pubmed()},
+        )
+
+        assert result.verdict == "FIELD-MISMATCH"
+        assert [i.kind for i in result.issues if i.field == "authors"] == ["uncorroborated"]
+
+    def test_the_registry_that_supplied_the_byline_cannot_corroborate_itself(self) -> None:
+        """Where Crossref deposited no creator at all, PubMed's list *is* the
+        one being compared, and asking it to corroborate its own tail would
+        clear every appended name on the DOI path."""
+        result = compare(
+            make_ref(authors=[*make_record().authors, Name(family="Fabricado", given="X")]),
+            {"crossref": make_record(authors=[]), "pubmed": make_pubmed()},
+        )
+
+        assert result.verdict == "FIELD-MISMATCH"
+
+    def test_a_surname_the_alphabet_discards_corroborates_nobody(self) -> None:
+        """One creator with no usable key must not vouch for another.
+
+        `family_key` returns "" for every surname outside the comparison
+        alphabet, so a corroborator carrying one of those would corroborate any
+        stored creator carrying one too — three characters of Han script
+        standing in for a name nobody checked.
+        """
+        result = compare(
+            make_ref(authors=[*make_record().authors, Name(family="王", given="L")]),
+            {
+                "crossref": make_record(),
+                "pubmed": make_pubmed(authors=[*make_record().authors, Name(given="C")]),
+            },
+        )
+
+        assert result.verdict == "FIELD-MISMATCH"
+        assert [i.kind for i in result.issues if i.field == "authors"] == ["uncorroborated"]
+
     def test_an_entry_that_omits_a_creator_is_still_only_incomplete(self) -> None:
         """The direction matters. A byline shorter than the registry's is a
         citation abbreviating, not one crediting somebody no record carries."""

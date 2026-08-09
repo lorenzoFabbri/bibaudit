@@ -380,7 +380,9 @@ Counting also makes a length difference impossible, which is what *not a name
 that merely went missing* means. Measured over 3,040 MEDLINE/Crossref pairs of
 the same work, 9 entries carry a `reordered` position; 6 hold the same creators
 counted and keep it, and the 3 that lose it are the three whose bylines differ in
-length — 13 against 6, 3 against 2, 14 against 13.
+length — 13 against 6, 3 against 2, 14 against 13. Dropping the first creator
+from each of 824 live entries now fails **every one**, against 104 of 2,551
+absorbed before; the same 824 unmutated fail none.
 
 **What it now reports that it used to excuse, stated plainly.** A reordering in a
 byline that *also* carries a difference of spelling — a mojibake surname, a
@@ -420,17 +422,44 @@ identical shape, exactly as *Registry bylines missing their first author*
 describes for the other end, and no author list can separate the two. Measured
 over 3,040 works whose MEDLINE and Crossref records were both fetched — five
 windows spanning 1992-2026 — the two registries disagree about byline length on
-40 (1.3%). After the two exceptions below, an entry written from the publisher's
+40 (1.3%). After the exceptions below, an entry written from the publisher's
 deposit and checked against MEDLINE alone reports a creator on **7 of them
-(0.23%)**, which is the PMID path, where there is no second witness; an entry
-written from MEDLINE and checked against Crossref reports one on **2 (0.07%)**.
-Against a shape that was never reported at all.
+(0.23%)**: that is the PMID path, where there is no second witness. On the DOI
+path, where there is one, it reports **none**. Against a shape that was never
+reported at all.
 
-The exceptions carry the rest: 1 tail position excused as a collective and 14 as
-credited elsewhere, over the same 3,040 works.
+A live sweep of 1,177 entries written from the MEDLINE record — correct by
+construction — fails none of them and reports no uncorroborated creator at all.
+Append one fabricated name to each of the same 1,177 and **every one fails**,
+against 0 of 4,255 before.
 
-Two kinds of tail position are *not* that claim, and each is excused with its
-own reason rather than reported.
+Three kinds of tail position are *not* that claim, and each is kept out of it
+rather than reported.
+
+### A creator the corroborating registry does name
+
+**What happens.** Only one byline is ever compared — the primary registry's, or
+the corroborator's where the primary deposited none — and *uncorroborated* is a
+claim about every record that answered. A Crossref deposit that stops short of
+the paper's real byline had the entry's remaining creators reported against it
+while PubMed, already fetched and already parsed, named every one of them.
+
+**Observed.** 2 of the 3,040 works above, and they are the whole of the DOI
+path's exposure to this check.
+
+**Reported as.** `authors/count`, the length difference, at warning severity —
+the report that was already right for this shape. The primary's byline *is*
+short, and an entry naming creators a second registry corroborates is not a
+fabrication. Nothing is suppressed here: the finding is withdrawn, not hidden.
+
+**Detection.** `compare._drop_creators_the_corroborator_names`. Surnames, on the
+same terms as the rest of the author comparison; empty keys excluded, because a
+corroborator holding one creator whose surname `fold` discards would otherwise
+vouch for every stored creator whose surname it also discards. The PMID path
+consults no second registry and keeps its findings.
+
+**The residual, stated.** A fabricated name sharing a surname with a real
+creator on the corroborator's byline is dropped.
 
 ### A collective creator past the registry's last
 

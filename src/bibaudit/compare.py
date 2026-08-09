@@ -30,7 +30,7 @@ from .model import (
     Result,
     is_registry_artifact,
 )
-from .names import compare_author_lists
+from .names import AuthorDiff, compare_author_lists, family_key
 from .normalize import (
     clean,
     first_page,
@@ -483,6 +483,7 @@ def _check_authors(ctx: _Context) -> bool:
         return False
 
     diff = compare_author_lists(stored, registry)
+    _drop_creators_the_corroborator_names(ctx, diff)
 
     for position, reason in sorted(diff.reasons.items()):
         ctx.add_artifact(
@@ -514,6 +515,47 @@ def _check_authors(ctx: _Context) -> bool:
         )
 
     return diff.clean
+
+
+def _drop_creators_the_corroborator_names(ctx: _Context, diff: AuthorDiff) -> None:
+    """Un-report a tail creator the *other* registry that answered does carry.
+
+    ``uncorroborated`` is the claim that no consulted record names this person,
+    and only one byline is ever compared: the primary's, or the corroborator's
+    where the primary deposited none. A Crossref deposit that stops short of the
+    paper's real byline therefore had the entry's remaining creators reported
+    against it while PubMed — already fetched, already parsed — named every one
+    of them. Two of 3,040 works whose MEDLINE and Crossref records were both
+    fetched take that shape, and they are the whole of the DOI path's exposure
+    to this check; the PMID path has no second witness and keeps its findings.
+
+    What is left is the length difference, which reappears as the
+    ``authors/count`` warning ``AuthorDiff.count_differs`` states once the tail
+    is no longer accounted for position by position. That is the right report:
+    the primary's byline *is* short, and an entry naming creators a registry
+    corroborates is not a fabrication.
+
+    Surnames, on the same terms as the rest of this comparison and with the same
+    stated hole: a fabricated name sharing a surname with a real creator on the
+    corroborator's byline is dropped. Empty keys are excluded, because a
+    corroborator holding one creator whose surname ``fold`` discards would
+    otherwise corroborate every stored creator whose surname it also discards.
+
+    Where the *primary* deposited no byline, the list already compared is the
+    corroborator's own and this needs no guard against it corroborating itself:
+    every creator in it has already been excused by
+    ``names.Reason.CREDITED_ELSEWHERE``, so nothing reaches here for it to drop.
+    """
+    if not diff.uncorroborated or not ctx.corroborator:
+        return
+    corroborated = {
+        key for key in (family_key(n) for n in ctx.corroborator.authors) if key
+    }
+    diff.uncorroborated = [
+        (position, name)
+        for position, name in diff.uncorroborated
+        if family_key(ctx.ref.authors[position - 1]) not in corroborated
+    ]
 
 
 def _check_year(ctx: _Context) -> None:

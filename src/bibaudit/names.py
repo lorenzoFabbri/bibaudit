@@ -1348,11 +1348,13 @@ def _tail_past_the_registry(
     over 3,040 works whose MEDLINE and Crossref records were both fetched, the
     two registries disagree about byline length on 40 (1.3%); after the two
     exceptions below, 7 of those report a creator when MEDLINE is the only
-    witness (0.23%) and 2 when Crossref is (0.07%) — against a shape that was
-    never reported at all.
+    witness and 2 when Crossref is. ``compare._drop_creators_the_corroborator_
+    names`` withdraws the second pair, because on that path a second registry
+    answered and named them — so what a run reports is 0.23% on the PMID path
+    and none on the DOI path, against a shape that was never reported at all.
 
-    Two of the three tail positions are not that claim and are excused with
-    their own reason:
+    Two kinds of tail position are not that claim and are excused with their own
+    reason:
 
     * **a collective creator.** An organisation is not an invented co-author,
       and MEDLINE files consortia under ``CN`` rather than in byline position —
