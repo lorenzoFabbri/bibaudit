@@ -323,6 +323,13 @@ the run was given, so `bibaudit cache info` counts it and `bibaudit cache clear`
 is the way to discard it — which, with `--refresh` not reaching it, is the only
 way.
 
+The export itself is the one request in this tool that goes **past** the shared
+registry cache, and that is what makes those seven days a bound rather than a
+figure of speech. Stored there like any other body it would outlive the index
+built from it — `--cache-ttl` is 90 days — so the index expiring would be
+answered from the older copy of the same rows, no request made, and a retraction
+logged up to 90 days ago would still read clean.
+
 **`--no-retraction-check` turns the independent pair off.** The pair is
 Retraction Watch's export and PubMed's `ECI`, so the flag costs a concern NLM
 recorded as well as a retraction only Retraction Watch logged — on the PMID path

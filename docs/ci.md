@@ -133,7 +133,8 @@ Why it is shaped that way:
   because the cache path is what `actions/cache` has to be told to restore. It
   holds the Retraction Watch index too, in a `retraction-watch` subdirectory, so
   restoring it saves a ~66 MB download; that index has its own seven-day TTL
-  rather than `--cache-ttl`'s 90 days. Cached answers stay valid for
+  rather than `--cache-ttl`'s 90 days, and the export it was parsed from is not
+  in the cache at all — restoring the index is what saves the download. Cached answers stay valid for
   `--cache-ttl` days, 90 by default. If the directory cannot be created the run
   continues without a cache and warns; it does not fail.
 

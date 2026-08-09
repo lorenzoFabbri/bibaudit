@@ -523,6 +523,7 @@ class Client:
         cache_key: str | None,
         headers: dict[str, str] | None,
         make_payload: Callable[[bytes], dict[str, Any]],
+        bypass_cache: bool = False,
     ) -> dict[str, Any] | None:
         """Shared cache-then-network path for :meth:`get_json`/:meth:`get_text`.
 
@@ -543,13 +544,24 @@ class Client:
         ``refresh`` was also requested, since there is no way to honour a
         forced refetch without a network — but a miss raises
         :class:`Transient` instead of falling through to :meth:`_request`.
+
+        *bypass_cache* takes this response out of that store entirely, neither
+        read nor written. It exists for a caller that caches something else
+        derived from the body on a shorter clock of its own: left in here as
+        well, the longer-lived copy answers the refetch the shorter clock asked
+        for, and the caller's freshness bound quietly becomes this cache's.
+        ``--cache-ttl`` is 90 days and is right for bibliographic fields, which
+        do not change under a fixed DOI; a bound shorter than it can only be
+        honoured by not storing the body at all. See
+        ``registries/retractions.py``'s ``_load_index``, the one caller.
         """
+        cache = None if bypass_cache else self._cache
         key = cache_key or url
-        # The `self._cache is not None` check lives inside this `if`, not in a
-        # separately-computed bool, so it also narrows `self._cache` for the
+        # The `cache is not None` check lives inside this `if`, not in a
+        # separately-computed bool, so it also narrows `cache` for the
         # `.get` call on the next line rather than merely gating it at runtime.
-        if self._cache is not None and (not self._refresh or self._offline):
-            cached = self._cache.get(key)
+        if cache is not None and (not self._refresh or self._offline):
+            cached = cache.get(key)
             if cached is not None:
                 return None if _ABSENT_MARKER in cached else cached
 
@@ -558,13 +570,13 @@ class Client:
 
         body = self._request(url, self._headers(headers))
         if body is None:
-            if self._cache is not None:
-                self._cache.put(key, {"url": url, "payload": {_ABSENT_MARKER: True}})
+            if cache is not None:
+                cache.put(key, {"url": url, "payload": {_ABSENT_MARKER: True}})
             return None
         payload = make_payload(body)
 
-        if self._cache is not None:
-            self._cache.put(key, {"url": url, "payload": payload})
+        if cache is not None:
+            cache.put(key, {"url": url, "payload": payload})
         return payload
 
     def get_json(
@@ -595,6 +607,7 @@ class Client:
         *,
         cache_key: str | None = None,
         headers: dict[str, str] | None = None,
+        bypass_cache: bool = False,
     ) -> str | None:
         """Fetch *url* as text, serving from cache when fresh.
 
@@ -602,11 +615,16 @@ class Client:
         where a decode failure signals a real data problem worth surfacing,
         free text (an abstract, an HTML landing page) occasionally carries a
         mis-declared encoding, and one bad byte should not abort the run.
+
+        *bypass_cache* keeps this body out of the shared store on both sides —
+        see :meth:`_fetch_cached`, where the reason it has to be both is
+        written out.
         """
         payload = self._fetch_cached(
             url,
             cache_key=cache_key,
             headers=headers,
             make_payload=lambda body: {"text": body.decode("utf-8", errors="replace")},
+            bypass_cache=bypass_cache,
         )
         return None if payload is None else payload["text"]

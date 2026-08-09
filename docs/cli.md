@@ -169,7 +169,10 @@ parsed Retraction Watch index included: that index lives in a
 `bibaudit cache info` counts it and `bibaudit cache clear` discards it. It keeps
 its own seven-day lifetime, which `--cache-ttl` does not change and `--refresh`
 does not shorten. Ninety days is right for bibliographic fields, which do not
-change under a fixed DOI; seven is right for a status, which does.
+change under a fixed DOI; seven is right for a status, which does. The export
+the index is parsed from is fetched past this cache rather than stored in it, so
+`--cache-ttl` cannot outlive the seven days and answer the refetch they ask
+for.
 
 `--timeout` bounds one request. A logical lookup is retried — one attempt plus
 four retries, backing off 1, 2, 4 and 8 seconds, or by whatever a `Retry-After`

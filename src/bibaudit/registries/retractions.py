@@ -135,14 +135,25 @@ _RW_CSV_URL = "https://api.labs.crossref.org/data/retractionwatch"
 #: default a :class:`~bibaudit.registries.http.Cache` gives ordinary
 #: bibliographic lookups. Seven days bounds how stale a "clean" answer can be
 #: without re-downloading a 66 MB file on every single invocation.
+#:
+#: A bound this short only holds if nothing *else* keeps the body. The export
+#: went through the shared registry cache like any other request, so when this
+#: index expired the refetch was answered out of that cache — same rows, no
+#: request made, and the real bound on a retraction going unseen was
+#: ``--cache-ttl``'s 90 days rather than these seven. :func:`_load_index`
+#: passes ``bypass_cache`` for exactly that reason.
 _RW_CACHE_TTL_DAYS = 7
 
-#: What is actually cached is the parsed DOI index (a few MB of JSON), never
-#: the raw CSV. Storing the raw file through :class:`Cache`'s JSON-object
-#: envelope would mean ``json.dump``-ing a 66 MB string on every refresh for
-#: no benefit: nothing downstream of :func:`_parse_rw_csv` ever wants the
-#: unparsed rows again, and reparsing a cached raw CSV every run would defeat
-#: the point of caching at all.
+#: What is cached is the parsed DOI index (a few MB of JSON) and nothing else:
+#: the raw CSV is fetched straight past the shared cache (see above). Storing
+#: the raw file through :class:`Cache`'s JSON-object envelope would also mean
+#: ``json.dump``-ing a 66 MB string on every refresh for no benefit — nothing
+#: downstream of :func:`_parse_rw_csv` ever wants the unparsed rows again, and
+#: reparsing a cached raw CSV every run would defeat the point of caching at
+#: all.
+#:
+#: The version suffix is what stops a payload written by an older build being
+#: read back under a newer build's shape; bump it whenever that shape changes.
 _RW_INDEX_CACHE_KEY = "index-v1"
 
 #: Subdirectory the parsed index lives in, under whichever cache root the
@@ -817,6 +828,15 @@ class Retractions:
         Nor is the emptiness cached: with a seven-day TTL on this index
         (:data:`_RW_CACHE_TTL_DAYS`) it would survive a week of healthy runs,
         and ``--refresh`` does not reach this cache.
+
+        The fetch is the one request in this project that bypasses the shared
+        registry cache. That cache holds bibliographic answers for
+        ``--cache-ttl`` days, 90 by default, which is right for fields that do
+        not change under a fixed DOI and wrong for a status that does: with the
+        export in it, this index expiring bought nothing, because the refetch
+        was served from the longer-lived copy of the same body and a retraction
+        logged up to 90 days ago still read clean. Seven days is only a bound
+        if seven days is the *longest* anything here keeps the rows.
         """
         if self._index is not None:
             return self._index
@@ -826,7 +846,7 @@ class Retractions:
             self._index = _index_from_payload(cached)
             return self._index
 
-        text = self._client.get_text(_RW_CSV_URL)
+        text = self._client.get_text(_RW_CSV_URL, bypass_cache=True)
         index, read = _parse_rw_csv(text) if text is not None else ({}, 0)
         if not read:
             raise Transient(

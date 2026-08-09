@@ -1375,6 +1375,52 @@ class TestJsonAndText:
         with pytest.raises(Transient):
             _client().get_text(_URL)
 
+    def test_a_bypassed_body_is_never_written_to_the_cache(
+        self, transport: Callable[..., _Transport], tmp_path: Path
+    ) -> None:
+        """``bypass_cache`` is for a caller keeping something of its own on a
+        shorter clock, so what it must not do is leave a copy here on the long
+        one.
+        """
+        cache = Cache(tmp_path / "c")
+        transport(b"one")
+        assert _client(cache).get_text(_URL, bypass_cache=True) == "one"
+        assert _records(cache.path) == []
+
+    def test_a_bypassed_404_leaves_no_absence_marker_behind(
+        self, transport: Callable[..., _Transport], tmp_path: Path
+    ) -> None:
+        """The absence marker is a fact about a *work*, and cacheable as one.
+
+        It is not a fact about a bulk endpoint, which has already moved once
+        under this tool. Written here it would answer `--cache-ttl` days of
+        runs with "gone" and never make another request -- the cached copy of
+        an outage, on the body whose caller passed this flag to keep exactly
+        that from happening.
+        """
+        cache = Cache(tmp_path / "c")
+        fake = transport(_http_error(404), b"back")
+        assert _client(cache).get_text(_URL, bypass_cache=True) is None
+        assert _records(cache.path) == []
+        assert _client(cache).get_text(_URL, bypass_cache=True) == "back"
+        assert fake.calls == 2
+
+    def test_a_bypassed_request_is_never_answered_from_the_cache(
+        self, transport: Callable[..., _Transport], tmp_path: Path
+    ) -> None:
+        """Not writing is only half of it.
+
+        A body this store already holds -- put there by an ordinary fetch of
+        the same URL, or by any earlier build -- would otherwise answer the
+        bypassed request out of ``--cache-ttl``'s 90 days, which is the whole
+        thing the caller passed the flag to escape.
+        """
+        cache = Cache(tmp_path / "c")
+        fake = transport(b"stale", b"fresh")
+        assert _client(cache).get_text(_URL) == "stale"
+        assert _client(cache).get_text(_URL, bypass_cache=True) == "fresh"
+        assert fake.calls == 2
+
 
 class TestRequestShape:
     """What actually goes out on the wire."""

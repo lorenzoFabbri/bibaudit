@@ -31,6 +31,7 @@ data rather than invented for the test:
 from __future__ import annotations
 
 import json
+import shutil
 import urllib.parse
 import warnings
 from pathlib import Path
@@ -40,7 +41,7 @@ import pytest
 
 from bibaudit.model import Record
 from bibaudit.normalize import normalize_doi
-from bibaudit.registries.http import Transient
+from bibaudit.registries.http import Cache, Client, Transient
 from bibaudit.registries.retractions import RetractionOutage, Retractions, concern_in
 
 DATA = Path(__file__).parent / "data"
@@ -182,14 +183,26 @@ class _StubClient:
         #: How many times the Retraction Watch URL was actually fetched --
         #: the on-disk/in-process caching tests assert this stays at 1.
         self.rw_fetch_count = 0
+        #: Whether the export was asked for past the shared registry cache.
+        #: Recorded rather than ignored because that flag is the whole of the
+        #: seven-day bound: stored in a cache whose TTL is ``--cache-ttl``,
+        #: the body outlives the index built from it and answers the refetch
+        #: its expiry asked for.
+        self.rw_bypassed_cache: bool | None = None
         self.urls: list[str] = []
 
     def get_text(
-        self, url: str, *, cache_key: str | None = None, headers: dict[str, str] | None = None
+        self,
+        url: str,
+        *,
+        cache_key: str | None = None,
+        headers: dict[str, str] | None = None,
+        bypass_cache: bool = False,
     ) -> str | None:
         self.urls.append(url)
         if "retractionwatch" in url:
             self.rw_fetch_count += 1
+            self.rw_bypassed_cache = bypass_cache
             if self.rw_transient:
                 raise Transient(f"{url}: registry unreachable after 5 attempts")
             return self.rw_csv
@@ -234,6 +247,40 @@ class _StubClient:
                 result[uid] = {"uid": uid, "source": "test", "articleids": article_ids}
             return {"header": {"type": "esummary"}, "result": result}
         raise AssertionError(f"unexpected JSON request: {url}")
+
+
+class _CountingClient(Client):
+    """The real :class:`~bibaudit.registries.http.Client`, wired to a body.
+
+    :class:`_StubClient` replaces ``get_text`` outright, which is exactly the
+    method whose shared cache-then-network path is under test here — a stub
+    cannot see that path at all. This one replaces only the socket, so
+    ``_fetch_cached`` runs for real and the registry cache is the real one.
+    """
+
+    def __init__(self, cache: Cache, export: str) -> None:
+        super().__init__(cache=cache, min_interval=0.0)
+        self.export = export
+        #: Fetches of the export alone. PubMed's leg goes through this client
+        #: too and must not be counted as one.
+        self.export_fetches = 0
+
+    def _request(self, url: str, headers: dict[str, str]) -> bytes | None:
+        if "retractionwatch" in url:
+            self.export_fetches += 1
+            return self.export.encode("utf-8")
+        # PubMed holds no PMID for anything here, so the answer under test is
+        # Retraction Watch's alone.
+        return b'{"esearchresult": {"count": "0", "retmax": "100", "idlist": []}}'
+
+
+def _cached_urls(root: Path) -> list[str]:
+    """Every URL the shared registry cache holds a body for."""
+    return [
+        json.loads(path.read_text(encoding="utf-8")).get("url", "")
+        for path in root.rglob("*.json")
+        if not path.name.startswith(".tmp-")
+    ]
 
 
 def _client(**kwargs: Any) -> _StubClient:
@@ -1117,6 +1164,49 @@ class TestCaching:
         retractions.status_for([NEIRINCKX_DOI])
         retractions.status_for(["10.1000/still-nothing"])
         assert stub.rw_fetch_count == 1
+
+    def test_the_export_is_fetched_past_the_shared_registry_cache(
+        self, tmp_path: Path
+    ) -> None:
+        """Seven days is a bound only if nothing else keeps the same rows.
+
+        The export went through the shared registry cache like any other
+        request, and that cache holds a body for ``--cache-ttl`` days, 90 by
+        default. So the index expiring bought nothing: the refetch was answered
+        out of the longer-lived copy of the same body — same rows, no request
+        made — and a retraction Retraction Watch logged up to 90 days ago read
+        clean, on the one source that exists to catch what Crossref and NLM do
+        not.
+        """
+        shared = Cache(tmp_path / "shared", ttl_days=90)
+        index_dir = tmp_path / "index"
+        old = _rw_rows(("10.1000/old", "1/1/2020 0:00", "Retraction", "10.1000/notice"))
+        fresh = _rw_rows(
+            ("10.1000/old", "1/1/2020 0:00", "Retraction", "10.1000/notice"),
+            ("10.1000/fresh", "6/1/2026 0:00", "Retraction", "10.1000/notice2"),
+        )
+
+        first = _CountingClient(shared, old)
+        Retractions(first, cache_dir=index_dir).status_for(["10.1000/old"])
+        assert first.export_fetches == 1
+        # A 66 MB body nothing downstream ever wants unparsed again, held for
+        # 90 days beside the index it was parsed into. PubMed's own lookups
+        # belong in there and are left alone, so the assertion names the one
+        # URL that must not be.
+        cached = _cached_urls(shared.path)
+        assert [url for url in cached if "retractionwatch" in url] == []
+        assert any("eutils" in url for url in cached)
+
+        # Seven days pass and the index expires; Retraction Watch has logged a
+        # new retraction meanwhile.
+        shutil.rmtree(index_dir)
+        second = _CountingClient(shared, fresh)
+        status = Retractions(second, cache_dir=index_dir).status_for(
+            ["10.1000/old", "10.1000/fresh"]
+        )
+
+        assert second.export_fetches == 1
+        assert status.notices["10.1000/fresh"].kind == "retraction"
 
     def test_a_second_instance_replays_the_on_disk_cache_without_a_second_fetch(
         self, tmp_path: Path
