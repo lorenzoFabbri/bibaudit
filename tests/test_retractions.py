@@ -316,11 +316,13 @@ class TestRetractionWatchCsv:
 
         RW logs a 2016 ``Retraction`` for 10.1002/ana.24658 and a 2019
         ``Correction`` whose own ``Reason`` column reads ``Upgrade/Update of
-        Prior Notice(s)``. Crossref carries no ``updated-by`` for that DOI at
-        all, so a rule that keeps the newest row leaves nothing to contradict
-        it and the entry passes clean. The retraction row is placed *first* on
-        purpose: keeping whichever row arrived last is the same defect wearing
-        another hat.
+        Prior Notice(s)``, and Crossref carries no ``updated-by`` for that DOI
+        at all, so a rule keeping the newest row leaves nothing to contradict
+        it. (That DOI resolves in no registry today, so the *entry* is
+        ``BAD-ID`` rather than a clean pass; what is pinned here is the index,
+        which is where the two rules differ.) The retraction row is placed
+        *first* on purpose: keeping whichever row arrived last is the same
+        defect wearing another hat.
         """
         doi = "10.1002/ana.24658"
         stub = _client(rw_csv=_rw_sample())

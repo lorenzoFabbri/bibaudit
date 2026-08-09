@@ -206,10 +206,21 @@ DOI as often as its status is restated. **The strongest row wins, not the
 newest.** A work that has ever been retracted is retracted, and a correction
 published afterwards amends the notice rather than the withdrawal: RW's later
 row for `10.1002/ana.24658` is a 2019 correction whose `Reason` column reads
-`Upgrade/Update of Prior Notice(s)`, over a 2016 retraction, and Crossref
-carries no `updated-by` for that DOI at all. 48 DOIs in the 2026-08-09 export
-carry a retraction row under a later correction, four more under a later
-concern. Within one kind the later row still wins: two rows saying the same
+`Upgrade/Update of Prior Notice(s)`, over a 2016 retraction, so the newest-row
+rule indexed a retracted paper as corrected.
+
+52 DOIs in the 2026-08-09 export are indexed differently by the two rules: 47
+carry a correction dated strictly later than every retraction row, one more
+(`10.1080/03014460601011871`) carries one of the same date, and four carry a
+later expression of concern. On that export the change moves no *verdict*:
+asked through this tool's own clients, Crossref's `updated-by` independently
+flags 51 of the 52 and MEDLINE's `PT` flags 38, so they read `RETRACTED` under
+either rule. The one Crossref does not carry, `10.1002/ana.24658`, resolves in
+no registry at all today — Crossref, DataCite and PubMed all answer empty — so
+that entry is `BAD-ID`, not a clean pass. The rule is the guard for the case
+Crossref and NLM do not cover, which is the case this whole page is about.
+
+Within one kind the later row still wins: two rows saying the same
 thing are one status restated, and the later one is its current wording.
 
 A `Reinstatement` is the only row that withdraws rather than asserts, so it

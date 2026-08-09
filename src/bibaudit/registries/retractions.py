@@ -182,12 +182,12 @@ _RW_KIND_MAP = {
 #: NLM recorded went unreported.
 _KIND_PRIORITY = ("retraction", "withdrawal", "removal", "expression-of-concern", "correction")
 
-#: `M/D/Y H:MM` is every witnessed value's shape (71,399 of the 71,641 rows in
-#: the 2026-08-09 export; the remaining 241 carry no date at all) — confirmed
+#: `M/D/Y H:MM` is all but one of the dated values' shape (71,399 of the 71,641
+#: rows in the 2026-08-09 export; 241 more carry no date at all, and the last
+#: one uses the 12-hour `H:MM:SS AM/PM` variant beside it) — confirmed
 #: month-first, not day-first: 41,709 rows have a day > 12, which is only valid
-#: under that ordering, and none contradict it — always at midnight. One row
-#: uses a 12-hour `H:MM:SS AM/PM` variant instead; both are tried in
-#: :func:`_parse_rw_date` before a cell is given up on.
+#: under that ordering, and none contradict it — always at midnight. Both
+#: shapes are tried in :func:`_parse_rw_date` before a cell is given up on.
 _RW_DATE_FORMATS = ("%m/%d/%Y %H:%M", "%m/%d/%Y %I:%M:%S %p")
 
 #: Sort key for a row whose ``RetractionDate`` could not be read: blank (241
@@ -360,11 +360,22 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int]:
     correction published afterwards amends the notice rather than the
     withdrawal: RW's later row for 10.1002/ana.24658 is a ``Correction`` dated
     2019-03-12 whose own ``Reason`` column reads ``Upgrade/Update of Prior
-    Notice(s)``, over a ``Retraction`` dated 2016-05-25, and Crossref carries no
-    ``updated-by`` for that DOI at all — so the newest-row rule reported a
-    retracted paper as standing with nothing left to contradict it. 48 DOIs in
-    the 2026-08-09 export carry a retraction row under a later correction, and
-    four more carry one under a later expression of concern.
+    Notice(s)``, over a ``Retraction`` dated 2016-05-25 — so the newest-row rule
+    indexed a retracted paper as corrected.
+
+    52 DOIs in the 2026-08-09 export are indexed differently by the two rules:
+    47 carry a correction dated strictly later than every retraction row, one
+    more (10.1080/03014460601011871) carries one of the same date, and four
+    carry a later expression of concern. What that changes on a *report* is a
+    separate question, and on this export the answer is nothing: put through
+    this tool's own clients, Crossref's ``updated-by`` independently flags 51 of
+    the 52 and MEDLINE's ``PT`` flags 38, so those entries read ``RETRACTED``
+    under either rule. The one Crossref does not carry is 10.1002/ana.24658,
+    which resolves in no registry at all today — Crossref, DataCite and PubMed
+    all answer empty for it, so the entry is ``BAD-ID`` rather than a clean
+    pass. The rule is the guard for the case those two do not cover, which is
+    the same case this whole module exists for, and it is written up here on
+    what it demonstrably does rather than on a verdict it moves.
 
     Within one kind the latest row still wins, because two rows of the same
     kind are one status restated and the later one is the current wording of it.

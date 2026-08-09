@@ -349,10 +349,13 @@ so `uv sync --all-extras` does not install it into the test environment.
   Retraction Watch logs a DOI as often as its status is restated, and the row
   with the latest date decided the finding — safe while every row meant
   "retracted", and a downgrade once a correction became an `info` finding of
-  its own. 48 DOIs in the 2026-08-09 export carry a retraction row under a
-  later correction and four more under a later concern; for `10.1002/ana.24658`
-  (retracted 2016, corrected 2019) Crossref carries no `updated-by` either, so
-  the entry passed clean. The strongest notice for a DOI now wins, not the
+  its own. 52 DOIs in the 2026-08-09 export are indexed differently by the two
+  rules: 47 carry a correction dated strictly later than every retraction row,
+  one more of the same date, and four a later expression of concern. Crossref
+  independently flags 51 of the 52, so on that export no verdict moves; the
+  exception is `10.1002/ana.24658` (retracted 2016, corrected 2019), which
+  carries no Crossref `updated-by` and today resolves in no registry at all.
+  The strongest notice for a DOI now wins, not the
   newest: a work that has ever been retracted is retracted, and a correction
   published afterwards amends the notice rather than the withdrawal. A
   `Reinstatement` is still read by date — it withdraws every notice dated at or
