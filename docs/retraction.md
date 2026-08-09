@@ -73,6 +73,13 @@ source that recorded a *concern* is never listed as dissenting: it has not
 contradicted the retraction, and printing it that way would read as a second
 opinion against a finding it in fact corroborates more weakly.
 
+Neither is a source this tool reads no retraction signal from — DataCite, Open
+Library, Europe PMC and OpenAlex. Their records carry no retraction linkage for
+*any* work, so naming one as dissenting states a fact about the client as
+though it were a fact about the paper, and states it against the one finding
+where weakening it costs most. They are excluded from the two notes below for
+the same reason, in the other direction.
+
 PubMed's `ECI` reading is folded into the same `pubmed` record the bibliographic
 fetch already produced, in place, rather than added under a second key. It is one
 MEDLINE record read one field further, not a second witness, and a second key
@@ -268,13 +275,23 @@ once per reference: with a source down it applies to every entry, and 438
 identical lines are wallpaper rather than a warning. Each affected reference's
 `consulted` map also records that source as `unreachable`.
 
-DataCite and Open Library are excluded from that line, because neither data model
-carries a retraction signal at all and naming them would manufacture a doubt
-neither could ever resolve — on every dataset, preprint and book in the file. The
-rule is written as an exclusion rather than as a list of sources that do carry
-the signal, so whoever adds the next registry is counted by default and has to
-come and opt out. `retraction-watch` is deliberately not excluded: it is the one
-source that exists only to carry this signal.
+DataCite, Open Library, Europe PMC and OpenAlex are excluded from that line,
+because this tool reads no retraction signal from any of them and naming one
+would manufacture a doubt a reachable source could not have resolved. For the
+first two the limit is the source's: neither data model carries a retraction
+element, so the caveat would land on every dataset, preprint and book in the
+file. For the second two it is this tool's: Europe PMC's own API does carry
+retraction linkage, `registries/search.py` does not read it, and a reference
+with no identifier — whose whole candidate pool comes from those two plus
+Crossref — carried the doubt on all three names.
+
+The rule is written as an exclusion rather than as a list of sources that do
+carry the signal, so whoever adds the next registry is counted by default and
+has to come and opt out. Europe PMC and OpenAlex did not, which is why the
+partition is now derived from the registry clients themselves in
+`tests/test_compare.py` and a client that sets no `Record.retracted` and is
+missing from the exclusion fails the build. `retraction-watch` is deliberately
+not excluded: it is the one source that exists only to carry this signal.
 
 ## When a source was never asked
 

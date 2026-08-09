@@ -155,12 +155,16 @@ and how they are combined; these are their edges.
   corroborated for N reference(s)` beside the banner, naming the sources and
   which of the two happened to them. Two lines, never one: a rerun may settle an
   outage, and no rerun asks a DOI-keyed source about a reference that has no
-  DOI. DataCite and Open Library are deliberately excluded from both: neither
-  data model carries a retraction, withdrawal or concern element, so neither an
-  outage nor a decision not to ask is ignorance about retraction there, and
-  saying it was would put a manufactured doubt on every dataset and every book
-  in the file. A reference *no* registry answered for is `UNCHECKED`, and that
-  gap is stated by the verdict rather than by this line.
+  DOI. Four sources are deliberately excluded from both, because bibaudit reads
+  no retraction signal from any of them and naming one would put a manufactured
+  doubt on a whole class of entry. DataCite and Open Library have no retraction,
+  withdrawal or concern element in their data models at all. For Europe PMC and
+  OpenAlex the limit is bibaudit's own and so belongs here rather than there:
+  **Europe PMC does publish retraction linkage**, in `commentCorrectionList`,
+  and `registries/search.py` reads neither that nor anything like it. Both are
+  consulted for candidates only, on entries carrying no identifier. A reference
+  *no* registry answered for is `UNCHECKED`, and that gap is stated by the
+  verdict rather than by this line.
 - **`--no-retraction-check` turns the independent pair off**, which is Retraction
   Watch's export and PubMed's `ECI`. A Crossref or PubMed record that itself
   carries a retraction linkage still fails, and every reference records

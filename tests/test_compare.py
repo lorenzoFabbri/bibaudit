@@ -16,13 +16,21 @@ payloads in ``tests/data/compare_*`` were fetched from the live APIs on
 
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-from bibaudit.compare import Thresholds, compare, confirm_without_id, verdict_for
+import bibaudit
+from bibaudit.compare import (
+    _NO_RETRACTION_SIGNAL,
+    Thresholds,
+    compare,
+    confirm_without_id,
+    verdict_for,
+)
 from bibaudit.model import (
     ARTIFACT_KIND,
     REGISTRIES,
@@ -817,6 +825,24 @@ class TestRetractionEvidenceIsNeverAssumed:
         assert result.verdict == "OK"
         assert not result.issues
 
+    def test_a_search_source_going_down_says_nothing_about_retraction(self) -> None:
+        """Europe PMC and OpenAlex are read for candidates and nothing else.
+
+        ``registries/search.py`` builds both records without touching a
+        retraction field — Europe PMC's ``commentCorrectionList`` included, so
+        here the limit is this tool's rather than the source's. Either way a
+        reachable Europe PMC would have resolved nothing, and an entry with no
+        identifier has no candidate pool but these two and Crossref, so the
+        doubt was stated on all three names at once.
+        """
+        result = compare(
+            make_ref(),
+            {"crossref": make_record()},
+            unreachable={"europepmc", "openalex"},
+        )
+        assert result.verdict == "OK"
+        assert not result.issues
+
     def test_a_retraction_watch_outage_leaves_a_stated_gap(self) -> None:
         """The opposite direction, and the reason the exclusion set stays an
         exclusion set: Retraction Watch exists *only* to carry this signal, so
@@ -969,6 +995,142 @@ class TestARetractionSourceNobodyAsked:
         gap = next(i for i in result.issues if i.kind == "not-asked")
         assert gap.source == "retraction-watch"
         assert "was never asked" in gap.note
+
+
+class TestASourceThatCannotDissent:
+    """A source carrying no retraction signal is never named as disagreeing.
+
+    The ``status/retracted`` note names every registry that answered for the
+    work and carries no retraction linkage, so the reader can tell "both
+    curated sources agree" from "only PubMed knows about this". A source this
+    tool reads no linkage from carries none for *any* work, so naming it states
+    a fact about the client as though it were a second opinion about the paper
+    — and it weakens the one finding a reader must not talk themselves out of.
+
+    The mirror image of the outage exclusion, and it went the other way: the
+    exclusion set existed and this branch never consulted it, so even DataCite,
+    named in that set since it was written, dissented.
+    """
+
+    def _retracted_by(self, *others: str) -> Result:
+        records = {
+            "crossref": make_record(retracted=True, retraction_kind="retraction"),
+            **{name: make_record(source=name) for name in others},
+        }
+        return compare(make_ref(), records, asked={"crossref", *others})
+
+    def test_a_source_with_no_retraction_signal_is_not_named_as_dissenting(self) -> None:
+        note = next(
+            i for i in self._retracted_by("datacite").issues if i.kind == "retracted"
+        ).note
+
+        assert note == "the cited work has been retracted; recorded by crossref"
+
+    def test_a_search_source_is_not_named_either(self) -> None:
+        note = next(
+            i for i in self._retracted_by("europepmc").issues if i.kind == "retracted"
+        ).note
+
+        assert "europepmc" not in note
+
+    def test_a_source_that_does_carry_the_signal_still_dissents(self) -> None:
+        """PubMed answering with no ``PT - Retracted Publication`` is evidence.
+
+        It is also a bug report for the publisher, which is why the sentence
+        exists at all — so the filter above must not swallow it.
+        """
+        result = compare(
+            make_ref(),
+            {
+                "pubmed": make_pubmed(retracted=True, retraction_kind="Retracted Publication"),
+                "crossref": make_record(),
+            },
+        )
+        note = next(i for i in result.issues if i.kind == "retracted").note
+
+        assert "and not by crossref, which answered for this work" in note
+
+
+class TestEveryRegistryClientIsAccountedFor:
+    """``_NO_RETRACTION_SIGNAL`` is derived from the clients, not remembered.
+
+    Its own comment promises that whoever adds the next registry is counted by
+    default and has to come and opt out. Europe PMC and OpenAlex were added to
+    ``registries/search.py`` and neither did, so both were named in
+    "retraction status not corroborated" for a doubt neither could have
+    resolved. A prose contract that has already failed once is worth a test.
+    """
+
+    def _stamped(self) -> dict[str, bool]:
+        """Every ``Record.source`` a registry client stamps -> does it set ``retracted``.
+
+        Read out of the syntax rather than by calling the clients, because
+        calling them needs a payload per source and a payload is exactly what
+        a newly added registry would not have here yet.
+        """
+        package = Path(str(bibaudit.__file__)).parent / "registries"
+        stamped: dict[str, bool] = {}
+        for path in sorted(package.glob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            literals = {
+                target.id: node.value.value
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Assign)
+                and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, str)
+                for target in node.targets
+                if isinstance(target, ast.Name)
+            }
+            calls = [
+                node
+                for node in ast.walk(tree)
+                if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "Record"
+            ]
+            carries = any(
+                keyword.arg == "retracted" for call in calls for keyword in call.keywords
+            )
+            for call in calls:
+                source = next(
+                    (kw.value for kw in call.keywords if kw.arg == "source"), None
+                )
+                if isinstance(source, ast.Constant):
+                    stamped[str(source.value)] = carries
+                elif isinstance(source, ast.Attribute):
+                    # ``source=self.name``, where ``name`` is the client class's
+                    # own literal attribute.
+                    stamped[literals[source.attr]] = carries
+                elif isinstance(source, ast.Name):
+                    stamped[literals[source.id]] = carries
+        return stamped
+
+    def test_the_clients_are_readable_at_all(self) -> None:
+        """Guards the derivation itself: a silent empty scan proves nothing."""
+        assert set(self._stamped()) >= {"crossref", "datacite", "pubmed", "openlibrary"}
+
+    def test_every_client_that_reads_no_retraction_signal_is_excluded(self) -> None:
+        missing = {
+            name
+            for name, carries in self._stamped().items()
+            if not carries and name not in _NO_RETRACTION_SIGNAL
+        }
+
+        assert not missing, (
+            f"{sorted(missing)} set no Record.retracted, so naming them in a "
+            "retraction gap manufactures a doubt they could not have resolved. "
+            "Add them to compare._NO_RETRACTION_SIGNAL, or read the signal."
+        )
+
+    def test_no_client_that_does_read_one_is_excluded(self) -> None:
+        """The costly direction: excluding a real witness understates ignorance."""
+        wrongly_excluded = {
+            name
+            for name, carries in self._stamped().items()
+            if carries and name in _NO_RETRACTION_SIGNAL
+        }
+
+        assert not wrongly_excluded
 
 
 class TestConsulted:

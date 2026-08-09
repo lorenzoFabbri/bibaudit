@@ -169,6 +169,19 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A source bibaudit reads no retraction signal from is neither a witness nor
+  a dissenter.** Europe PMC and OpenAlex were added to the identifier-less
+  search path without being excluded from the retraction notes, so an outage at
+  either printed "retraction status not corroborated" naming a source that
+  would have carried nothing had it answered — on an entry whose whole
+  candidate pool is those two plus Crossref, the doubt was stated on all three.
+  In the other direction the `status/retracted` note listed any source that
+  answered and recorded nothing as dissenting, without consulting that
+  exclusion at all: even DataCite, named in it since it was written, printed
+  "and not by datacite, which answered for this work and carries no retraction
+  linkage" beside a confirmed retraction. The exclusion is now derived from the
+  registry clients in the test suite, so a client that sets no
+  `Record.retracted` and is not named there fails the build.
 - **A registry defect is judged against the record that supplied the value.**
   `compare` lets the corroborating registry fill a field the primary left
   empty, but handed `benign.classify` the primary's record regardless — so a

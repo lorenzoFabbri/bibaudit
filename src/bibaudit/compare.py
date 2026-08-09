@@ -752,28 +752,43 @@ def _check_kind(ctx: _Context) -> None:
     )
 
 
-#: Registries whose data model carries no retraction signal at all, so an outage
-#: at one of them is not ignorance *about retraction*. DataCite's schema has no
-#: retraction, withdrawal or concern element and ``registries/datacite.py``
-#: accordingly never sets ``Record.retracted``; naming it in the
-#: ``retraction-unverified`` note below would manufacture a doubt that a
+#: Sources this tool reads no retraction signal from, so neither their silence
+#: nor their outage says anything about retraction. The test is what the client
+#: in ``registries/`` does, not what the source's API could be made to answer:
+#: only a client that sets :attr:`~bibaudit.model.Record.retracted` can carry
+#: the signal, and one that does not would have carried nothing had it been
+#: reachable.
+#:
+#: DataCite's schema has no retraction, withdrawal or concern element and
+#: ``registries/datacite.py`` accordingly never sets the field; naming it in
+#: the ``retraction-unverified`` note below would manufacture a doubt that a
 #: reachable DataCite could not have resolved, on every dataset, preprint and
-#: Zenodo deposit in the file.
+#: Zenodo deposit in the file. Open Library qualifies the same way: a book
+#: catalogue with nothing in its data model to carry a notice, and ``audit.py``
+#: does add it to *unreachable* when the ISBN leg times out.
 #:
-#: Open Library qualifies on the same test: it is a book catalogue with nothing
-#: in its data model to carry a notice, and ``registries/openlibrary.py`` sets
-#: no retraction field. ``audit.py`` does add it to *unreachable* when the ISBN
-#: leg times out, so naming it below would put a retraction caveat on every book
-#: in the file for a doubt a reachable Open Library could not have resolved.
+#: Europe PMC and OpenAlex qualify for the narrower reason, and it is the one
+#: that matters here. Europe PMC's own API *does* carry retraction linkage in
+#: ``commentCorrectionList``; ``registries/search.py`` reads neither that nor
+#: anything like it for either source, and builds both records with
+#: ``retracted`` left at its default. So a reachable Europe PMC would have
+#: resolved nothing either, and an entry with no identifier — whose whole
+#: candidate pool comes from these two plus Crossref — carried the doubt on
+#: all three names. That this is a limit of the client rather than of the
+#: source is a fact for ``docs/limits.md``; what it is not is evidence about a
+#: particular work.
 #:
-#: Written as an exclusion rather than as the list of registries that *do* carry
+#: Written as an exclusion rather than as the list of sources that *do* carry
 #: the signal, because the two fail in opposite directions: a registry missing
 #: from an inclusion list would be silently dropped from the notice, and
 #: understating ignorance about retraction is the exact failure this check
-#: exists to prevent. Whoever adds the next registry gets counted by default and
-#: has to come here to opt out. ``"retraction-watch"`` is deliberately *not*
-#: here: it is the one source in this set that exists only to carry the signal.
-_NO_RETRACTION_SIGNAL = frozenset({"datacite", "openlibrary"})
+#: exists to prevent. Whoever adds the next registry gets counted by default
+#: and has to come here to opt out — which Europe PMC and OpenAlex did not, so
+#: ``tests/test_compare.py`` now derives the partition from the registry
+#: clients themselves and fails when a new one skips this comment.
+#: ``"retraction-watch"`` is deliberately *not* here: it is the one source in
+#: this set that exists only to carry the signal.
+_NO_RETRACTION_SIGNAL = frozenset({"datacite", "openlibrary", "europepmc", "openalex"})
 
 #: The mirror image, and the sharper of the two. These sources hold no
 #: bibliographic record and can never resolve an identifier, so their being
@@ -964,12 +979,21 @@ def _status_issues(
     issues: list[Issue] = []
 
     if retracting:
-        # Only a registry that answered and recorded *nothing* dissents. One
-        # that recorded a concern or a correction has not contradicted the
-        # retraction, and listing it as carrying "no retraction linkage" would
-        # read as a second opinion against the finding when it is corroboration
-        # of a weaker one.
-        silent = _in_registry_order(set(records) - set(asserting))
+        # Only a registry that answered, could have recorded a retraction, and
+        # recorded *nothing* dissents. One that recorded a concern or a
+        # correction has not contradicted the retraction, and listing it as
+        # carrying "no retraction linkage" would read as a second opinion
+        # against the finding when it is corroboration of a weaker one. One
+        # this tool reads no retraction signal from has not contradicted it
+        # either, and there the sentence is false outright: a DataCite or
+        # Europe PMC record carries no retraction linkage for any work
+        # whatsoever, so "and not by datacite, which answered for this work and
+        # carries no retraction linkage" invents a dissent — on the finding
+        # where weakening one is worst.
+        silent = _in_registry_order(
+            name for name in set(records) - set(asserting)
+            if name not in _NO_RETRACTION_SIGNAL
+        )
         note = f"the cited work has been retracted; recorded by {', '.join(retracting)}"
         if silent:
             note += (
