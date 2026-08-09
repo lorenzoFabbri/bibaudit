@@ -169,6 +169,18 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A correction published after a retraction no longer downgrades it.**
+  Retraction Watch logs a DOI as often as its status is restated, and the row
+  with the latest date decided the finding — safe while every row meant
+  "retracted", and a downgrade once a correction became an `info` finding of
+  its own. 48 DOIs in the 2026-08-09 export carry a retraction row under a
+  later correction and four more under a later concern; for `10.1002/ana.24658`
+  (retracted 2016, corrected 2019) Crossref carries no `updated-by` either, so
+  the entry passed clean. The strongest notice for a DOI now wins, not the
+  newest: a work that has ever been retracted is retracted, and a correction
+  published afterwards amends the notice rather than the withdrawal. A
+  `Reinstatement` is still read by date — it withdraws every notice dated at or
+  before it, and leaves a later one standing.
 - **A corrected paper is reported as corrected, not as retracted.** Retraction
   Watch's export carries a `RetractionNature` of `Correction` beside
   `Retraction` and `Expression of concern`, and every kind outside the concern

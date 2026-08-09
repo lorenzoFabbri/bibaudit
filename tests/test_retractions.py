@@ -9,10 +9,13 @@ Two groups of fixtures matter more than the rest, and both are real, recorded
 data rather than invented for the test:
 
 * ``tests/data/retraction_watch_sample.csv`` is a small extract of the live
-  export (fetched 2026-08-01) covering the Wakefield paper's *two* RW
-  entries — a 2004 correction and a later 2010 retraction — which is what
-  proves :func:`~bibaudit.registries.retractions._parse_rw_csv` picks the
-  more recent row rather than the first or last one in the file.
+  export covering four DOIs RW logged more than once, which is what proves
+  :func:`~bibaudit.registries.retractions._parse_rw_csv` picks the strongest
+  notice rather than the newest, the first or the last: the Wakefield paper
+  (a 2004 correction and a later 2010 retraction), 10.1002/ana.24658 (a 2016
+  retraction and a later 2019 correction), 10.1371/journal.pone.0058088 (a
+  2022 concern and a later 2024 correction) and 10.1308/rcsann.2020.0038 (a
+  2021 reinstatement and a concern raised after it).
 * ``tests/data/pubmed_eci_concern*.txt`` are MEDLINE ``efetch`` output for
   PMID 23741377 (the affected paper) and PMID 34710116 (the notice), fetched
   live. The pair is what proves ``ECI`` ("Expression of Concern In:") is read
@@ -217,6 +220,43 @@ class TestRetractionWatchCsv:
         assert notice.notice_doi == CONCERN_NOTICE_DOI
         assert notice.date == "2021-10-28"
 
+    def test_a_later_correction_does_not_downgrade_an_earlier_retraction(
+        self, tmp_path: Path
+    ) -> None:
+        """The pairing the Wakefield rows cannot make: the *strongest* row wins,
+        not the newest.
+
+        RW logs a 2016 ``Retraction`` for 10.1002/ana.24658 and a 2019
+        ``Correction`` whose own ``Reason`` column reads ``Upgrade/Update of
+        Prior Notice(s)``. Crossref carries no ``updated-by`` for that DOI at
+        all, so a rule that keeps the newest row leaves nothing to contradict
+        it and the entry passes clean. The retraction row is placed *first* on
+        purpose: keeping whichever row arrived last is the same defect wearing
+        another hat.
+        """
+        doi = "10.1002/ana.24658"
+        stub = _client(rw_csv=_rw_sample())
+        result = Retractions(stub, cache_dir=tmp_path).status_for([doi]).notices
+        notice = result[doi]
+        assert notice.kind == "retraction"
+        assert notice.notice_doi == "10.1002/ana.24676"
+        assert notice.date == "2016-05-25"
+
+    def test_a_later_correction_does_not_downgrade_an_earlier_concern(
+        self, tmp_path: Path
+    ) -> None:
+        """The same rule one step down the priority order.
+
+        RW logs a 2022 ``Expression of concern`` for 10.1371/journal.pone.0058088
+        and a 2024 ``Correction``. A correction ranking above a concern would
+        both pick the wrong row here and, where two sources answer, soften a
+        concern one of them recorded into the other's correction.
+        """
+        doi = "10.1371/journal.pone.0058088"
+        stub = _client(rw_csv=_rw_sample())
+        result = Retractions(stub, cache_dir=tmp_path).status_for([doi]).notices
+        assert result[doi].kind == "expression-of-concern"
+
     def test_a_reinstated_retraction_is_not_reported(self, tmp_path: Path) -> None:
         """RW's sole row for this DOI is a ``Reinstatement`` -- the retraction
         was reversed, and reporting it anyway is the false alarm CLAUDE.md's
@@ -239,6 +279,22 @@ class TestRetractionWatchCsv:
         stub = _client(rw_csv=_rw_sample())
         result = Retractions(stub, cache_dir=tmp_path).status_for([doi]).notices
         assert doi not in result
+
+    def test_a_notice_raised_after_a_reinstatement_still_stands(
+        self, tmp_path: Path
+    ) -> None:
+        """A reinstatement withdraws what preceded it, not the file's whole DOI.
+
+        10.1308/rcsann.2020.0038 was retracted, reinstated on 2021-09-07, and
+        then had an expression of concern raised against it on 2022-03-23 —
+        "eoc issued after retracted artice reinstated", in RW's own ``Notes``
+        column. Reading a reinstatement row as "this DOI has nothing to report"
+        loses the later notice outright.
+        """
+        doi = "10.1308/rcsann.2020.0038"
+        stub = _client(rw_csv=_rw_sample())
+        result = Retractions(stub, cache_dir=tmp_path).status_for([doi]).notices
+        assert result[doi].kind == "expression-of-concern"
 
     def test_a_blank_original_paper_doi_is_skipped(self, tmp_path: Path) -> None:
         """The row exists (RetractionDOI 10.9999/blank-orig-notice) but names no

@@ -154,14 +154,16 @@ _RW_KIND_MAP = {
     "correction": "correction",
 }
 
-#: How a conflict between two sources reporting on the *same* DOI is broken,
-#: most to least definitive — mirrors ``crossref._RETRACTION_PRIORITY``'s "a
-#: later retraction supersedes an earlier expression of concern" rule, so a
-#: second source agreeing can only strengthen a finding, never soften one
-#: already made. ``withdrawal``/``removal`` are not yet produced by either
-#: source this module reads (RW's live vocabulary has no such category; see
-#: ``_RW_KIND_MAP``), but are ranked here so a future RW category needs only
-#: a new ``_RW_KIND_MAP`` entry, not a change to this ordering.
+#: How a conflict between two notices about the *same* DOI is broken, most to
+#: least definitive — whether they come from two sources (:func:`_combine`) or
+#: from two rows of Retraction Watch's own export (:func:`_parse_rw_csv`).
+#: Mirrors ``crossref._RETRACTION_PRIORITY``'s "a later retraction supersedes an
+#: earlier expression of concern" rule, so a second notice agreeing can only
+#: strengthen a finding, never soften one already made. ``withdrawal``/``removal``
+#: are not yet produced by either source this module reads (RW's live vocabulary
+#: has no such category; see ``_RW_KIND_MAP``), but are ranked here so a future
+#: RW category needs only a new ``_RW_KIND_MAP`` entry, not a change to this
+#: ordering.
 #:
 #: ``correction`` ranks last, below ``expression-of-concern``, because it is
 #: the one kind here that asserts *less* about the work than a concern does: a
@@ -277,6 +279,20 @@ def _parse_rw_date(raw: str) -> tuple[str | None, datetime]:
     return None, datetime.min
 
 
+def _kind_rank(kind: str) -> int:
+    """Position in :data:`_KIND_PRIORITY`; an unranked kind sorts last.
+
+    Sorting an unfamiliar kind last rather than dropping it is the same refusal
+    :func:`_parse_rw_csv` makes for an unfamiliar ``RetractionNature``, one step
+    later: it can still be the only notice a DOI has, and a kind this module has
+    never been taught must never be able to take a finding away.
+    """
+    try:
+        return _KIND_PRIORITY.index(kind)
+    except ValueError:
+        return len(_KIND_PRIORITY)
+
+
 def _looks_like_doi(value: str) -> bool:
     """Cheap shape check, not a validity one — good enough to reject blanks
     and RW's own "no DOI available" sentinel (``Unavailable``, 3,419 rows in
@@ -300,18 +316,39 @@ def _parse_rw_csv(text: str) -> dict[str, RetractionNotice]:
 
     A DOI can carry more than one row — RW logged both a 2004 ``Correction``
     and a 2010 ``Retraction`` for 10.1016/S0140-6736(97)11096-0, the
-    Wakefield paper, as two separate entries — so the row with the *latest*
-    parseable ``RetractionDate`` wins per DOI, not the first or last
-    encountered. That is also how a later ``Reinstatement`` is handled: it
-    is not a kind of notice of its own (see :data:`_RW_KIND_MAP`), it is the
-    event that, when it is the most recent one for a DOI, removes that DOI
-    from the index entirely — RW recorded 160 reinstatements in the
-    2026-08-01 snapshot, meaning a retraction that was later reversed, and
-    reporting the reversed retraction as a live finding would be the false
-    alarm CLAUDE.md's third rule exists to prevent.
+    Wakefield paper, as two separate entries — and the *strongest* notice wins
+    per DOI (:data:`_KIND_PRIORITY`), not the newest and not the first or last
+    encountered. A work that has ever been retracted is retracted, and a
+    correction published afterwards amends the notice rather than the
+    withdrawal: RW's later row for 10.1002/ana.24658 is a ``Correction`` dated
+    2019-03-12 whose own ``Reason`` column reads ``Upgrade/Update of Prior
+    Notice(s)``, over a ``Retraction`` dated 2016-05-25, and Crossref carries no
+    ``updated-by`` for that DOI at all — so the newest-row rule reported a
+    retracted paper as standing with nothing left to contradict it. 48 DOIs in
+    the 2026-08-09 export carry a retraction row under a later correction, and
+    four more carry one under a later expression of concern.
+
+    Within one kind the latest row still wins, because two rows of the same
+    kind are one status restated and the later one is the current wording of it.
+
+    A ``Reinstatement`` is the only row that *withdraws* rather than asserts
+    (see :data:`_RW_KIND_MAP`), so it alone stays a question of date: it removes
+    every notice for its DOI dated at or before it and leaves any later one
+    standing. RW recorded 160 reinstatements in the 2026-08-09 export, meaning a
+    retraction that was later reversed, and reporting the reversed retraction as
+    a live finding would be the false alarm CLAUDE.md's third rule exists to
+    prevent — while 10.1308/rcsann.2020.0038 carries an expression of concern
+    raised six months *after* its reinstatement ("eoc issued after retracted
+    artice reinstated", in RW's own ``Notes``), which a reinstatement anywhere
+    in the file would wrongly take away. One whose date cannot be parsed sorts
+    at :data:`datetime.min` and so withdraws nothing: an unreadable date is
+    ignorance, and ignorance may not clear a retraction.
     """
-    index: dict[str, RetractionNotice] = {}
-    latest: dict[str, datetime] = {}
+    #: doi -> kind -> the most recent row of that kind, and its sort key. At
+    #: most one entry per kind, so this holds no more rows than the index it
+    #: builds even where a DOI is logged many times over.
+    standing: dict[str, dict[str, tuple[datetime, RetractionNotice]]] = {}
+    reinstated: dict[str, datetime] = {}
 
     for row in csv.DictReader(io.StringIO(text)):
         doi = normalize_doi(row.get("OriginalPaperDOI") or "")
@@ -322,7 +359,7 @@ def _parse_rw_csv(text: str) -> dict[str, RetractionNotice]:
         if nature == "reinstatement":
             kind: str | None = None
         elif not nature:
-            # Undocumented by RW itself but witnessed live (190 of 71,496
+            # Undocumented by RW itself but witnessed live (241 of 71,641
             # rows): the whole database's subject is retractions, so an
             # untagged row is read as one rather than silently dropped — a
             # missed retraction costs more than a stray one whose specific
@@ -338,24 +375,37 @@ def _parse_rw_csv(text: str) -> dict[str, RetractionNotice]:
                 continue
 
         date_str, sortable = _parse_rw_date(row.get("RetractionDate") or "")
-        seen = latest.get(doi)
-        if seen is not None and seen >= sortable:
-            continue
-        latest[doi] = sortable
 
-        if kind is None:  # the winning row for this DOI is a reinstatement
-            index.pop(doi, None)
+        if kind is None:
+            if sortable > reinstated.get(doi, datetime.min):
+                reinstated[doi] = sortable
+            continue
+
+        by_kind = standing.setdefault(doi, {})
+        seen = by_kind.get(kind)
+        if seen is not None and seen[0] >= sortable:
             continue
 
         notice_doi = normalize_doi(row.get("RetractionDOI") or "")
-        index[doi] = RetractionNotice(
-            doi=doi,
-            kind=kind,
-            source="retraction-watch",
-            notice_doi=notice_doi if _looks_like_doi(notice_doi) else None,
-            date=date_str,
+        by_kind[kind] = (
+            sortable,
+            RetractionNotice(
+                doi=doi,
+                kind=kind,
+                source="retraction-watch",
+                notice_doi=notice_doi if _looks_like_doi(notice_doi) else None,
+                date=date_str,
+            ),
         )
 
+    index: dict[str, RetractionNotice] = {}
+    for doi, by_kind in standing.items():
+        cutoff = reinstated.get(doi)
+        live = [
+            notice for when, notice in by_kind.values() if cutoff is None or when > cutoff
+        ]
+        if live:
+            index[doi] = min(live, key=lambda notice: _kind_rank(notice.kind))
     return index
 
 
@@ -490,13 +540,7 @@ def _combine(candidates: Sequence[RetractionNotice]) -> RetractionNotice:
     if len(candidates) == 1:
         return candidates[0]
 
-    def rank(notice: RetractionNotice) -> int:
-        try:
-            return _KIND_PRIORITY.index(notice.kind)
-        except ValueError:
-            return len(_KIND_PRIORITY)
-
-    best = min(candidates, key=rank)
+    best = min(candidates, key=lambda notice: _kind_rank(notice.kind))
     sources = ",".join(sorted({c.source for c in candidates}))
     notice_doi = next((c.notice_doi for c in candidates if c.notice_doi), None)
     date = next((c.date for c in candidates if c.date), None)

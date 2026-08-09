@@ -180,11 +180,29 @@ correction reaching `compare` untagged is how 10.3390/nano14090769
 else, came to print `RETRACTED — the cited work has itself been retracted` and
 exit 1.
 
-Where two sources disagree about the same DOI, `_KIND_PRIORITY` keeps the more
+Where two notices disagree about the same DOI, `_KIND_PRIORITY` keeps the more
 definitive kind, and a correction is last: retraction, withdrawal, removal,
 expression of concern, correction. Ranked above the concern it *softened* a
 finding — a DOI Retraction Watch logs a correction for and NLM carries an `ECI`
 against merged to the correction, and the concern went unreported.
+
+The same order settles two rows of Retraction Watch's own export, which logs a
+DOI as often as its status is restated. **The strongest row wins, not the
+newest.** A work that has ever been retracted is retracted, and a correction
+published afterwards amends the notice rather than the withdrawal: RW's later
+row for `10.1002/ana.24658` is a 2019 correction whose `Reason` column reads
+`Upgrade/Update of Prior Notice(s)`, over a 2016 retraction, and Crossref
+carries no `updated-by` for that DOI at all. 48 DOIs in the 2026-08-09 export
+carry a retraction row under a later correction, four more under a later
+concern. Within one kind the later row still wins: two rows saying the same
+thing are one status restated, and the later one is its current wording.
+
+A `Reinstatement` is the only row that withdraws rather than asserts, so it
+alone remains a question of date. It removes every notice for its DOI dated at
+or before it and leaves any later one standing — `10.1308/rcsann.2020.0038` was
+reinstated in September 2021 and had an expression of concern raised against it
+six months after. One whose date cannot be read withdraws nothing, because an
+unreadable date is ignorance and ignorance may not clear a retraction.
 
 !!! note "Where a concern lands in the verdict table"
 
