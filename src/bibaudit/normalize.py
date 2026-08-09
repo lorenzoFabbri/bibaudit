@@ -317,7 +317,7 @@ def pmc_number(value: object) -> str | None:
     The digits are returned unprefixed because what asks for them compares
     them against a PMID — see ``benign._pmid_pmc_accession``.
     """
-    match = _PMCID_RE.match(clean(value).strip())
+    match = _PMCID_RE.match(clean(value))
     return match.group(1) if match else None
 
 
