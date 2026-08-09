@@ -169,6 +169,16 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A modifier letter folds like the apostrophe it stands in for.** Removing
+  every non-ASCII letter with no romanisation, added so an unmapped letter
+  could never split a surname, also removed U+02B9 MODIFIER LETTER PRIME and
+  the two turned-comma glyphs ALA-LC romanisation writes for a soft sign or a
+  glottal stop — while the ordinary apostrophe a keyboard and a reference
+  manager write still became a space. Two spellings of one name became two
+  comparison keys: Crossref's own title for 10.15862/24sats419 spells the
+  surname with U+02B9 and an entry writing `Vasil'ev` folded to `vasil ev`
+  beside the deposit's `vasilev`. They agreed before the romanisation map
+  existed, and agree again.
 - **A different journal is no longer cleared as an abbreviation of the one
   cited.** `_container_abbreviation` required the stored words to be in-order
   prefixes reaching the registry name's last word, and skipped over anything

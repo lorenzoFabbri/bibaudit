@@ -168,9 +168,37 @@ class TestALetterNfkdLeavesWhole:
 
         A letter with no romanisation is removed rather than spaced, so even a
         letter this table has never heard of cannot split a surname in two.
+        The unmapped letter is *inside* the surname in every case here: a
+        leading one is spaced into a boundary the final strip then removes,
+        which proves nothing about the rule.
         """
         assert " " not in fold("Ɓello")
         assert " " not in fold("Weiß")
+        # Azerbaijani schwa, twice, mid-surname. Spaced instead of removed this
+        # is "s f rov" — one surname compared as three tokens.
+        assert fold("Səfərov") == "sfrov"
+
+    @pytest.mark.parametrize(
+        ("letter_form", "apostrophe_form"),
+        [
+            # ALA-LC writes the Russian soft sign as MODIFIER LETTER PRIME.
+            # Crossref's own title for 10.15862/24sats419 carries it.
+            ("Vasilʹev", "Vasil'ev"),
+            ("OʼBrien", "O'Brien"),
+            ("Kaʻanapali", "Ka'anapali"),
+        ],
+    )
+    def test_a_modifier_letter_keeps_the_punctuation_rule(
+        self, letter_form: str, apostrophe_form: str
+    ) -> None:
+        """It is punctuation wearing a letter's Unicode category.
+
+        A keyboard and a reference manager write the apostrophe, which folds
+        to a space; removing the letter form instead made one name two keys.
+        The two agreed before the romanisation map existed, when both reached
+        the punctuation rule.
+        """
+        assert fold(letter_form) == fold(apostrophe_form)
 
     def test_punctuation_still_separates_two_words(self) -> None:
         """The other half: a space where a *mark* stood is information."""

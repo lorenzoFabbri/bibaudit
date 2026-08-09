@@ -98,6 +98,21 @@ _PUNCT_TABLE = str.maketrans(_PUNCT_MAP)
 #: record for the same DOI, 10.1001/jamanetworkopen.2026.26893, and the entry
 #: failed on ``authors/mismatch``.
 #:
+#: Unicode's category for a letter that modifies the one beside it rather than
+#: standing for a sound of its own. ALA-LC romanisation writes the Russian soft
+#: sign as U+02B9 MODIFIER LETTER PRIME and the Hawaiian and Uzbek glottal
+#: stops as U+02BB and U+02BC, all three of which a keyboard and a reference
+#: manager render as an ordinary apostrophe — punctuation, which
+#: :func:`fold` turns into a space. Removing the letter form while spacing the
+#: ASCII form makes two spellings of one name two keys: Crossref's own title
+#: for 10.15862/24sats419 spells the surname with U+02B9, and an entry writing
+#: ``Vasil'ev`` folded to ``vasil ev`` beside the deposit's ``vasilev``. They
+#: agreed before :data:`_ROMANISED_MAP` existed, when both reached the
+#: punctuation rule. So a modifier letter keeps doing what the character it
+#: stands in for does, and the removal in :func:`fold` is for letters that
+#: carry a sound.
+_MODIFIER_LETTER = "Lm"
+
 #: Confined to the letters that occur in living orthographies \u2014 German,
 #: Danish, Norwegian, Icelandic, Faroese, Polish, Croatian, Maltese, Turkish,
 #: French, Northern Sami, Greenlandic \u2014 rather than the whole of CLDR's table,
@@ -162,13 +177,24 @@ def fold(value: object) -> str:
     outright: a Cyrillic or Greek title still folds to nothing, as it always
     did, but ``Kjær`` folds to ``kjaer`` rather than to two tokens ``kj`` and
     ``r``.
+
+    A :data:`modifier letter <_MODIFIER_LETTER>` is punctuation wearing a
+    letter's category, and keeps the punctuation rule, so a surname spelled
+    with U+02B9 and the same surname spelled with an apostrophe stay one key
+    rather than becoming two.
     """
     text = clean(value).lower().replace("&", " and ")
     # NFKD splits a letter from its diacritic so the combining marks can go.
     text = unicodedata.normalize("NFKD", text)
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
     text = text.translate(_ROMANISED_TABLE)
-    text = "".join(ch for ch in text if ch.isascii() or not ch.isalpha())
+    text = "".join(
+        ch
+        for ch in text
+        if ch.isascii()
+        or not ch.isalpha()
+        or unicodedata.category(ch) == _MODIFIER_LETTER
+    )
     return _WS_RE.sub(" ", _NONWORD_RE.sub(" ", text)).strip()
 
 
