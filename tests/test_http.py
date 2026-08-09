@@ -1706,10 +1706,20 @@ def test_the_default_run_deselects_network_marked_tests(
     a second config file shadowing it, an ``-o addopts=`` in CI. ``markexpr``
     is what pytest actually filtered on.
 
-    This test carries no marker, so ``-m network`` deselects it in turn; it
-    can only ever observe the default invocation, which is the one whose
-    behaviour is being promised.
+    The promise is about the invocation nobody overrode. ``-m network``
+    deselects this test in turn, since it carries no marker; ``-m ""`` — the
+    "run both" form ``pyproject.toml`` names — selects it and resolves
+    ``markexpr`` to the empty string, so asserting unconditionally would fail
+    a documented command over a filter the caller deliberately replaced.
+
+    The skip is keyed on the *command line* rather than on the resolved value,
+    which is the whole of its safety: keyed on the value, an ``addopts`` that
+    had silently lost its ``-m`` would resolve to the empty string too and
+    skip the assertion instead of failing it — the guarantee would then be
+    unenforced by a test that reports green.
     """
+    if any(arg == "-m" or arg.startswith("-m") for arg in pytestconfig.invocation_params.args):
+        pytest.skip("marker filter replaced on the command line")
     assert pytestconfig.getoption("markexpr") == "not network"
     assert "network" in {
         mark.name for mark in test_a_network_marked_test_runs_only_when_selected.pytestmark
