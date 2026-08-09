@@ -429,6 +429,68 @@ class TestRetractionWatchCsv:
         assert result[doi].notice_doi == "10.9999/blank-nature-notice"
 
 
+class TestWhichRowOfManyIsRead:
+    """Two rows about one DOI, and which of them the index ends up holding.
+
+    Both selections below are decided by a comparison rather than by the order
+    the export happens to list the rows in, and both are observable: 104 DOIs
+    in the 2026-08-09 export carry two or more rows of one kind.
+    """
+
+    DOI = "10.1000/twice"
+
+    @pytest.mark.parametrize("oldest_first", [True, False])
+    def test_within_one_kind_the_later_row_wins(
+        self, tmp_path: Path, oldest_first: bool
+    ) -> None:
+        """Two rows of a kind are one status restated, and the later row is its
+        current wording — the notice DOI and the date a reader would look up.
+        Written both ways round, because a rule that keeps whichever row came
+        last in the file agrees with this one on exactly one of them.
+        """
+        rows = [
+            (self.DOI, "2/10/2017 0:00", "Expression of concern", "10.1000/first"),
+            (self.DOI, "10/27/2025 0:00", "Expression of concern", "10.1000/latest"),
+        ]
+        csv = _rw_rows(*(rows if oldest_first else rows[::-1]))
+        notice = Retractions(_client(rw_csv=csv), cache_dir=tmp_path).status_for(
+            [self.DOI]
+        ).notices[self.DOI]
+        assert notice.notice_doi == "10.1000/latest"
+        assert notice.date == "2025-10-27"
+
+    def test_the_latest_reinstatement_is_the_cutoff(self, tmp_path: Path) -> None:
+        """Not the last one in the file. A retraction logged between two
+        reinstatements is withdrawn by the later of them and reported by the
+        earlier, so which one is kept decides whether it is reported at all.
+        """
+        csv = _rw_rows(
+            (self.DOI, "1/1/2024 0:00", "Reinstatement", ""),
+            (self.DOI, "1/1/2020 0:00", "Reinstatement", ""),
+            (self.DOI, "1/1/2022 0:00", "Retraction", "10.1000/notice"),
+        )
+        result = Retractions(_client(rw_csv=csv), cache_dir=tmp_path).status_for(
+            [self.DOI]
+        ).notices
+        assert result == {}
+
+    def test_a_notice_after_the_latest_reinstatement_still_stands(
+        self, tmp_path: Path
+    ) -> None:
+        """The true-positive half, and the shape 10.1308/rcsann.2020.0038 has
+        live: a concern raised six months after the paper was reinstated.
+        """
+        csv = _rw_rows(
+            (self.DOI, "1/1/2020 0:00", "Reinstatement", ""),
+            (self.DOI, "1/1/2024 0:00", "Reinstatement", ""),
+            (self.DOI, "6/1/2025 0:00", "Retraction", "10.1000/notice"),
+        )
+        result = Retractions(_client(rw_csv=csv), cache_dir=tmp_path).status_for(
+            [self.DOI]
+        ).notices
+        assert result[self.DOI].kind == "retraction"
+
+
 class TestAnUnreadableDate:
     """Ignorance on either side of the reinstatement comparison.
 
