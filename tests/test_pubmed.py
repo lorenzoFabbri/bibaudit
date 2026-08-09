@@ -796,6 +796,40 @@ class TestPublicationDates:
         assert self._record().year == 2026
 
 
+class TestParallelJournalTitles:
+    """``JT`` joins one serial's two names with a spaced equals sign.
+
+    ``tests/data/pubmed_parallel_title.txt`` is PMID 42526877 verbatim: ``JT -
+    Journal of preventive medicine and public health = Yebang Uihakhoe chi``
+    beside ``TA - J Prev Med Public Health``. Both halves are the journal's own
+    name and a bibliography stores whichever its house style uses, so the whole
+    of ``JT`` was the only value a correct entry could be compared against and
+    it matched neither. 607 of the 37,987 serials in NLM's own list carry one.
+    """
+
+    def _record(self) -> Record:
+        client = _StubClient(medline=_fixture("parallel_title"))
+        return PubMed(client).by_pmids(["42526877"]).records["42526877"]
+
+    def test_each_name_the_registry_joins_is_offered_on_its_own(self) -> None:
+        record = self._record()
+
+        assert record.container == (
+            "Journal of preventive medicine and public health = Yebang Uihakhoe chi"
+        )
+        assert record.container_alternates == [
+            "J Prev Med Public Health",
+            "Journal of preventive medicine and public health",
+            "Yebang Uihakhoe chi",
+        ]
+
+    def test_a_serial_with_one_name_gains_no_extra_alternate(self) -> None:
+        """The abbreviation alone, exactly as before."""
+        record = _resolve_one("retracted", pmid=WAKEFIELD_PMID, doi=WAKEFIELD_DOI)
+
+        assert record.container_alternates == ["Lancet"]
+
+
 class TestATitleNlmDoesNotHold:
     """``TI - [Not Available].`` states that a field is empty, and is not a title.
 

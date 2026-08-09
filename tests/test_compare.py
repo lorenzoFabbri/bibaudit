@@ -2087,6 +2087,56 @@ class TestMedlineSocietyExpansionOnThePmidPath:
         assert [i.kind for i in result.issues if i.field == "container"] == ["mismatch"]
 
 
+class TestAParallelJournalTitleOnThePmidPath:
+    """One serial, two names, joined in ``JT`` by a spaced equals sign.
+
+    Replayed against ``tests/data/pubmed_parallel_title.txt``, NCBI's own bytes
+    for PMID 42526877: ``JT - Journal of preventive medicine and public health
+    = Yebang Uihakhoe chi``. Both halves are the journal's own name, and on the
+    PMID path the whole of ``JT`` was the only value an entry could be compared
+    against — so an entry storing either half reported `container/mismatch`.
+    """
+
+    def _entry(self, container: str) -> Result:
+        ref = Reference(
+            key="park2026humidifier",
+            locator="references.bib:52",
+            kind="article",
+            pmid="42526877",
+            title=(
+                "The Humidifier Disinfectant Disaster in Korea: Implications for "
+                "Preventive Medicine and Public Health"
+            ),
+            authors=[Name(family="Park", given="Sue K"), Name(et_al=True)],
+            year=2026,
+            container=container,
+        )
+        return compare(ref, {"pubmed": pubmed_record("pubmed_parallel_title.txt")})
+
+    def test_the_english_name_does_not_fail_the_build(self) -> None:
+        result = self._entry("Journal of Preventive Medicine and Public Health")
+
+        assert not result.fails
+        note = next(i for i in result.issues if i.field == "container")
+        assert (note.kind, note.severity) == ("alternate-title", "info")
+        assert note.note == (
+            "pubmed also carries 'Journal of preventive medicine and public health' "
+            "for this work"
+        )
+
+    def test_the_other_name_is_accepted_too(self) -> None:
+        """NLM puts the transliterated title second here and first elsewhere."""
+        result = self._entry("Yebang Uihakhoe chi")
+
+        assert not result.fails
+
+    def test_a_different_journal_still_fails(self) -> None:
+        result = self._entry("Journal of Preventive Medicine")
+
+        assert result.verdict == "FIELD-MISMATCH"
+        assert [i.kind for i in result.issues if i.field == "container"] == ["mismatch"]
+
+
 class TestAMastheadAcronymOnThePmidPath:
     """The publisher's masthead sets the acronym ahead of the name; NLM does not.
 

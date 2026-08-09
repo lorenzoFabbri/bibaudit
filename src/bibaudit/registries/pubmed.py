@@ -258,6 +258,42 @@ def _container_book(fields: dict[str, list[str]]) -> str | None:
     return _first(fields.get("BTI"))
 
 
+#: How NLM joins a serial's title to the same serial's title in another
+#: language: ``Zhongguo yao li xue bao = Acta pharmacologica Sinica`` (NlmId
+#: 8100330). Both are the journal's own name and a bibliography stores
+#: whichever its house style uses. 607 of the 37,987 serials in NLM's own list,
+#: ``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``, carry one; one of those has a
+#: part equal to some other serial's whole title, which is why the parts are
+#: offered as alternates the entry may match rather than substituted for
+#: ``JT``. Spaced on both sides, and matched before
+#: :func:`~bibaudit.normalize.fold`, which deletes the ``=``.
+_MEDLINE_PARALLEL_TITLE = " = "
+
+
+def _container_alternates(journal: str | None, abbreviation: str | None) -> list[str]:
+    """Every *other* name this record gives the container, in the record's order.
+
+    ``TA`` first — see :attr:`~bibaudit.model.Record.container_alternates` —
+    then each part of a ``JT`` that joins two names with
+    :data:`_MEDLINE_PARALLEL_TITLE`. Both are titles PubMed itself names for
+    one serial, so this is the principle CLAUDE.md states for years and
+    Crossref's ``container-title`` array, not a tolerance: any container title
+    the registry carries is acceptable.
+
+    Nothing folding to the same key as ``JT`` is repeated, so a report never
+    tells a reader the registry also carries a value the comparison already
+    treats as equal to the one it holds.
+    """
+    seen = {fold(journal or "")}
+    out: list[str] = []
+    for candidate in (abbreviation, *(journal or "").split(_MEDLINE_PARALLEL_TITLE)):
+        text = (candidate or "").strip()
+        if text and fold(text) not in seen:
+            seen.add(fold(text))
+            out.append(text)
+    return out
+
+
 def _kind_from(fields: dict[str, list[str]]) -> str | None:
     """The first ``PT`` value :func:`~bibaudit.normalize.normalize_kind` knows.
 
@@ -443,9 +479,7 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
     # only container an entry could match, and no bibliography stores it.
     journal = _first(fields.get("JT")) or _container_book(fields)
     abbreviation = _first(fields.get("TA"))
-    alternates = (
-        [abbreviation] if abbreviation and fold(abbreviation) != fold(journal) else []
-    )
+    alternates = _container_alternates(journal, abbreviation)
 
     return Record(
         source="pubmed",

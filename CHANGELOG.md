@@ -169,6 +169,13 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A serial's parallel title is a container the registry carries.** NLM joins
+  one journal's two names in `JT` with a spaced equals sign — `Journal of
+  preventive medicine and public health = Yebang Uihakhoe chi` — on 607 of the
+  37,987 serials in its own list. Both halves are the journal's own name and a
+  bibliography stores whichever its house style uses, so each is offered as a
+  `container_alternates` entry and matching one is an `info` note naming
+  PubMed, exactly as `TA` already was.
 - **A journal's own acronym written ahead of its name is a `REGISTRY-ARTIFACT`.**
   Several publishers set the masthead as `JNCI: Journal of the National Cancer
   Institute` and a reference manager copies it whole; NLM never files a serial

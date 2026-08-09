@@ -918,6 +918,17 @@ route, not a suppression: an entry storing `Lancet` gets the same
 `container/alternate-title` note at `info` severity, naming PubMed as the
 registry that carries it.
 
+A **parallel title** joins the same list by the same argument. NLM writes one
+serial's two names into `JT` separated by a spaced equals sign — `Journal of
+preventive medicine and public health = Yebang Uihakhoe chi` (PMID 42526877,
+`tests/data/pubmed_parallel_title.txt`), `Zhongguo yao li xue bao = Acta
+pharmacologica Sinica` (NlmId 8100330) — and 607 of the 37,987 serials in NLM's
+own list carry at least one. Both halves are the journal's own name and a
+bibliography stores whichever its house style uses, so each is offered as an
+alternate rather than substituted for `JT`. That is what keeps the one serial
+whose half equals some other serial's whole title from merging the two: the
+entry has to match a name, and `JT` stays what the record holds.
+
 `benign._container_leading_article` covers the entry that stores the masthead
 name. It accepts a stored value whose opening `The`/`A`/`An`, taken off, leaves
 exactly `JT` or exactly one of the titles on `container_alternates`. The article
