@@ -2036,6 +2036,58 @@ class TestReferencesWithoutAnIdentifier:
         assert not any(i.kind == "proposed" for i in result.issues)
         assert "type" in result.issues[-1].note
 
+    def test_a_book_is_resolved_by_its_isbn_and_compared_field_by_field(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The positive case the three ISBN tests around it never make.
+
+        Every other test on this path asks what happens when Open Library is
+        switched off, when the check digit fails, or when a stronger
+        identifier outranks the ISBN — all of which leave ``by_isbns``
+        uncalled. So the branch that assembles the ISBN set and the one that
+        files the answer under it were reachable only by the code, never by
+        the suite: inverting the ``not r.doi`` that admits an entry to the set
+        left the whole suite green, and a book would silently stop resolving.
+        """
+        isbn13 = "9780201896831"
+        book = make_record(
+            source="openlibrary",
+            doi=None,
+            kind="book",
+            title="The Art of Computer Programming",
+            authors=[Name(family="Knuth", given="Donald E.")],
+            years={"print": 1997},
+            container=None,
+            volume=None,
+            issue=None,
+            pages=None,
+        )
+        stubs = _install(monkeypatch, openlibrary=_StubOpenLibrary(records={isbn13: book}))
+        ref = make_ref(
+            key="knuth1997art",
+            doi=None,
+            kind="book",
+            isbn="0-201-89683-4",
+            title="The Art of Computer Programming",
+            authors=[Name(family="Knuth", given="Donald E.")],
+            year=1997,
+            container=None,
+            volume=None,
+            issue=None,
+            pages=None,
+        )
+
+        result = audit([ref], _options(tmp_path))[0]
+
+        # The lookup happened, keyed on the ISBN-13 the stored ISBN-10
+        # normalises to rather than on the string the bibliography stored.
+        assert stubs.openlibrary.by_isbns_calls == [[isbn13]]
+        # And the record it returned reached `compare`: an answered registry
+        # and a verdict, not the UNCHECKED a book nobody looked up receives.
+        assert result.consulted["openlibrary"] == ANSWERED
+        assert result.verdict == "OK"
+        assert not result.fails
+
     def test_no_isbn_does_not_accuse_a_book_of_not_existing(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
