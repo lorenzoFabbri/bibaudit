@@ -1262,16 +1262,38 @@ class TestARecordWithNothingToCompare:
         assert gap.stored == "10.1093/ije/dyx269"
         assert "the identifier resolved" in gap.note
 
-    def test_one_comparable_field_is_enough_to_be_a_real_verdict(self) -> None:
-        """The guard must not fire on a registry that is merely sparse."""
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("title", make_ref().title),
+            ("authors", [Name(family="Molina-Montes", given="E")]),
+            ("years", {"print": 2018}),
+            ("container", "International Journal of Epidemiology"),
+            ("volume", "47"),
+            ("issue", "2"),
+            ("pages", "473-483"),
+            ("publisher", "Oxford University Press"),
+        ],
+    )
+    def test_one_comparable_field_is_enough_to_be_a_real_verdict(
+        self, field: str, value: object
+    ) -> None:
+        """The guard must not fire on a registry that is merely sparse.
+
+        Every member of ``_COMPARABLE_FIELDS`` on its own, because a member
+        dropped from that tuple silently turns "the registry answered with
+        this one field and the entry agrees" into "nothing was compared" —
+        ``UNCHECKED`` on an entry that was, and a run that reports less
+        evidence than it has.
+        """
         result = compare(
             make_ref(),
-            {"crossref": Record(source="crossref", doi="10.1093/ije/dyx269", title=make_ref().title)},
+            {"crossref": Record(source="crossref", doi="10.1093/ije/dyx269", **{field: value})},  # type: ignore[arg-type]
             asked={"crossref"},
         )
 
-        assert result.verdict == "OK"
         assert not [i for i in result.issues if i.kind == "uncompared"]
+        assert result.verdict != "UNCHECKED"
 
     def test_the_corroborators_fields_count_too(self) -> None:
         """Something was compared, whichever record supplied it."""

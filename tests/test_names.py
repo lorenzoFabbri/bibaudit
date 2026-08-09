@@ -565,6 +565,73 @@ E3N_STORED = (
 )
 
 
+class TestABylineCollectiveTheRegistryFilesApart:
+    """The escape's two refusals, neither of which the shape below can do without.
+
+    Crossref credits a consortium in the byline and MEDLINE files it under
+    ``CN``, so the byline carries a creator the registry's list does not and
+    every position after it is shifted. What licenses the escape is that the
+    people left after the collectives come off are the *same list* as the
+    registry's — same length, agreeing position for position — and each guard
+    below is a way for that evidence to be absent while the walk still runs.
+    """
+
+    def _registry(self) -> list[Name]:
+        return [Name(family=f, given="X") for f in ("Alvarez", "Bianchi", "Costa")]
+
+    def _byline(self, *extra: Name) -> list[Name]:
+        people = self._registry()
+        return [
+            people[0],
+            Name(literal="ITC Project Collaborators", collective=True),
+            *people[1:],
+            *extra,
+        ]
+
+    def test_the_aligned_shape_is_suppressed(self) -> None:
+        diff = compare_author_lists(self._byline(), self._registry())
+
+        assert diff.clean
+        assert diff.reasons == {
+            1: "byline carries collective creator(s) the registry files apart: "
+               "ITC Project Collaborators"
+        }
+
+    def test_a_byline_longer_than_the_registrys_is_reported_not_suppressed(self) -> None:
+        """The length bound, which is also what keeps the walk from crashing.
+
+        Without it the people list and the registry's are zipped ``strict``,
+        so an extra creator raises ``ValueError`` out of a comparison instead
+        of returning a finding.
+        """
+        diff = compare_author_lists(
+            self._byline(Name(family="Eriksen", given="X")), self._registry()
+        )
+
+        assert not diff.clean
+        assert diff.count_differs
+        assert diff.mismatches
+
+    def test_a_creator_that_is_a_collective_and_a_truncation_marker_is_refused(
+        self,
+    ) -> None:
+        """Past an et-al marker a list is truncated and its length states nothing.
+
+        The alignment this escape rests on is a claim about two complete
+        lists, and a marker makes the byline's length meaningless — so the
+        collectives are not reported as creators the registry filed apart,
+        they are what the byline stopped at. No adapter builds a name that is
+        both today; the guard runs before the alignment is computed and this
+        pins it at the contract.
+        """
+        marker = Name(literal="others", collective=True, et_al=True)
+        stored = [self._registry()[0], marker, *self._registry()[1:]]
+
+        diff = compare_author_lists(stored, self._registry())
+
+        assert not [r for r in diff.reasons.values() if r.startswith("byline carries")]
+
+
 class TestRegistryOmittingTheFirstAuthor:
     """10.1097/00008469-199710000-00007 — Crossref's byline starts one name late.
 
