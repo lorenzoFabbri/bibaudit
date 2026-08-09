@@ -6,27 +6,56 @@
       "key": "ABCD1234",
       "version": 4211,
       "itemType": "journalArticle",
-      "title": "Shift work and colorectal cancer risk in the MCC-Spain case-control study",
+      "title": "Alcohol Consumption and Breast Cancer Risk in Younger Women According to Family History of Breast Cancer and Folate Intake",
       "publicationTitle": "American Journal of Epidemiology",
       "volume": "186",
       "issue": "5",
-      "pages": "533-540",
-      "date": "2017-08-15",
+      "pages": "524-531",
+      "date": "2017-09-01",
       "DOI": "10.1093/aje/kwx137",
       "url": "https://doi.org/10.1093/aje/kwx137",
       "extra": "PMID: 28520842\nPMCID: PMC5860629",
       "creators": [
         {
           "creatorType": "author",
-          "firstName": "Kyriaki",
-          "lastName": "Papantoniou"
+          "firstName": "Hyun Ja",
+          "lastName": "Kim"
         },
+        {
+          "creatorType": "author",
+          "firstName": "Seungyoun",
+          "lastName": "Jung"
+        }
+      ],
+      "collections": [
+        "COLLKEY01"
+      ],
+      "tags": []
+    }
+  },
+  {
+    "key": "EFGH5678",
+    "version": 4214,
+    "data": {
+      "key": "EFGH5678",
+      "version": 4214,
+      "itemType": "journalArticle",
+      "title": "Endogenous sex hormones and breast cancer in postmenopausal women: reanalysis of nine prospective studies",
+      "publicationTitle": "JNCI: Journal of the National Cancer Institute",
+      "volume": "94",
+      "issue": "8",
+      "pages": "606-616",
+      "date": "2002-04-17",
+      "DOI": "10.1093/jnci/94.8.606",
+      "creators": [
         {
           "creatorType": "author",
           "name": "The Endogenous Hormones and Breast Cancer Collaborative Group"
         }
       ],
-      "collections": ["COLLKEY01"],
+      "collections": [
+        "COLLKEY01"
+      ],
       "tags": []
     }
   },

@@ -369,26 +369,31 @@ def _build_library(
             "ARTICLE01",
             "journalArticle",
             {
-                "title": "Shift work and colorectal cancer risk in the MCC-Spain case-control study",
+                "title": (
+                    "Alcohol Consumption and Breast Cancer Risk in Younger Women "
+                    "According to Family History of Breast Cancer and Folate Intake"
+                ),
                 "publicationTitle": "American Journal of Epidemiology",
-                "date": "2017-08-15 2017-08-15",
+                "date": "2017-09-01 2017-09-01",
                 "DOI": "10.1093/aje/kwx137",
                 "volume": "186",
                 "issue": "5",
-                "pages": "533-540",
+                "pages": "524-531",
                 "url": "https://doi.org/10.1093/aje/kwx137",
                 # Stored under the fieldID that the skewed `fields` table calls
                 # "DOI"; see _skewed_fields_rows.
                 "callNumber": "RA645.C3",
-                "customPluginField": "papantoniou2017",
+                "customPluginField": "kim2017alcohol",
                 # Exactly what Zotero's PubMed translator leaves in Extra, two
                 # labelled lines in one column. The PMCID is not decoration:
-                # it is the neighbouring label a PMID scan must not read.
+                # it is the neighbouring label a PMID scan must not read, and
+                # it is this record's own — NLM issues both numbers for one
+                # deposited article.
                 "extra": "PMID: 28520842\nPMCID: PMC5860629",
             },
         )
-        add_creator(1, "Papantoniou", "Kyriaki")
-        add_creator(2, "Castano-Vinyals", "Gemma")
+        add_creator(1, "Kim", "Hyun Ja")
+        add_creator(2, "Jung", "Seungyoun")
         link_creator(1, 1, "author", 0)
         link_creator(1, 2, "author", 1)
 
@@ -711,14 +716,15 @@ class TestSqliteRoundTrip:
     def test_scalar_fields_round_trip(self, by_key: dict[str, Reference]) -> None:
         ref = by_key["ARTICLE01"]
         assert ref.title == (
-            "Shift work and colorectal cancer risk in the MCC-Spain case-control study"
+            "Alcohol Consumption and Breast Cancer Risk in Younger Women According "
+            "to Family History of Breast Cancer and Folate Intake"
         )
         assert ref.container == "American Journal of Epidemiology"
         assert ref.year == 2017
         assert ref.doi == "10.1093/aje/kwx137"
         assert ref.volume == "186"
         assert ref.issue == "5"
-        assert ref.pages == "533-540"
+        assert ref.pages == "524-531"
         assert ref.url == "https://doi.org/10.1093/aje/kwx137"
 
     def test_key_locator_and_kind(self, by_key: dict[str, Reference]) -> None:
@@ -830,7 +836,7 @@ class TestFieldResolution:
         vanishes from ``raw`` with no error at all if the wrong table is read —
         the silent half of the same bug.
         """
-        assert by_key["ARTICLE01"].raw["fields"]["customPluginField"] == "papantoniou2017"
+        assert by_key["ARTICLE01"].raw["fields"]["customPluginField"] == "kim2017alcohol"
 
     def test_a_database_predating_fieldscombined_falls_back_to_fields(
         self, tmp_path: pathlib.Path
@@ -871,8 +877,8 @@ class TestCreators:
     ) -> None:
         authors = by_key["ARTICLE01"].authors
         assert [(a.family, a.given) for a in authors] == [
-            ("Papantoniou", "Kyriaki"),
-            ("Castano-Vinyals", "Gemma"),
+            ("Kim", "Hyun Ja"),
+            ("Jung", "Seungyoun"),
         ]
         assert not any(a.collective for a in authors)
 
@@ -999,7 +1005,7 @@ class TestLibraryScoping:
         matching = [ref for ref in refs if ref.key == "ARTICLE01"]
         assert len(matching) == 1
         title = matching[0].title
-        assert title is not None and title.startswith("Shift work")
+        assert title is not None and title.startswith("Alcohol Consumption")
 
     def test_a_collection_that_exists_only_in_a_group_library_is_not_found(
         self, library: pathlib.Path
@@ -1845,19 +1851,41 @@ class TestTruncatedByline:
 
 
 class TestJsonDispatch:
+    """``zotero_native_items.json`` is a library, not a registry response —
+    but the two works in it are real and their fields are their own.
+
+    ``ABCD1234`` is Kim et al., *Am J Epidemiol* 2017;186(5):524-531,
+    10.1093/aje/kwx137, PMID 28520842, PMC5860629: one consistent record, so
+    the ``extra`` block below is the pair Zotero's PubMed translator really
+    writes for it. ``EFGH5678`` carries the corporate byline, on its own item
+    exactly as the sqlite library and the CSL export keep it, because it is a
+    different paper's.
+    """
+
     def test_native_item_json_is_detected_and_read(self) -> None:
         refs = read_zotero(_DATA / "zotero_native_items.json")
-        assert [ref.key for ref in refs] == ["ABCD1234"]
+        assert [ref.key for ref in refs] == ["ABCD1234", "EFGH5678"]
         assert refs[0].container == "American Journal of Epidemiology"
         assert refs[0].year == 2017
 
     def test_native_json_single_field_creator_is_collective(self) -> None:
         """fieldMode 1 exports as ``{"name": ...}`` with no first/last split."""
-        authors = read_zotero(_DATA / "zotero_native_items.json")[0].authors
-        assert [a.collective for a in authors] == [False, True]
-        assert authors[1].literal == (
+        by_key = {ref.key: ref for ref in read_zotero(_DATA / "zotero_native_items.json")}
+        authors = by_key["EFGH5678"].authors
+
+        assert [a.collective for a in authors] == [True]
+        assert authors[0].literal == (
             "The Endogenous Hormones and Breast Cancer Collaborative Group"
         )
+
+    def test_an_ordinary_creator_pair_is_still_split(self) -> None:
+        """The other half of the same dispatch: two people, no literal."""
+        authors = read_zotero(_DATA / "zotero_native_items.json")[0].authors
+
+        assert [(a.family, a.given) for a in authors] == [
+            ("Kim", "Hyun Ja"),
+            ("Jung", "Seungyoun"),
+        ]
 
     def test_a_pmid_in_the_extra_field_is_read(self) -> None:
         """Zotero's own item JSON keeps Extra as one ``extra`` string, exactly
@@ -1867,7 +1895,7 @@ class TestJsonDispatch:
         assert read_zotero(_DATA / "zotero_native_items.json")[0].pmid == "28520842"
 
     def test_attachments_and_notes_are_skipped_in_native_json_too(self) -> None:
-        assert len(read_zotero(_DATA / "zotero_native_items.json")) == 1
+        assert len(read_zotero(_DATA / "zotero_native_items.json")) == 2
 
     def test_csl_json_is_detected_and_read(self) -> None:
         refs = read_zotero(_DATA / "zotero_csl_export.json")

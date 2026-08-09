@@ -37,6 +37,11 @@ from bibaudit.suppress import (
     load_suppressions,
 )
 
+#: Papantoniou et al., *Scand J Work Environ Health* 2017;43(3):250-259,
+#: 10.5271/sjweh.3626. Title and identifier are the one work's: the file
+#: previously filed this title under 10.1093/aje/kwx137, which belongs to a
+#: different paper, and a reader following the DOI out of a suppression test
+#: would have landed on it.
 TITLE = "Shift work and colorectal cancer risk in the MCC-Spain case-control study"
 
 
@@ -45,13 +50,13 @@ def make_ref(**overrides: object) -> Reference:
         "key": "papantoniou2017colorectal",
         "locator": "references.bib:1",
         "kind": "article",
-        "doi": "10.1093/aje/kwx137",
+        "doi": "10.5271/sjweh.3626",
         "title": TITLE,
         "authors": [Name(family="Papantoniou", given="Kyriaki")],
         "year": 2017,
-        "container": "American Journal of Epidemiology",
-        "volume": "185",
-        "pages": "1211-1221",
+        "container": "Scandinavian Journal of Work, Environment & Health",
+        "volume": "43",
+        "pages": "250-259",
     }
     base.update(overrides)
     return Reference(**base)  # type: ignore[arg-type]
@@ -60,13 +65,13 @@ def make_ref(**overrides: object) -> Reference:
 def make_record(**overrides: object) -> Record:
     base: dict[str, object] = {
         "source": "crossref",
-        "doi": "10.1093/aje/kwx137",
+        "doi": "10.5271/sjweh.3626",
         "title": TITLE,
         "authors": [Name(family="Papantoniou", given="Kyriaki")],
         "years": {"print": 2017},
-        "container": "American Journal of Epidemiology",
-        "volume": "185",
-        "pages": "1211-1221",
+        "container": "Scandinavian Journal of Work, Environment & Health",
+        "volume": "43",
+        "pages": "250-259",
         "kind": "journal-article",
     }
     base.update(overrides)
@@ -359,12 +364,12 @@ class TestVerdictIsReDerived:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         ref = make_ref(volume="186")
-        records = {"10.1093/aje/kwx137": {"crossref": make_record()}}
+        records = {"10.5271/sjweh.3626": {"crossref": make_record()}}
         suppressions = Suppressions(
             [Suppression(key="papantoniou2017colorectal", field="volume", reason="checked the PDF")]
         )
 
-        assert compare(ref, records["10.1093/aje/kwx137"]).verdict == "FIELD-MISMATCH"
+        assert compare(ref, records["10.5271/sjweh.3626"]).verdict == "FIELD-MISMATCH"
         result = run_audit([ref], records, suppressions, tmp_path, monkeypatch)[0]
 
         assert result.verdict != "FIELD-MISMATCH"
@@ -376,7 +381,7 @@ class TestVerdictIsReDerived:
     ) -> None:
         """Silencing the volume must not silence the title mismatch beside it."""
         ref = make_ref(volume="186", title="An entirely unrelated paper about marine biology")
-        records = {"10.1093/aje/kwx137": {"crossref": make_record()}}
+        records = {"10.5271/sjweh.3626": {"crossref": make_record()}}
         suppressions = Suppressions(
             [Suppression(key="*", field="volume", reason="checked the PDF")]
         )
@@ -396,7 +401,7 @@ class TestVerdictIsReDerived:
         """
         ref = make_ref()
         records = {
-            "10.1093/aje/kwx137": {
+            "10.5271/sjweh.3626": {
                 "crossref": make_record(retracted=True, retraction_kind="retraction")
             }
         }
@@ -433,7 +438,7 @@ class TestVerdictIsReDerived:
             [Suppression(key="*", field="volume", reason="checked the PDF")]
         )
 
-        result = run_audit([ref], {"10.1093/aje/kwx137": {}}, suppressions, tmp_path, monkeypatch)[0]
+        result = run_audit([ref], {"10.5271/sjweh.3626": {}}, suppressions, tmp_path, monkeypatch)[0]
 
         assert result.verdict == "BAD-ID"
         assert result.fails
@@ -443,7 +448,7 @@ class TestVerdictIsReDerived:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         ref = make_ref(volume="186")
-        records = {"10.1093/aje/kwx137": {"crossref": make_record()}}
+        records = {"10.5271/sjweh.3626": {"crossref": make_record()}}
         suppressions = Suppressions([Suppression(key="*", field="volume", reason="checked")])
 
         result = run_audit([ref], records, suppressions, tmp_path, monkeypatch)[0]
