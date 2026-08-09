@@ -105,6 +105,7 @@ from .registries.retractions import (
     RW_CACHE_SUBDIR,
     RetractionNotice,
     Retractions,
+    RetractionStatus,
     concern_in,
 )
 from .registries.search import Search
@@ -420,6 +421,26 @@ def _resolve_dois(
             unreachable.add("pubmed")
 
 
+def _outage_status(exc: Transient) -> RetractionStatus:
+    """What a retraction outage still found, beside every source it took down.
+
+    :class:`~bibaudit.registries.retractions.RetractionOutage` carries both out
+    of the frame that raised, and both matter. Retraction Watch's answer is
+    already in hand when PubMed's leg fails; returning early on the exception
+    discards it, and a work Retraction Watch records as retracted then reports
+    under "no registry that did answer records a retraction" — a finding held
+    in memory, deleted, and then denied. Ignorance about one source is not
+    ignorance about the other.
+
+    A plain :class:`~bibaudit.registries.http.Transient` from anywhere else
+    carries neither, and is PubMed's leg with nothing recovered.
+    """
+    status = getattr(exc, "status", None)
+    if isinstance(status, RetractionStatus):
+        return status
+    return RetractionStatus(notices={}, unreachable=frozenset({"pubmed"}), by_source={})
+
+
 def _resolve_retractions(
     dois: Sequence[str],
     registries: _Registries,
@@ -450,17 +471,18 @@ def _resolve_retractions(
     :data:`~bibaudit.compare._NO_RETRACTION_SIGNAL`'s terms, and it is
     *unreachable* that makes ``compare._status_issues`` state the gap rather
     than let a run that consulted nothing read as clean.
+
+    The two channels differ in how the answer arrives, never in whether there
+    is one: an outage that raises still carries what the source that answered
+    found (:func:`_outage_status`), so both paths merge notices and both fold
+    in the downed sources.
     """
     if registries.retractions is None:
         return
     try:
         status = registries.retractions.status_for(dois)
     except Transient as exc:
-        # `RetractionOutage` names every retraction source that was down, not
-        # just the leg that raised; a plain Transient from anywhere else is
-        # PubMed's.
-        unreachable |= getattr(exc, "unreachable", frozenset({"pubmed"}))
-        return
+        status = _outage_status(exc)
     unreachable |= status.unreachable
     _merge_retraction_notices(records, status.by_source)
 
@@ -831,14 +853,14 @@ def _audit_unidentified(
         try:
             status = registries.retractions.status_for([record.doi])
         except Transient as exc:
-            failed = failed | getattr(exc, "unreachable", frozenset({"pubmed"}))
-        else:
-            # Same reason as in `_resolve_retractions`: a Retraction Watch
-            # outage never raises, so the only way it reaches `consulted` —
-            # which `asked` above has already promised to report on — is
-            # through the returned set.
-            failed = failed | status.unreachable
-            _merge_retraction_notices({record.doi: found_records}, status.by_source)
+            status = _outage_status(exc)
+        # Same reason as in `_resolve_retractions`: a Retraction Watch outage
+        # never raises, so the only way it reaches `consulted` — which `asked`
+        # above has already promised to report on — is through this set; and
+        # the PubMed outage that does raise brings Retraction Watch's notices
+        # out with it rather than leaving this entry to read as unretracted.
+        failed = failed | status.unreachable
+        _merge_retraction_notices({record.doi: found_records}, status.by_source)
 
     result = compare(
         ref,

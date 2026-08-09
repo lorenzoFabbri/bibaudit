@@ -96,7 +96,10 @@ A PubMed outage, by contrast, propagates as
 of a registry this project relies on for retraction corroboration, not a
 routine gap in one bulk file's freshness, and swallowing it here would be the
 single worst thing this module could do: silence about a registry that could
-have said "retracted" rendering as a clean citation.
+have said "retracted" rendering as a clean citation. Propagating it is not
+licence to drop what the *other* source already produced, though: the raise is
+a :class:`RetractionOutage` and carries Retraction Watch's notices with it, so
+one registry's silence never deletes another registry's finding.
 """
 
 from __future__ import annotations
@@ -232,22 +235,6 @@ class RetractionNotice:
     date: str | None
 
 
-class RetractionOutage(Transient):
-    """A propagating retraction outage that names every source it took down.
-
-    A :class:`~bibaudit.registries.http.Transient` out of
-    :meth:`Retractions.status_for` is PubMed's leg, but Retraction Watch may
-    already have failed on the way there. Subclassing keeps every existing
-    ``except Transient`` working while letting a caller that cares fold
-    :attr:`unreachable` into its own set rather than assuming "pubmed" alone.
-    """
-
-    def __init__(self, message: str, unreachable: frozenset[str]) -> None:
-        super().__init__(message)
-        #: Every source known to be unreachable when this was raised.
-        self.unreachable = unreachable
-
-
 @dataclass(frozen=True, slots=True)
 class RetractionStatus:
     """What :meth:`Retractions.status_for` found, and what it could not reach.
@@ -265,10 +252,13 @@ class RetractionStatus:
     #: alone.
     notices: Mapping[str, RetractionNotice]
     #: Names of sources that could not be reached on this call, in the same
-    #: vocabulary ``audit.py`` keeps its *unreachable* set in — currently only
-    #: ever ``{"retraction-watch"}``, because a PubMed outage raises
-    #: :class:`~bibaudit.registries.http.Transient` out of this module rather
-    #: than being reported through here.
+    #: vocabulary ``audit.py`` keeps its *unreachable* set in. On a value
+    #: *returned* from :meth:`Retractions.status_for` that is only ever
+    #: ``{"retraction-watch"}``: a PubMed outage raises. It is the same class
+    #: :class:`RetractionOutage` carries out when one does, though, and there
+    #: it names ``pubmed`` beside whatever else went down — which is the whole
+    #: reason the notices travel with it rather than being reconstructed by a
+    #: caller that has only the exception.
     unreachable: frozenset[str]
     #: What each source said on its own, ``doi -> source -> notice``, before
     #: :func:`_combine` reconciled them.
@@ -284,6 +274,36 @@ class RetractionStatus:
     #: retraction: the report read ``crossref=retraction; pubmed=retraction;
     #: retraction-watch=retraction``.
     by_source: Mapping[str, Mapping[str, RetractionNotice]]
+
+
+class RetractionOutage(Transient):
+    """A propagating retraction outage, carrying everything already known.
+
+    A :class:`~bibaudit.registries.http.Transient` out of
+    :meth:`Retractions.status_for` is PubMed's leg, and by the time it is
+    raised Retraction Watch has already answered — or already failed on the
+    way there. Subclassing keeps every existing ``except Transient`` working
+    while letting a caller that cares recover both halves.
+
+    :attr:`status` is why this carries a whole :class:`RetractionStatus` and
+    not a set of source names. Retraction Watch's notices are in hand when
+    PubMed's leg fails, and an exception that names only the outage deletes
+    them: the caller has nothing left to state a retraction from, so the work
+    reads as carrying none. That is not ignorance rendering as a clean bill of
+    health, it is a finding held in memory being denied — ignorance about one
+    source is not ignorance about the other.
+    """
+
+    def __init__(self, message: str, status: RetractionStatus) -> None:
+        super().__init__(message)
+        #: What the sources that did answer found, beside every source known
+        #: to be unreachable when this was raised.
+        self.status = status
+
+    @property
+    def unreachable(self) -> frozenset[str]:
+        """Every source known to be unreachable when this was raised."""
+        return self.status.unreachable
 
 
 def _fold_nature(raw: str) -> str:
@@ -631,6 +651,35 @@ def _combine(candidates: Sequence[RetractionNotice]) -> RetractionNotice:
     return replace(best, source=sources, notice_doi=notice_doi, date=date)
 
 
+def _reconcile(
+    from_rw: Mapping[str, RetractionNotice],
+    from_pubmed: Mapping[str, RetractionNotice],
+    unreachable: frozenset[str],
+) -> RetractionStatus:
+    """Both sources' answers as one :class:`RetractionStatus`.
+
+    A function rather than the tail of :meth:`Retractions.status_for` because
+    a PubMed outage has to produce one of these too — carrying Retraction
+    Watch's notices out on :class:`RetractionOutage` — and a second, thinner
+    merge written for that path is one that can come to disagree with this one
+    about which source a kind is attributed to.
+    """
+    merged: dict[str, RetractionNotice] = {}
+    by_source: dict[str, Mapping[str, RetractionNotice]] = {}
+    for doi in {*from_rw, *from_pubmed}:
+        # Keyed on what each notice says its own source is, rather than on
+        # the two strings restated here, so this mapping and the notices in
+        # it cannot come to name one source two ways.
+        answers = {
+            n.source: n
+            for n in (from_rw.get(doi), from_pubmed.get(doi))
+            if n is not None
+        }
+        by_source[doi] = answers
+        merged[doi] = _combine(list(answers.values()))
+    return RetractionStatus(notices=merged, unreachable=unreachable, by_source=by_source)
+
+
 class Retractions:
     """Retraction status from Retraction Watch and PubMed, keyed by DOI.
 
@@ -682,6 +731,11 @@ class Retractions:
         outage, exactly as :meth:`PubMed.by_dois` already does, because that
         is real ignorance about a registry this project relies on for
         retraction corroboration.
+
+        What that raise is *not* is a reason to throw away the answer already
+        collected: it is a :class:`RetractionOutage`, and everything Retraction
+        Watch said is on it under :attr:`RetractionOutage.status`, merged by
+        the same :func:`_reconcile` a clean call returns through.
         """
         wanted = list(dict.fromkeys(doi for raw in dois if (doi := normalize_doi(raw))))
         if not wanted:
@@ -695,30 +749,16 @@ class Retractions:
             from_pubmed = self._pubmed_signals(wanted)
         except Transient as exc:
             # PubMed's outage still propagates — it is a registry this project
-            # relies on for corroboration. But Retraction Watch's fate is
-            # already known by now and would be lost with this frame, leaving
-            # the caller to report `retraction-watch: answered` for a source
-            # that was never reached. Carry both out on the exception.
+            # relies on for corroboration. What must not propagate with it is
+            # the loss of Retraction Watch's answer, which is already in hand:
+            # a notice dropped here does not come back as unknown, it comes
+            # back as its opposite, because a caller holding nothing states no
+            # retraction. Both halves ride out on the exception.
             raise RetractionOutage(
-                str(exc), frozenset({"pubmed"}) | rw_unreachable
+                str(exc), _reconcile(from_rw, {}, frozenset({"pubmed"}) | rw_unreachable)
             ) from exc
 
-        merged: dict[str, RetractionNotice] = {}
-        by_source: dict[str, Mapping[str, RetractionNotice]] = {}
-        for doi in {*from_rw, *from_pubmed}:
-            # Keyed on what each notice says its own source is, rather than on
-            # the two strings restated here, so this mapping and the notices in
-            # it cannot come to name one source two ways.
-            answers = {
-                n.source: n
-                for n in (from_rw.get(doi), from_pubmed.get(doi))
-                if n is not None
-            }
-            by_source[doi] = answers
-            merged[doi] = _combine(list(answers.values()))
-        return RetractionStatus(
-            notices=merged, unreachable=rw_unreachable, by_source=by_source
-        )
+        return _reconcile(from_rw, from_pubmed, rw_unreachable)
 
     def _rw_signals(
         self, dois: Sequence[str]

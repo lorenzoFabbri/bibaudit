@@ -41,7 +41,7 @@ import pytest
 from bibaudit.model import Record
 from bibaudit.normalize import normalize_doi
 from bibaudit.registries.http import Transient
-from bibaudit.registries.retractions import Retractions, concern_in
+from bibaudit.registries.retractions import RetractionOutage, Retractions, concern_in
 
 DATA = Path(__file__).parent / "data"
 
@@ -945,6 +945,49 @@ class TestOutageHandling:
         stub = _client(rw_csv=_rw_sample(), pubmed_transient=True)
         with pytest.raises(Transient):
             Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+
+    def test_a_pubmed_outage_does_not_delete_what_retraction_watch_already_said(
+        self, tmp_path: Path
+    ) -> None:
+        """The raise above must not take the other source's answer with it.
+
+        Retraction Watch has already been read by the time PubMed's leg fails,
+        and its notices are in the frame that raises. Let them go and a caller
+        catching the outage has nothing left to state a retraction from, so a
+        work Retraction Watch records as retracted reports as carrying no
+        notice at all — the finding is not lost to ignorance, it is deleted and
+        then contradicted.
+        """
+        stub = _client(rw_csv=_rw_sample(), pubmed_transient=True)
+        with pytest.raises(RetractionOutage) as caught:
+            Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+
+        status = caught.value.status
+        assert status.notices[WAKEFIELD_DOI.lower()].kind == "retraction"
+        assert status.notices[WAKEFIELD_DOI.lower()].source == "retraction-watch"
+        assert status.by_source[WAKEFIELD_DOI.lower()]["retraction-watch"].kind == "retraction"
+        assert caught.value.unreachable == frozenset({"pubmed"})
+        assert status.unreachable == frozenset({"pubmed"})
+
+    def test_both_sources_down_names_both_and_carries_no_finding(
+        self, tmp_path: Path
+    ) -> None:
+        """The other half: nothing survives an outage that took both sources.
+
+        Retraction Watch's own failure is absorbed on the way in, so it is only
+        the union on the raise that keeps its name from being dropped by
+        PubMed's — and an outage that recovered notices from a source that
+        never answered would be fabricating them.
+        """
+        stub = _client(rw_transient=True, pubmed_transient=True)
+        with (
+            pytest.warns(RuntimeWarning, match="Retraction Watch"),
+            pytest.raises(RetractionOutage) as caught,
+        ):
+            Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+
+        assert caught.value.unreachable == frozenset({"pubmed", "retraction-watch"})
+        assert caught.value.status.notices == {}
 
     def test_a_retraction_watch_outage_with_no_pubmed_hit_leaves_the_doi_absent(
         self, tmp_path: Path

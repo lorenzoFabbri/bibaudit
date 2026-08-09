@@ -34,7 +34,11 @@ from bibaudit.normalize import normalize_doi
 from bibaudit.registries import pubmed as pubmed_client
 from bibaudit.registries.http import Cache, Client, Transient
 from bibaudit.registries.pubmed import PmidAnswers
-from bibaudit.registries.retractions import RetractionNotice, RetractionStatus
+from bibaudit.registries.retractions import (
+    RetractionNotice,
+    RetractionOutage,
+    RetractionStatus,
+)
 from bibaudit.report import Summary, render_text
 from bibaudit.suppress import Suppression, Suppressions
 
@@ -278,6 +282,7 @@ class _StubRetractions:
         notices: dict[str, RetractionNotice] | None = None,
         by_source: dict[str, dict[str, RetractionNotice]] | None = None,
         transient: bool = False,
+        pubmed_outage: bool = False,
         rw_unreachable: bool = False,
     ) -> None:
         self.notices = dict(notices or {})
@@ -285,9 +290,14 @@ class _StubRetractions:
         #: merged notice cannot describe on its own.
         self.by_source = dict(by_source or {})
         self.transient = transient
+        #: A PubMed outage as the real class raises it: a ``RetractionOutage``
+        #: carrying everything Retraction Watch already answered. ``transient``
+        #: above is the blunter shape -- a plain ``Transient``, recovering
+        #: nothing -- which is what a caller sees from anywhere else.
+        self.pubmed_outage = pubmed_outage
         #: The Retraction Watch export failing, which the real class reports
-        #: through its return value rather than by raising -- ``transient``
-        #: above is the *other* outage, PubMed's, which does raise.
+        #: through its return value rather than by raising -- the two above are
+        #: the *other* outage, PubMed's, which does raise.
         self.rw_unreachable = rw_unreachable
         self.constructions = 0
         self.client: object = None
@@ -309,9 +319,14 @@ class _StubRetractions:
             raise Transient("retractions: simulated outage")
         wanted = {normalize_doi(doi) for doi in dois}
         answering = {doi: n for doi, n in self.notices.items() if doi in wanted}
-        return RetractionStatus(
+        down = set()
+        if self.rw_unreachable:
+            down.add("retraction-watch")
+        if self.pubmed_outage:
+            down.add("pubmed")
+        status = RetractionStatus(
             notices=answering,
-            unreachable=frozenset({"retraction-watch"}) if self.rw_unreachable else frozenset(),
+            unreachable=frozenset(down),
             # The real class keys this on each notice's own ``source``; a stub
             # holding one notice per DOI says the same thing the same way.
             by_source={
@@ -319,6 +334,9 @@ class _StubRetractions:
                 for doi, n in answering.items()
             },
         )
+        if self.pubmed_outage:
+            raise RetractionOutage("retractions: simulated PubMed outage", status)
+        return status
 
 
 @dataclass(slots=True)
@@ -1760,6 +1778,61 @@ class TestRetractionCorroboration:
         assert result.verdict == "RETRACTED"
         assert result.fails
 
+    def test_a_pubmed_outage_does_not_delete_retraction_watchs_retraction(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """End to end: NCBI is down, Retraction Watch answered, and it said yes.
+
+        The outage raises out of ``status_for`` after Retraction Watch has
+        already produced its notices. Returning on the exception drops them,
+        and the run then prints ``OK`` with ``retraction status not
+        corroborated ... no registry that did answer records a retraction`` --
+        a false statement about the evidence, over a retracted paper, at exit
+        code 0. What the outage may take away is corroboration, never the
+        finding.
+        """
+        notice = RetractionNotice(
+            doi=DOI, kind="retraction", source="retraction-watch",
+            notice_doi=None, date=None,
+        )
+        _install(
+            monkeypatch,
+            crossref=_StubRegistry("crossref", records={DOI: make_record()}),
+            retractions=_StubRetractions(notices={DOI: notice}, pubmed_outage=True),
+        )
+
+        result = audit([make_ref()], _options(tmp_path))[0]
+
+        assert result.verdict == "RETRACTED"
+        assert result.fails
+        retracted = next(i for i in result.issues if i.kind == "retracted")
+        assert retracted.source == "retraction-watch"
+        # ...and the outage is still stated, rather than the finding standing
+        # in for corroboration nobody got.
+        assert result.consulted["pubmed"] == UNREACHABLE
+
+    def test_an_outage_that_recovered_nothing_still_names_pubmed(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A plain ``Transient`` carries no notices, and must not stop naming
+        the source it took down.
+
+        ``Retractions.status_for`` raises ``RetractionOutage``; anything else
+        reaching that ``except`` is a bare outage with nothing recovered, and
+        reading a missing ``status`` as "no sources down" would silently drop
+        the gap that makes ``retraction-unverified`` fire at all.
+        """
+        _install(
+            monkeypatch,
+            crossref=_StubRegistry("crossref", records={DOI: make_record()}),
+            retractions=_StubRetractions(transient=True),
+        )
+
+        result = audit([make_ref()], _options(tmp_path))[0]
+
+        assert result.consulted["pubmed"] == UNREACHABLE
+        assert any(i.kind == "retraction-unverified" for i in result.issues)
+
     def test_pubmeds_own_witness_is_named_once_not_twice(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -1823,6 +1896,34 @@ class TestReferencesWithoutAnIdentifier:
         assert proposed[0].registry == DOI
         assert proposed[0].severity == "warning"
         assert ref.doi is None
+
+    def test_a_pubmed_outage_on_the_search_path_keeps_the_other_sources_finding(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The same deletion, on the other call site.
+
+        ``_audit_unidentified`` runs its own retraction check on the confirmed
+        candidate's DOI, so it catches its own outage. Handling that ``except``
+        as "nothing came back" throws away Retraction Watch's notices exactly
+        as ``_resolve_retractions`` did, and the entry -- whose DOI was never in
+        the run's DOI list, so no other pass could pick the retraction up --
+        reports as merely missing an identifier.
+        """
+        notice = RetractionNotice(
+            doi=DOI, kind="retraction", source="retraction-watch",
+            notice_doi=None, date=None,
+        )
+        _install(
+            monkeypatch,
+            search=_StubSearch(candidates=[make_record()]),
+            retractions=_StubRetractions(notices={DOI: notice}, pubmed_outage=True),
+        )
+
+        result = audit([make_ref(doi=None)], _options(tmp_path))[0]
+
+        assert result.verdict == "RETRACTED"
+        assert result.fails
+        assert result.consulted["pubmed"] == UNREACHABLE
 
     def test_a_retraction_outage_on_the_search_path_is_reported_too(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

@@ -367,6 +367,15 @@ folds that into the run's unreachable set. A `RuntimeWarning` is issued as well,
 for a library consumer not reading that field. A PubMed outage propagates instead,
 and `audit.py` records `pubmed` as unreachable.
 
+**Neither outage deletes the other source's answer.** Retraction Watch is read
+first, so its notices are already in hand when PubMed's leg fails — and the
+exception carries them: it is a `RetractionOutage`, and `RetractionOutage.status`
+holds everything the source that answered found beside every source that went
+down. A work Retraction Watch records as retracted still reports `RETRACTED`
+during an NCBI outage, with `pubmed: unreachable` beside it. Dropping the
+exception's payload would not report that work as unknown; it would report it as
+clean, because a run holding no notice states no retraction.
+
 Either way, `compare` then raises `status/retraction-unverified` on each affected
 reference: no source that answered records a retraction, and a source that could
 have was unreachable — "which is not the same as there being none". It is
