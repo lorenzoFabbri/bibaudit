@@ -24,7 +24,7 @@ record carrying nothing is not evidence that there is nothing to carry.
 |---|---|---|---|
 | **Crossref** | the `updated-by` relation on the work's own record | a publisher having deposited the notice, and Crossref's pipeline having linked it to the work | a DOI |
 | **PubMed/MEDLINE** | `PT - Retracted Publication`, curated by NLM independently of the publisher's Crossref deposit | NLM having indexed the work and applied the type | nothing: a field of the record already in hand |
-| **Retraction Watch** | its own bulk export, read directly — not the subset Crossref surfaced | the database having logged the retraction | a DOI |
+| **Retraction Watch** | its own bulk export, read directly — not the subset Crossref surfaced | the database having logged the retraction | a DOI (this tool's key, not the export's only one — see below) |
 | **PubMed `ECI`** | the "Expression of Concern In:" cross-reference, which MEDLINE records on the concerned paper's own entry | NLM having recorded the concern | nothing: a field of the record already in hand |
 
 The last two were added because each closed a gap found by running the tool
@@ -260,7 +260,13 @@ export. Both of PubMed's arrive free: they are fields of the MEDLINE record the
 PMID lookup already returned, so a retraction NLM has indexed reports
 `RETRACTED` and fails, and a concern NLM has recorded reports as a concern. What
 goes unreported is a retraction Retraction Watch logged that NLM never indexed,
-and one a publisher deposited that NLM never indexed either.
+and one a publisher deposited that NLM never indexed either. Measured: 600
+random retraction rows of the 29,566 in the 2026-08-09 export that carry an
+`OriginalPaperPubMedID`, refetched from NLM through this tool's own client — all
+600 came back, 555 carry `PT - Retracted Publication`, none carries an `ECI`
+instead, and **45 (7.5%) carry no retraction signal in MEDLINE at all**.
+Retraction Watch holds a PMID for every one of them; this tool indexes its
+export by DOI alone and so cannot ask.
 
 A book resolved through its **ISBN** alone loses all four, because Open Library
 mints no DOI to ask the first two about and holds no MEDLINE record to read the
@@ -399,17 +405,28 @@ that carries the signal and was not asked:
 | The reference | What the finding names | And why they went unasked |
 |---|---|---|
 | resolved by its PMID | `crossref, retraction-watch` | take a DOI this reference does not carry |
-| a book resolved by its ISBN | `crossref, pubmed, retraction-watch` | take a DOI or a PMID this reference does not carry |
+| a book resolved by its ISBN | `crossref, retraction-watch` / `pubmed` | take a DOI / takes a DOI or a PMID, this reference does not carry |
 | any reference under `--no-retraction-check` | `retraction-watch` | was not queried on this run |
 
-The third column is in the printed note, and it names the identifiers the
-*group* takes rather than each source's own: the second row's `a DOI or a PMID`
-is Crossref's and Retraction Watch's key **or** PubMed's, and the reference
-carries neither. The clause is there because the two reasons are not one. No
-rerun asks Retraction Watch about a reference that has no DOI, and the reader
-can do nothing about it; a source that *had* a key and went unasked was left
-out by a flag they chose, and dropping the flag is the whole of the remedy. A
-run can produce both clauses at once, and each names its own sources.
+The third column is in the printed note, and each group is named beside the key
+*it* is looked up by. Pooled into one clause, the second row read `crossref,
+pubmed, retraction-watch take a DOI or a PMID this reference does not carry` —
+true of PubMed, loose about the other two, and a reader adding a PMID to that
+entry would have found two of the three still unasked. The clause is there
+because the two reasons are not one: nothing this tool does asks Retraction
+Watch about a reference with no DOI, while a source that *had* a key and went
+unasked was left out by a flag the reader chose, and dropping the flag is the
+whole of the remedy. A run can produce several clauses at once, and each names
+its own sources.
+
+**"Takes a DOI" is this tool's key, not a limit of Retraction Watch's.** 33,403
+of the 71,641 rows in the 2026-08-09 export carry an `OriginalPaperPubMedID`,
+and 715 retraction rows carry one with no DOI beside it — works reachable by a
+PMID and by nothing this tool asks with. This module indexes the export by its
+DOI column alone, so a reference resolved by its PMID loses Retraction Watch's
+answer to that choice rather than to the source, and [what that costs is
+measured above](#what-a-clean-result-does-not-establish): 45 of 600 sampled
+retraction rows carry a PMID whose MEDLINE citation shows nothing.
 
 It reaches the reader by the three routes above, the banner line ending in `not
 asked` rather than `unreachable`. An entry a source *did* report a retraction for

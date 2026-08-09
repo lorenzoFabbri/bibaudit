@@ -955,47 +955,60 @@ def _detail(kinds: Mapping[str, str], names: Sequence[str]) -> str:
     return "; ".join(f"{name}={kinds[name]}" for name in names)
 
 
-#: Identifiers each retraction source can be looked up by. A source missing
-#: from this map takes a DOI, which is the common case and the reason the map
-#: is written as the exception: Crossref's ``updated-by`` is on a DOI record
-#: and Retraction Watch's export is keyed on a DOI column, while PubMed answers
-#: to a PMID as readily.
+#: Identifiers **this tool** looks each retraction source up by. A source
+#: missing from the map is looked up by a DOI, which is the common case and the
+#: reason the map is written as the exception: Crossref's ``updated-by`` is on a
+#: DOI record and this module reads Retraction Watch's export through its DOI
+#: column, while PubMed answers to a PMID as readily.
+#:
+#: It is the lookup key and not a property of the source, and the difference
+#: shows on Retraction Watch: 33,403 of the 71,641 rows in the 2026-08-09
+#: export carry an ``OriginalPaperPubMedID``, and 715 retraction rows carry one
+#: with no DOI beside it, so those works are reachable by a PMID and by nothing
+#: this tool asks with. Written as the source's own limit, the note told a
+#: reader no rerun could ever close a gap that a second index would.
 #:
 #: Read only to say *why* a source went unasked, never to decide whether it
 #: did. The two reasons need different words because the reader's next move
 #: differs: a source with no key for this reference will not be asked by any
-#: rerun, and one that had a key and was left out was left out by a flag the
-#: reader chose. "Were never asked" covered both and told them apart for
-#: neither.
+#: rerun of this tool, and one that had a key and was left out was left out by
+#: a flag the reader chose. "Were never asked" covered both and told them apart
+#: for neither.
 _STATUS_SOURCE_KEYS: dict[str, tuple[str, ...]] = {"pubmed": ("doi", "pmid")}
+
+
+def _lookup_keys(name: str) -> tuple[str, ...]:
+    return _STATUS_SOURCE_KEYS.get(name, ("doi",))
 
 
 def _why_unasked(unasked: Sequence[str], ref: Reference) -> str:
     """The *unasked* sources, grouped by whether this reference had a key.
 
-    Both clauses name their sources, so the sentence stays checkable against
-    the ``consulted`` map beside it however the groups fall out.
+    Every clause names its sources, so the sentence stays checkable against the
+    ``consulted`` map beside it however the groups fall out — and the keyless
+    ones are grouped by the keys *they* take rather than pooled. Pooled, a book
+    carrying neither identifier read ``crossref, pubmed, retraction-watch take a
+    DOI or a PMID this reference does not carry``, which is true of PubMed and
+    loose about the other two: neither is ever asked with a PMID, so a reader
+    adding one to that entry would find two of the three still unasked.
     """
-    keyless = [
-        name
-        for name in unasked
-        if not any(
-            getattr(ref, attr, None)
-            for attr in _STATUS_SOURCE_KEYS.get(name, ("doi",))
-        )
-    ]
-    skipped = [name for name in unasked if name not in keyless]
+    keyless: dict[tuple[str, ...], list[str]] = {}
+    skipped = []
+    for name in unasked:
+        keys = _lookup_keys(name)
+        if any(getattr(ref, attr, None) for attr in keys):
+            skipped.append(name)
+        else:
+            keyless.setdefault(keys, []).append(name)
 
-    clauses = []
-    if keyless:
-        wanted = sorted(
-            {key for name in keyless for key in _STATUS_SOURCE_KEYS.get(name, ("doi",))}
-        )
-        named = " or ".join(f"a {key.upper()}" for key in wanted)
-        clauses.append(
-            f"{', '.join(keyless)} {'take' if len(keyless) > 1 else 'takes'} "
-            f"{named} this reference does not carry"
-        )
+    # Insertion order, and *unasked* arrives in registry order, so two runs over
+    # the same evidence produce the same sentence.
+    clauses = [
+        f"{', '.join(names)} {'take' if len(names) > 1 else 'takes'} "
+        f"{' or '.join(f'a {key.upper()}' for key in keys)} "
+        "this reference does not carry"
+        for keys, names in keyless.items()
+    ]
     if skipped:
         clauses.append(
             f"{', '.join(skipped)} {'were' if len(skipped) > 1 else 'was'} "

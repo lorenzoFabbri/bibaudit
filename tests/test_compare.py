@@ -1101,7 +1101,26 @@ class TestARetractionSourceNobodyAsked:
         result = compare(ref, {"openlibrary": record}, asked={"openlibrary"})
         note = next(i.note for i in result.issues if i.kind == "not-asked")
 
-        assert "crossref, pubmed, retraction-watch take a DOI or a PMID" in note
+        assert "pubmed takes a DOI or a PMID this reference does not carry" in note
+
+    def test_the_two_keys_are_not_pooled_across_the_sources_that_lack_them(
+        self,
+    ) -> None:
+        """Each source is named beside the key it is looked up by.
+
+        Pooled, the same book read ``crossref, pubmed, retraction-watch take a
+        DOI or a PMID this reference does not carry`` — true of PubMed and loose
+        about the other two, neither of which is ever asked with a PMID. A
+        reader adding one to that entry would find two of the three still
+        unasked, and the note had told them otherwise.
+        """
+        ref = make_ref(key="knuth1997art", kind="book", doi=None, isbn="0-201-89683-4")
+        record = Record(source="openlibrary", title=ref.title, authors=list(ref.authors))
+        result = compare(ref, {"openlibrary": record}, asked={"openlibrary"})
+        note = next(i.note for i in result.issues if i.kind == "not-asked")
+
+        assert "crossref, retraction-watch take a DOI this reference does not carry" in note
+        assert "crossref, pubmed, retraction-watch take a DOI or a PMID" not in note
 
     def test_the_verdict_and_the_exit_code_do_not_move(self) -> None:
         """Coverage a reference's own identifier denies it is not its defect."""

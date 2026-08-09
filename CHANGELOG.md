@@ -184,6 +184,15 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **The "not asked" note names each source beside the key it is looked up by.**
+  The keyless sources were pooled into one clause, so a book carrying neither
+  identifier read `crossref, pubmed, retraction-watch take a DOI or a PMID this
+  reference does not carry` — true of PubMed, and loose about the other two,
+  which are never asked with a PMID. The note also no longer states a DOI as a
+  limit of Retraction Watch's: 33,403 rows of the 2026-08-09 export carry the
+  original paper's PMID, and indexing the export by DOI alone is this tool's
+  choice.
+
 - **`--cache-dir` reaches the Retraction Watch index.** It was built under the
   default cache root whatever the run was given, so `bibaudit cache info`
   under-reported by the whole index and `bibaudit cache clear` left it in
