@@ -216,8 +216,15 @@ A `Reinstatement` is the only row that withdraws rather than asserts, so it
 alone remains a question of date. It removes every notice for its DOI dated at
 or before it and leaves any later one standing — `10.1308/rcsann.2020.0038` was
 reinstated in September 2021 and had an expression of concern raised against it
-six months after. One whose date cannot be read withdraws nothing, because an
-unreadable date is ignorance and ignorance may not clear a retraction.
+six months after.
+
+An unreadable date is ignorance on both sides of that comparison, and ignorance
+may neither clear a retraction nor be cleared by one. A reinstatement carrying
+one never becomes a cutoff; a notice carrying one is not dated "at or before"
+anything either, so no reinstatement removes it. Read as a very old date
+instead, an undated retraction was withdrawn by any reinstatement in the file —
+the same sentence running the other way. 241 rows of the 2026-08-09 export
+carry no date at all.
 
 !!! note "Where a concern lands in the verdict table"
 

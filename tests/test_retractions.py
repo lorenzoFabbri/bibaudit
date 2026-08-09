@@ -429,6 +429,61 @@ class TestRetractionWatchCsv:
         assert result[doi].notice_doi == "10.9999/blank-nature-notice"
 
 
+class TestAnUnreadableDate:
+    """Ignorance on either side of the reinstatement comparison.
+
+    A reinstatement withdraws by date, so both halves of that comparison have
+    to answer the same way when a date cannot be read: it is not a very old
+    date, it is no date. Read as the earliest representable one on the notice's
+    side, an undated retraction was withdrawn by any reinstatement in the file
+    — the inverse of what the same rule promises on the reinstatement's side.
+    """
+
+    DOI = "10.1000/undated"
+
+    def test_a_notice_with_no_date_survives_a_dated_reinstatement(
+        self, tmp_path: Path
+    ) -> None:
+        csv = _rw_rows(
+            (self.DOI, "", "Retraction", "10.1000/notice"),
+            (self.DOI, "6/1/2021 0:00", "Reinstatement", ""),
+        )
+        result = Retractions(_client(rw_csv=csv), cache_dir=tmp_path).status_for(
+            [self.DOI]
+        ).notices
+        assert result[self.DOI].kind == "retraction"
+
+    def test_a_dated_notice_before_a_reinstatement_is_still_withdrawn(
+        self, tmp_path: Path
+    ) -> None:
+        """The true-negative half: a retraction that really was reversed stays
+        unreported, or the rule above would be a licence to report every one.
+        """
+        csv = _rw_rows(
+            (self.DOI, "1/1/2020 0:00", "Retraction", "10.1000/notice"),
+            (self.DOI, "6/1/2021 0:00", "Reinstatement", ""),
+        )
+        result = Retractions(_client(rw_csv=csv), cache_dir=tmp_path).status_for(
+            [self.DOI]
+        ).notices
+        assert result == {}
+
+    def test_a_reinstatement_removes_a_notice_of_its_own_date(
+        self, tmp_path: Path
+    ) -> None:
+        """"Dated at or before it" includes the same day, which is the shape a
+        record corrected on the day it was logged takes.
+        """
+        csv = _rw_rows(
+            (self.DOI, "3/4/2021 0:00", "Retraction", "10.1000/notice"),
+            (self.DOI, "3/4/2021 0:00", "Reinstatement", ""),
+        )
+        result = Retractions(_client(rw_csv=csv), cache_dir=tmp_path).status_for(
+            [self.DOI]
+        ).notices
+        assert result == {}
+
+
 class TestPubMedEci:
     """``ECI`` on the affected paper, ``ECF`` on the notice -- and only one of
     the two may ever be read as "this DOI has a concern about it".

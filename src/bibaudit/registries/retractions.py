@@ -182,6 +182,14 @@ _KIND_PRIORITY = ("retraction", "withdrawal", "removal", "expression-of-concern"
 #: :func:`_parse_rw_date` before a cell is given up on.
 _RW_DATE_FORMATS = ("%m/%d/%Y %H:%M", "%m/%d/%Y %I:%M:%S %p")
 
+#: Sort key for a row whose ``RetractionDate`` could not be read: blank (241
+#: rows in the 2026-08-09 export), or a shape :data:`_RW_DATE_FORMATS` was never
+#: run against. It sorts before every real date, so a row carrying a genuine
+#: timestamp always outranks it, and :func:`_parse_rw_csv` reads it as *no date*
+#: rather than as a very old one — an unreadable date is ignorance, and
+#: ignorance neither clears a retraction nor is cleared by one.
+_UNDATED = datetime.min
+
 
 @dataclass(frozen=True, slots=True)
 class RetractionNotice:
@@ -279,7 +287,7 @@ def _parse_rw_date(raw: str) -> tuple[str | None, datetime]:
 
     A date that cannot be parsed at all — blank, or a future export format
     this was never run against — still gets a usable sort key:
-    :data:`datetime.min` sorts before every real date, so a row that *does*
+    :data:`_UNDATED` sorts before every real date, so a row that *does*
     carry a genuine timestamp always outranks it when two rows compete for
     the same DOI in :func:`_parse_rw_csv`, and one bad cell never raises out
     of the whole load.
@@ -291,7 +299,7 @@ def _parse_rw_date(raw: str) -> tuple[str | None, datetime]:
         except ValueError:
             continue
         return parsed.date().isoformat(), parsed
-    return None, datetime.min
+    return None, _UNDATED
 
 
 def _kind_rank(kind: str) -> int:
@@ -362,9 +370,15 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int]:
     prevent — while 10.1308/rcsann.2020.0038 carries an expression of concern
     raised six months *after* its reinstatement ("eoc issued after retracted
     artice reinstated", in RW's own ``Notes``), which a reinstatement anywhere
-    in the file would wrongly take away. One whose date cannot be parsed sorts
-    at :data:`datetime.min` and so withdraws nothing: an unreadable date is
-    ignorance, and ignorance may not clear a retraction.
+    in the file would wrongly take away.
+
+    An unreadable date is ignorance on both sides of that comparison, and
+    ignorance may neither clear a retraction nor be cleared by one. A
+    reinstatement carrying one sorts at :data:`_UNDATED` and never becomes a
+    cutoff. A *notice* carrying one is not dated "at or before" anything
+    either, so no reinstatement removes it — read as a very old date instead,
+    an undated retraction was withdrawn by any reinstatement whatsoever, which
+    is the same sentence running the other way.
     """
     #: doi -> kind -> the most recent row of that kind, and its sort key. At
     #: most one entry per kind, so this holds no more rows than the index it
@@ -401,7 +415,7 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int]:
         date_str, sortable = _parse_rw_date(row.get("RetractionDate") or "")
 
         if kind is None:
-            if sortable > reinstated.get(doi, datetime.min):
+            if sortable > reinstated.get(doi, _UNDATED):
                 reinstated[doi] = sortable
             continue
 
@@ -426,7 +440,9 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int]:
     for doi, by_kind in standing.items():
         cutoff = reinstated.get(doi)
         live = [
-            notice for when, notice in by_kind.values() if cutoff is None or when > cutoff
+            notice
+            for when, notice in by_kind.values()
+            if cutoff is None or when > cutoff or when == _UNDATED
         ]
         if live:
             index[doi] = min(live, key=lambda notice: _kind_rank(notice.kind))

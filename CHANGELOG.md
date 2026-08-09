@@ -184,6 +184,13 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A retraction whose date Retraction Watch left blank is no longer withdrawn
+  by a reinstatement.** An unreadable date sorted as the earliest date there
+  is, so a notice carrying one counted as "dated at or before" every
+  reinstatement and was dropped — the inverse of the rule the same function
+  keeps on the reinstatement's side, where an unreadable date withdraws
+  nothing. 241 rows of the 2026-08-09 export carry no date.
+
 - **Each retraction source is reported under the kind it recorded.** Two
   sources' notices about one DOI were merged to the more definitive kind and
   that kind was then stamped on both, so a work Retraction Watch logs a
