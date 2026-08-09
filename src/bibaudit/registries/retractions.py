@@ -154,7 +154,7 @@ _RW_CACHE_TTL_DAYS = 7
 #:
 #: The version suffix is what stops a payload written by an older build being
 #: read back under a newer build's shape; bump it whenever that shape changes.
-_RW_INDEX_CACHE_KEY = "index-v1"
+_RW_INDEX_CACHE_KEY = "index-v2"
 
 #: Subdirectory the parsed index lives in, under whichever cache root the
 #: caller chose. Named rather than written out at the two places that build the
@@ -367,9 +367,14 @@ def _looks_like_doi(value: str) -> bool:
     return value.startswith("10.")
 
 
-def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int]:
-    """Index of Retraction Watch's export by the *original* paper's DOI, and
-    the number of rows read with a DOI-shaped ``OriginalPaperDOI``.
+def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int, Counter[str]]:
+    """Index of Retraction Watch's export by the *original* paper's DOI, the
+    number of rows read with a DOI-shaped ``OriginalPaperDOI``, and every
+    ``RetractionNature`` this build could not rank, counted.
+
+    The third element is returned rather than warned about here because this
+    function runs on a cache miss and nothing else; :meth:`Retractions._load_index`
+    stores it beside the index and :func:`_warn_unranked` says it on every load.
 
     The count is what :meth:`Retractions._load_index` reads to tell an export
     it could not fetch from one it fetched: the *index* can be legitimately
@@ -467,7 +472,7 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int]:
                 # milder than any of these — so the row is skipped. What it may
                 # not be is skipped in silence: skipping is a *missed* notice on
                 # the one field where a miss has no remedy, and nothing else in
-                # this run would ever mention it. See the warning below.
+                # this run would ever mention it. See :func:`_warn_unranked`.
                 unranked[nature] += 1
                 continue
 
@@ -495,22 +500,6 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int]:
             ),
         )
 
-    if unranked:
-        named = ", ".join(
-            f"{nature!r} ({count} row{'s' if count != 1 else ''})"
-            for nature, count in sorted(unranked.items())
-        )
-        warnings.warn(
-            f"Retraction Watch's export carries a RetractionNature this build "
-            f"does not recognise: {named}. Those rows are not indexed, so a DOI "
-            "whose only notice is one of them carries no signal from this "
-            "source in this run. Every value in the 2026-08-09 export was "
-            "recognised, so this is a new category rather than a parsing "
-            "failure, and reading it needs an entry in this module's kind map.",
-            RuntimeWarning,
-            stacklevel=2,
-        )
-
     index: dict[str, RetractionNotice] = {}
     for doi, by_kind in standing.items():
         cutoff = reinstated.get(doi)
@@ -521,34 +510,90 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int]:
         ]
         if live:
             index[doi] = min(live, key=lambda notice: _kind_rank(notice.kind))
-    return index, read
+    return index, read, unranked
 
 
-def _index_to_payload(index: Mapping[str, RetractionNotice]) -> dict[str, Any]:
-    return {doi: asdict(notice) for doi, notice in index.items()}
+def _warn_unranked(unranked: Mapping[str, int]) -> None:
+    """Say out loud which rows went unindexed for a nature nothing here ranks.
+
+    Issued on every *load* of the index rather than on the parse that built it.
+    Warning from inside :func:`_parse_rw_csv` reached the cache miss and
+    nothing else, so for the whole life of that index — a week of healthy runs
+    — the skip was the silence the parser's own comment forbids: the DOI
+    carries no notice, nothing is unreachable, ``consulted`` reads
+    ``retraction-watch: answered``, and the verdict is ``OK``.
+
+    Still a warning and not a per-reference gap. Retraction Watch *was*
+    reached and did answer; a run-wide caveat on every entry, raised by one
+    unreadable row about a DOI nobody asked after, is the false alarm this
+    project's third rule is about — and saying "could not be reached" of a
+    source that answered would be false as well. What the report has no state
+    for is a source that answered and was not fully read.
+    """
+    if not unranked:
+        return
+    named = ", ".join(
+        f"{nature!r} ({count} row{'s' if count != 1 else ''})"
+        for nature, count in sorted(unranked.items())
+    )
+    warnings.warn(
+        f"Retraction Watch's export carries a RetractionNature this build "
+        f"does not recognise: {named}. Those rows are not indexed, so a DOI "
+        "whose only notice is one of them carries no signal from this "
+        "source in this run. Every value in the 2026-08-09 export was "
+        "recognised, so this is a new category rather than a parsing "
+        "failure, and reading it needs an entry in this module's kind map.",
+        RuntimeWarning,
+        stacklevel=3,
+    )
 
 
-def _index_from_payload(payload: Mapping[str, Any]) -> dict[str, RetractionNotice]:
+def _index_to_payload(
+    index: Mapping[str, RetractionNotice], unranked: Mapping[str, int]
+) -> dict[str, Any]:
+    """The cached form of one parse: the notices, and what it could not read.
+
+    Both halves, because the second is a claim about this export that outlives
+    the process that made it — see :func:`_warn_unranked`.
+    """
+    return {
+        "notices": {doi: asdict(notice) for doi, notice in index.items()},
+        "unranked": dict(unranked),
+    }
+
+
+def _index_from_payload(
+    payload: Mapping[str, Any],
+) -> tuple[dict[str, RetractionNotice], dict[str, int]]:
     """The inverse of :func:`_index_to_payload`, tolerant of a stale or
-    hand-edited cache file: an entry that does not parse back into a
-    :class:`RetractionNotice` is dropped rather than raised over, the same
-    "unreadable means ask again" contract :class:`Cache` itself keeps.
+    hand-edited cache file: anything that does not parse back into a
+    :class:`RetractionNotice` — or into a count — is dropped rather than
+    raised over, the same "unreadable means ask again" contract :class:`Cache`
+    itself keeps.
     """
     out: dict[str, RetractionNotice] = {}
-    for doi, fields in payload.items():
-        if not isinstance(fields, dict):
-            continue
-        try:
-            out[doi] = RetractionNotice(
-                doi=str(fields["doi"]),
-                kind=str(fields["kind"]),
-                source=str(fields["source"]),
-                notice_doi=fields.get("notice_doi"),
-                date=fields.get("date"),
-            )
-        except KeyError:
-            continue
-    return out
+    notices = payload.get("notices")
+    if isinstance(notices, dict):
+        for doi, fields in notices.items():
+            if not isinstance(fields, dict):
+                continue
+            try:
+                out[doi] = RetractionNotice(
+                    doi=str(fields["doi"]),
+                    kind=str(fields["kind"]),
+                    source=str(fields["source"]),
+                    notice_doi=fields.get("notice_doi"),
+                    date=fields.get("date"),
+                )
+            except KeyError:
+                continue
+    raw = payload.get("unranked")
+    unranked = (
+        {str(nature): count for nature, count in raw.items() if isinstance(count, int)}
+        if isinstance(raw, dict)
+        else {}
+    )
+    return out, unranked
 
 
 #: What an ``ECI`` line asserts, in :attr:`RetractionNotice.kind`'s vocabulary —
@@ -827,7 +872,9 @@ class Retractions:
         reinstatement — where an export nobody downloaded has no row to read.
         Nor is the emptiness cached: with a seven-day TTL on this index
         (:data:`_RW_CACHE_TTL_DAYS`) it would survive a week of healthy runs,
-        and ``--refresh`` does not reach this cache.
+        and ``--refresh`` does not reach this cache. What a parse *could not
+        read* is cached, for the same seven days and the same reason — see
+        :func:`_warn_unranked`.
 
         The fetch is the one request in this project that bypasses the shared
         registry cache. That cache holds bibliographic answers for
@@ -843,16 +890,25 @@ class Retractions:
 
         cached = self._cache.get(_RW_INDEX_CACHE_KEY)
         if cached is not None:
-            self._index = _index_from_payload(cached)
-            return self._index
-
-        text = self._client.get_text(_RW_CSV_URL, bypass_cache=True)
-        index, read = _parse_rw_csv(text) if text is not None else ({}, 0)
-        if not read:
-            raise Transient(
-                f"{_RW_CSV_URL}: the export answered with no usable rows"
+            index, unranked = _index_from_payload(cached)
+        else:
+            text = self._client.get_text(_RW_CSV_URL, bypass_cache=True)
+            # A 404 reaches the parser as no rows at all, which is the fact the
+            # check below is about either way.
+            index, read, counted = _parse_rw_csv(text or "")
+            if not read:
+                raise Transient(
+                    f"{_RW_CSV_URL}: the export answered with no usable rows"
+                )
+            unranked = dict(counted)
+            self._cache.put(
+                _RW_INDEX_CACHE_KEY,
+                {"url": _RW_CSV_URL, "payload": _index_to_payload(index, unranked)},
             )
-        self._cache.put(_RW_INDEX_CACHE_KEY, {"url": _RW_CSV_URL, "payload": _index_to_payload(index)})
+        # Once per process, from the one place both routes to an index pass
+        # through: what the export withheld is a property of the export, not of
+        # the run that happened to download it.
+        _warn_unranked(unranked)
         self._index = index
         return index
 

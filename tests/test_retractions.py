@@ -144,7 +144,7 @@ def _rewrite_cached_kind(cache_dir: Path, kind: str) -> None:
     """
     [path] = list(cache_dir.rglob("*.json"))
     envelope = json.loads(path.read_text(encoding="utf-8"))
-    for notice in envelope["payload"].values():
+    for notice in envelope["payload"]["notices"].values():
         notice["kind"] = kind
     path.write_text(json.dumps(envelope), encoding="utf-8")
 
@@ -487,6 +487,105 @@ class TestRetractionWatchCsv:
             Retractions(_client(rw_csv=csv), cache_dir=tmp_path).status_for([doi])
         [warning] = [w for w in caught if "does not recognise" in str(w.message)]
         assert "'retract and replace' (2 rows)" in str(warning.message)
+
+    def test_the_warning_survives_the_index_it_was_parsed_into(
+        self, tmp_path: Path
+    ) -> None:
+        """Warning on the parse warns on the cache *miss* and on nothing else.
+
+        Every run after the first reads the index off disk, and for its whole
+        seven-day life the skipped row was the silence the parser's own comment
+        forbids: the DOI carries no notice, ``unreachable`` is empty,
+        ``consulted`` reads ``retraction-watch: answered``, and the verdict is
+        ``OK``. The parse that learned it is the only thing that can say it, so
+        what it learned is cached beside what it read.
+        """
+        doi = "10.9999/unknown-nature-paper"
+        csv = _rw_rows((doi, "1/1/2020 0:00", "Retract and replace", "10.9999/a"))
+        with pytest.warns(RuntimeWarning, match="does not recognise"):
+            Retractions(_client(rw_csv=csv), cache_dir=tmp_path).status_for([doi])
+
+        # A second process, reading the index the first one wrote. Its own
+        # fetch is broken, to prove the answer is the cached one.
+        replayed = _client(rw_transient=True)
+        with pytest.warns(RuntimeWarning, match="does not recognise") as caught:
+            status = Retractions(replayed, cache_dir=tmp_path).status_for([doi])
+        assert replayed.rw_fetch_count == 0
+        [warning] = [w for w in caught if "does not recognise" in str(w.message)]
+        assert "'retract and replace' (1 row)" in str(warning.message)
+        # ...and the run is still not told the source failed, because it did
+        # not: this is a source that answered and was not fully read.
+        assert status.unreachable == frozenset()
+
+    def test_the_warning_is_said_once_a_run_not_once_a_reference(
+        self, tmp_path: Path
+    ) -> None:
+        """A bibliography is hundreds of ``status_for`` calls against one index.
+
+        Repeating the caveat per reference is how a caveat stops being read,
+        which is the same rule the false-alarm one comes from.
+        """
+        doi = "10.9999/unknown-nature-paper"
+        csv = _rw_rows((doi, "1/1/2020 0:00", "Retract and replace", "10.9999/a"))
+        retractions = Retractions(_client(rw_csv=csv), cache_dir=tmp_path)
+        with pytest.warns(RuntimeWarning) as caught:
+            retractions.status_for([doi])
+            retractions.status_for(["10.9999/other"])
+            retractions.status_for(["10.9999/third"])
+        assert len([w for w in caught if "does not recognise" in str(w.message)]) == 1
+
+    def test_an_index_written_by_an_older_build_is_not_read_as_an_empty_one(
+        self, tmp_path: Path
+    ) -> None:
+        """The cached payload gained a shape, so the key gained a version.
+
+        Left at the old one, a file written before this change is still found,
+        and read by a reader that now looks for its notices under a key that
+        file does not carry: every notice in it silently gone, for the seven
+        days the index lives, while ``consulted`` reads ``retraction-watch:
+        answered`` and nothing is unreachable. The suffix on
+        ``_RW_INDEX_CACHE_KEY`` is what turns a shape change into a cache miss;
+        the old key is written out here because it no longer exists in the
+        source, and it is the file on disk that has to be told apart.
+        """
+        Cache(tmp_path, ttl_days=7).put(
+            "index-v1",
+            {
+                "url": "https://api.labs.crossref.org/data/retractionwatch",
+                "payload": {
+                    WAKEFIELD_DOI.lower(): {
+                        "doi": WAKEFIELD_DOI.lower(),
+                        "kind": "retraction",
+                        "source": "retraction-watch",
+                        "notice_doi": None,
+                        "date": "2010-02-02",
+                    }
+                },
+            },
+        )
+
+        stub = _client(rw_csv=_rw_sample())
+        status = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+
+        assert stub.rw_fetch_count == 1
+        assert status.notices[WAKEFIELD_DOI.lower()].kind == "retraction"
+
+    def test_a_replayed_index_that_read_everything_says_nothing(
+        self, tmp_path: Path
+    ) -> None:
+        """The true-negative half of the replay: every value in the 2026-08-09
+        export is one this module ranks, so a cached index built from it must
+        be as quiet on the second run as on the first.
+        """
+        Retractions(_client(rw_csv=_rw_sample()), cache_dir=tmp_path).status_for(
+            [WAKEFIELD_DOI]
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            status = Retractions(_client(rw_transient=True), cache_dir=tmp_path).status_for(
+                [WAKEFIELD_DOI]
+            )
+        assert status.notices[WAKEFIELD_DOI.lower()].kind == "retraction"
 
     def test_a_vocabulary_this_build_knows_says_nothing(self, tmp_path: Path) -> None:
         """The true-negative half. Every value in the 2026-08-09 export is one

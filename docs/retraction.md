@@ -241,6 +241,18 @@ in the 2026-08-09 export is one this tool ranks (`Retraction` 66,155,
 evidence and is read as a retraction: it makes no claim about the kind at all,
 and the database's whole subject supplies the one it left out.
 
+That warning is issued on every run, not only on the one that parsed the export.
+What a parse could not read is cached beside what it read, because the parse is
+the only thing that can know it and it happens once a week at most — warned
+about there alone, the skip is silent for the whole life of the index, which is
+the silence this rule exists to prevent. It stays a warning rather than becoming
+a per-reference gap: Retraction Watch was reached and did answer, so naming it
+unreachable would be false, and a run-wide caveat raised by one unreadable row
+about a DOI nobody asked after is the false alarm the third rule is about. The
+residual is that a DOI whose *only* row carried such a value reads, in the
+report itself, as one Retraction Watch had nothing for. `consulted` has no state
+for a source that answered and was not fully read.
+
 An unreadable date is ignorance on both sides of that comparison, and ignorance
 may neither clear a retraction nor be cleared by one. A reinstatement carrying
 one never becomes a cutoff; a notice carrying one is not dated "at or before"
