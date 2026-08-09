@@ -48,8 +48,11 @@ NEIRINCKX_DOI = "10.1371/journal.pone.0064723"
 NEIRINCKX_PMID = "23741377"
 CONCERN_NOTICE_DOI = "10.1371/journal.pone.0256488"
 CONCERN_NOTICE_PMID = "34710116"
-CLEAN_DOI = "10.1093/aje/kwx137"
-CLEAN_PMID = "28338828"
+#: The paper no source has a notice for: PMID 37726507, recorded verbatim in
+#: ``tests/data/pubmed_wrapped_title.txt``, and absent from the Retraction
+#: Watch extract beside it.
+CLEAN_DOI = "10.1038/s41370-023-00600-7"
+CLEAN_PMID = "37726507"
 
 
 def _pubmed_fixture(name: str) -> str:

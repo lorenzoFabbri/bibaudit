@@ -24,8 +24,8 @@ spaces with **no tag**. That wrapping is the thing under test. Re-flowing a
 fixture onto single long lines, or "tidying" the indentation, deletes the point
 of half this file while leaving it green. Field values are the real citations
 where the case depends on them (the Wakefield 1998 Lancet paper and the 2010
-notice that retracted it; the MCC-Spain shift-work paper named in
-``docs/registry-artifacts.md``); PMIDs and dates elsewhere are join keys.
+notice that retracted it; PMID 37726507, recorded verbatim, in
+``pubmed_wrapped_title.txt``); PMIDs and dates elsewhere are join keys.
 """
 
 from __future__ import annotations
@@ -52,6 +52,13 @@ WAKEFIELD_DOI = "10.1016/S0140-6736(97)11096-0"
 WAKEFIELD_PMID = "9500320"
 RETRACTION_NOTICE_DOI = "10.1016/S0140-6736(10)60175-4"
 RETRACTION_NOTICE_PMID = "20137807"
+
+#: The citation every wrapping test reads, recorded verbatim in
+#: ``tests/data/pubmed_wrapped_title.txt``: Donat-Vargas et al., *J Expo Sci
+#: Environ Epidemiol* 2024. Its ``TI`` is 192 characters, so efetch breaks it
+#: over three lines — one tagged, two indented continuations.
+WRAPPED_PMID = "37726507"
+WRAPPED_DOI = "10.1038/s41370-023-00600-7"
 
 
 def _fixture(name: str) -> str:
@@ -266,16 +273,16 @@ class TestMedlineWrapping:
 
         ``efetch`` breaks this title over three lines, the second and third
         indented six spaces with no tag of their own. A parser that reads only
-        tagged lines keeps "... risk in the MCC-Spain" and drops the rest;
+        tagged lines keeps "... and swimming" and drops the rest;
         `compare._check_title` then scores that against the bibliography's
         full title and reports a mismatch — or, below 0.55, WRONG-WORK — on a
         reference that is entirely correct.
         """
-        record = _resolve_one("wrapped_title", pmid="28338828", doi="10.1093/aje/kwx137")
+        record = _resolve_one("wrapped_title", pmid=WRAPPED_PMID, doi=WRAPPED_DOI)
         assert record.title == (
-            "Night shift work, chronotype, and colorectal cancer risk in the MCC-Spain "
-            "case-control study: a population-based multicase-control study of common "
-            "tumors in Spain"
+            "Lifetime exposure to brominated trihalomethanes in drinking water and "
+            "swimming pool attendance are associated with chronic lymphocytic "
+            "leukemia: a Multicase-Control Study in Spain (MCC-Spain)"
         )
 
     def test_a_wrapped_author_name_is_one_author_not_two(self) -> None:
@@ -324,12 +331,12 @@ class TestTitleCleanup:
         Leaving it makes `compare._check_title` print a cosmetic difference
         for every single PubMed-corroborated entry in a bibliography.
         """
-        record = _resolve_one("wrapped_title", pmid="28338828", doi="10.1093/aje/kwx137")
+        record = _resolve_one("wrapped_title", pmid=WRAPPED_PMID, doi=WRAPPED_DOI)
         # The surviving tail is named rather than merely asserting the title
         # does not end in a period: a parser that truncated the title at the
         # first continuation line also satisfies `not endswith(".")`, and this
         # test used to pass while the title was wrong in a far worse way.
-        assert record.title.endswith("multicase-control study of common tumors in Spain")
+        assert record.title.endswith("a Multicase-Control Study in Spain (MCC-Spain)")
 
     def test_a_title_ending_in_an_abbreviation_keeps_its_period(self) -> None:
         """NLM does not double the period after "U.S." — one serves both.
@@ -370,7 +377,7 @@ class TestTitleCleanup:
         assert record.raw["translated"] is True
 
     def test_an_english_title_is_not_marked_as_translated(self) -> None:
-        record = _resolve_one("wrapped_title", pmid="28338828", doi="10.1093/aje/kwx137")
+        record = _resolve_one("wrapped_title", pmid=WRAPPED_PMID, doi=WRAPPED_DOI)
         # `raw` is shown to be populated first: "key absent" is vacuously true
         # of a record that carried no raw fields at all.
         assert record.raw["TI"]
@@ -381,12 +388,15 @@ class TestAuthors:
     def test_fau_is_preferred_over_au(self) -> None:
         """``FAU`` carries the full forename and an unambiguous comma order.
 
-        ``AU`` for the same person is "Papantoniou K": initials only, and no
+        ``AU`` for the same person is "Donat-Vargas C": initials only, and no
         comma to say which half is the surname. Reading ``AU`` when ``FAU`` is
         present throws away the forename the comparison could have used.
         """
-        record = _resolve_one("wrapped_title", pmid="28338828", doi="10.1093/aje/kwx137")
-        assert (record.authors[0].family, record.authors[0].given) == ("Papantoniou", "Kyriaki")
+        record = _resolve_one("wrapped_title", pmid=WRAPPED_PMID, doi=WRAPPED_DOI)
+        assert (record.authors[0].family, record.authors[0].given) == (
+            "Donat-Vargas",
+            "Carolina",
+        )
 
     def test_au_only_record_keeps_medline_surname_first_order(self) -> None:
         """Pre-2002 citations have no ``FAU`` at all, only "van Eijck CH".
@@ -469,7 +479,7 @@ class TestRetractionSignals:
         a sloppy match on any ``PT`` containing "Retract"-adjacent text or on
         the presence of the tag at all would happily flag.
         """
-        record = _resolve_one("wrapped_title", pmid="28338828", doi="10.1093/aje/kwx137")
+        record = _resolve_one("wrapped_title", pmid=WRAPPED_PMID, doi=WRAPPED_DOI)
         assert record.retracted is False
         assert record.retraction_kind is None
 
@@ -654,14 +664,14 @@ class TestByDois:
     def test_journal_title_and_iso_abbreviation_stay_in_separate_fields(self) -> None:
         """``JT`` is the journal, ``TA`` its NLM abbreviation.
 
-        Swapping them makes every container comparison read against "Am J
-        Epidemiol", and `benign._container_abbreviation` is written the other
-        way round — it accepts an abbreviated *stored* value against a full
-        registry one.
+        Swapping them makes every container comparison read against "J Expo
+        Sci Environ Epidemiol", and `benign._container_abbreviation` is written
+        the other way round — it accepts an abbreviated *stored* value against a
+        full registry one.
         """
-        record = _resolve_one("wrapped_title", pmid="28338828", doi="10.1093/aje/kwx137")
-        assert record.container == "American journal of epidemiology"
-        assert record.container_short == "Am J Epidemiol"
+        record = _resolve_one("wrapped_title", pmid=WRAPPED_PMID, doi=WRAPPED_DOI)
+        assert record.container == "Journal of exposure science & environmental epidemiology"
+        assert record.container_short == "J Expo Sci Environ Epidemiol"
 
     def test_the_abbreviation_is_offered_as_an_alternate_container_too(self) -> None:
         """``TA`` is another title PubMed names for the same journal.
@@ -689,9 +699,11 @@ class TestByDois:
         assert record.container_alternates == []
 
     def test_volume_issue_pages_and_year_are_read_from_their_own_tags(self) -> None:
-        record = _resolve_one("wrapped_title", pmid="28338828", doi="10.1093/aje/kwx137")
-        assert (record.volume, record.issue, record.pages) == ("185", "12", "1265-1274")
-        assert record.years == {"issued": 2017}
+        record = _resolve_one("wrapped_title", pmid=WRAPPED_PMID, doi=WRAPPED_DOI)
+        assert (record.volume, record.issue, record.pages) == ("34", "1", "47-57")
+        # ``DP - 2024 Jan`` beside ``DEP - 20230919``. Both years are the
+        # registry's own, so both reach the record.
+        assert record.years == {"issued": 2024, "online": 2023}
 
     def test_a_record_for_a_pmid_nobody_asked_for_is_discarded(self) -> None:
         """``efetch``'s body is attributed by each record's own ``PMID`` line.
@@ -711,7 +723,7 @@ class TestByDois:
         client = _StubClient(
             esearch_ids=[WAKEFIELD_PMID],
             doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI},
-            # PMID 28338828 is in the body but was never asked for.
+            # PMID 37726507 is in the body but was never asked for.
             medline=f"{_fixture('retracted')}\n{_fixture('wrapped_title')}",
         )
         result = PubMed(client).by_dois([WAKEFIELD_DOI])
@@ -731,14 +743,14 @@ class TestByDois:
         number happened to sort last.
         """
         client = _StubClient(
-            esearch_ids=[WAKEFIELD_PMID, "28338828"],
-            doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI, "28338828": WAKEFIELD_DOI},
+            esearch_ids=[WAKEFIELD_PMID, WRAPPED_PMID],
+            doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI, WRAPPED_PMID: WAKEFIELD_DOI},
             medline=f"{_fixture('wrapped_title')}\n{_fixture('retracted')}",
         )
         PubMed(client).by_dois([WAKEFIELD_DOI])
 
         [efetch] = [url for url in client.urls if "efetch" in url]
-        assert set(_params(efetch)["id"].split(",")) == {WAKEFIELD_PMID, "28338828"}
+        assert set(_params(efetch)["id"].split(",")) == {WAKEFIELD_PMID, WRAPPED_PMID}
 
     def test_the_retracted_citation_wins_the_tie(self) -> None:
         """A tie breaks towards the finding, as it does everywhere else here.
@@ -748,8 +760,8 @@ class TestByDois:
         retracted paper as clean, and that is the worst miss this tool has.
         """
         client = _StubClient(
-            esearch_ids=[WAKEFIELD_PMID, "28338828"],
-            doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI, "28338828": WAKEFIELD_DOI},
+            esearch_ids=[WAKEFIELD_PMID, WRAPPED_PMID],
+            doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI, WRAPPED_PMID: WAKEFIELD_DOI},
             medline=f"{_fixture('wrapped_title')}\n{_fixture('retracted')}",
         )
         record = PubMed(client).by_dois([WAKEFIELD_DOI])[normalize_doi(WAKEFIELD_DOI)]
@@ -769,14 +781,14 @@ class TestByDois:
         the citation that arrived first, and the retraction is still reported.
         """
         client = _StubClient(
-            esearch_ids=[WAKEFIELD_PMID, "28338828"],
-            doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI, "28338828": WAKEFIELD_DOI},
+            esearch_ids=[WAKEFIELD_PMID, WRAPPED_PMID],
+            doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI, WRAPPED_PMID: WAKEFIELD_DOI},
             medline=f"{_fixture('wrapped_title')}\n{_fixture('retracted')}",
         )
         record = PubMed(client).by_dois([WAKEFIELD_DOI])[normalize_doi(WAKEFIELD_DOI)]
 
         assert record.title is not None
-        assert record.title.startswith("Night shift work, chronotype")
+        assert record.title.startswith("Lifetime exposure to brominated trihalomethanes")
         assert record.retracted
 
     def test_a_concern_on_the_citation_that_did_not_supply_the_fields_survives(
@@ -790,14 +802,14 @@ class TestByDois:
         first therefore decided whether the concern was reported at all.
         """
         client = _StubClient(
-            esearch_ids=["28338828", "23741377"],
-            doi_by_pmid={"28338828": WAKEFIELD_DOI, "23741377": WAKEFIELD_DOI},
+            esearch_ids=[WRAPPED_PMID, "23741377"],
+            doi_by_pmid={WRAPPED_PMID: WAKEFIELD_DOI, "23741377": WAKEFIELD_DOI},
             medline=f"{_fixture('wrapped_title')}\n{_fixture('eci_concern')}",
         )
         record = PubMed(client).by_dois([WAKEFIELD_DOI])[normalize_doi(WAKEFIELD_DOI)]
 
         assert record.title is not None
-        assert record.title.startswith("Night shift work, chronotype")
+        assert record.title.startswith("Lifetime exposure to brominated trihalomethanes")
         assert "ECI" in record.raw
 
     def test_an_ambiguous_doi_still_carries_no_pmid(self) -> None:
@@ -808,8 +820,8 @@ class TestByDois:
         named both.
         """
         client = _StubClient(
-            esearch_ids=[WAKEFIELD_PMID, "28338828"],
-            doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI, "28338828": WAKEFIELD_DOI},
+            esearch_ids=[WAKEFIELD_PMID, WRAPPED_PMID],
+            doi_by_pmid={WAKEFIELD_PMID: WAKEFIELD_DOI, WRAPPED_PMID: WAKEFIELD_DOI},
             medline=f"{_fixture('wrapped_title')}\n{_fixture('retracted')}",
         )
         record = PubMed(client).by_dois([WAKEFIELD_DOI])[normalize_doi(WAKEFIELD_DOI)]
@@ -915,10 +927,10 @@ class TestATitleNlmDoesNotHold:
 
     def test_an_ordinary_title_is_untouched(self) -> None:
         """The match is exact, so a title is never mistaken for the placeholder."""
-        record = _resolve_one("wrapped_title", pmid="28338828", doi="10.1093/aje/kwx137")
+        record = _resolve_one("wrapped_title", pmid=WRAPPED_PMID, doi=WRAPPED_DOI)
 
         assert record.title is not None
-        assert record.title.startswith("Night shift work")
+        assert record.title.startswith("Lifetime exposure to brominated")
 
 
 class TestBookRecords:
@@ -1014,7 +1026,7 @@ class TestBookRecords:
 
     def test_an_article_records_type_is_read_the_same_way(self) -> None:
         """No book-shaped special case: the rule is "the first one recognised"."""
-        record = _resolve_one("wrapped_title", pmid="28338828", doi="10.1093/aje/kwx137")
+        record = _resolve_one("wrapped_title", pmid=WRAPPED_PMID, doi=WRAPPED_DOI)
 
         assert record.kind == "Journal Article"
 
