@@ -617,6 +617,25 @@ class TestUsageErrors:
         assert main(check(tmp_path, str(empty))) == 2
         assert "no references found" in capsys.readouterr().err
 
+    def test_a_cancelled_run_exits_one_hundred_and_thirty(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, bib: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        """Ctrl-C is neither a finding nor a usage error, and `docs/ci.md` says so.
+
+        Raised from `audit` because that is where a real interrupt lands: it
+        is the only step of a run that waits on a registry.
+        """
+        def interrupted(*args: object, **kwargs: object) -> object:
+            raise KeyboardInterrupt
+
+        monkeypatch.setattr("bibaudit.cli.audit", interrupted)
+
+        assert main(check(tmp_path, str(bib))) == 130
+        captured = capsys.readouterr()
+        assert "interrupted" in captured.err
+        assert "Traceback" not in captured.err
+
     def test_an_unwritable_output_path_exits_two(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, bib: Path,
         capsys: pytest.CaptureFixture[str],

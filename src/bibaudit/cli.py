@@ -543,7 +543,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     except _Usage as exc:
         print(f"bibaudit: {exc}", file=sys.stderr)
         return 2
-    except KeyboardInterrupt:  # pragma: no cover
+    except KeyboardInterrupt:
+        # 130 is the shell's own convention for a process killed by SIGINT
+        # (128 + 2), so a CI job that distinguishes "the check failed" from
+        # "somebody stopped it" reads the same code here as from every other
+        # tool. Not exit 2: the invocation was fine.
         print("bibaudit: interrupted", file=sys.stderr)
         return 130
     except OSError as exc:
