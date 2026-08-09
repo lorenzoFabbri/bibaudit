@@ -911,22 +911,22 @@ it, any name whose words are a subsequence of a longer name reaching the same
 last word was cleared — `Annals of Oncology` against `Annals of surgical
 oncology`, `Journal of Cancer` against `Journal of gastrointestinal cancer`,
 `Cancer` against `Pediatric blood & cancer`, all pairs of serials NLM lists
-separately. Over all 37,987 serials in `J_Medline.txt` the unbounded rule
-accepts **27,954** ordered pairs of *distinct* serials as abbreviations of one
-another; bounded, **918**. `REGISTRY-ARTIFACT` is not a failing verdict, so
+separately. Over the 37,989 serials in the 2026-08-09 fetch of
+`J_Medline.txt` the unbounded rule accepts **27,851** ordered pairs of serials
+with different titles as abbreviations of one another; bounded, **903**. `REGISTRY-ARTIFACT` is not a failing verdict, so
 each of those was an exoneration printed on a wrong bibliography that exited 0.
 
 **Why a length and not a word list.** ISO 4 shortens each significant word of a
 title and deletes the articles, conjunctions and prepositions between them, so
-the words a real abbreviation passes over are grammatical furniture: 25,756 of
-the 26,497 words skipped across the 25,639 abbreviated titles in NLM's own list
+the words a real abbreviation passes over are grammatical furniture: 25,758 of
+the 26,500 words skipped across the 25,641 abbreviated titles in NLM's own list
 are three characters or fewer — *of*, *and*, *the*, *in*, *de*, *on*, *for*,
 *la*, *et*, *für*, *di*, *und*. Which words those are is a fact about a
 language, and a stop-word vocabulary would put one language's function words in
 the verdict path; a length admits every language on the same terms. It is the
 argument `_is_initialism_of` makes, for the same reason.
 
-**What it costs.** 432 of the 25,639 `MedAbbr`-against-`JournalTitle` pairs in
+**What it costs.** 432 of the 25,641 `MedAbbr`-against-`JournalTitle` pairs in
 NLM's list are no longer accepted here: the Italian *della*, the Dutch *voor*,
 the English *with* and *from*, and the `Part E` / `Series B` sub-series titles.
 Most never reach this rule — `TA` is on `container_alternates` and
@@ -998,7 +998,7 @@ A **parallel title** joins the same list by the same argument. NLM writes one
 serial's two names into `JT` separated by a spaced equals sign — `Journal of
 preventive medicine and public health = Yebang Uihakhoe chi` (PMID 42526877,
 `tests/data/pubmed_parallel_title.txt`), `Zhongguo yao li xue bao = Acta
-pharmacologica Sinica` (NlmId 8100330) — and 607 of the 37,987 serials in NLM's
+pharmacologica Sinica` (NlmId 8100330) — and 607 of the 37,989 serials in NLM's
 own list carry at least one. Both halves are the journal's own name and a
 bibliography stores whichever its house style uses, so each is offered as an
 alternate rather than substituted for `JT`. That is what keeps the **34**
@@ -1089,7 +1089,7 @@ shape, and it has its own rule below.
 would be ambiguous in its catalogue — a place (`Lancet (London, England)`), an
 edition (`BMJ (Clinical research ed.)`), a founding year (`Annals of medicine
 and surgery (2012)`), the issuing body, or several at once. It is on 2,698 of
-the 37,987 serials in NLM's own list,
+the 37,989 serials in NLM's own list,
 [`J_Medline.txt`](https://ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt). The
 masthead, Crossref and the bibliography all carry the bare title.
 

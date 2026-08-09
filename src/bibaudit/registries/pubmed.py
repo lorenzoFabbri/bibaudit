@@ -272,7 +272,7 @@ def _container_book(fields: dict[str, list[str]]) -> str | None:
 #: How NLM joins a serial's title to the same serial's title in another
 #: language: ``Zhongguo yao li xue bao = Acta pharmacologica Sinica`` (NlmId
 #: 8100330). Both are the journal's own name and a bibliography stores
-#: whichever its house style uses. 607 of the 37,987 serials in NLM's own list,
+#: whichever its house style uses. 607 of the 37,989 serials in NLM's own list,
 #: ``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``, carry one; **34** of those
 #: have a part equal to some other serial's whole title, 38 once
 #: :func:`~bibaudit.normalize.fold` has run \u2014 ``Dong wu xue yan jiu =

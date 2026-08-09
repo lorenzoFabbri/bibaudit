@@ -197,12 +197,12 @@ so `uv sync --all-extras` does not install it into the test environment.
   against `Pediatric blood & cancer` were each reported `REGISTRY-ARTIFACT`
   with `stored name abbreviates the registry name` beside them, and the run
   exited 0 on a bibliography naming a journal the paper did not appear in.
-  Over all 37,987 serials in NLM's own list the rule accepted 27,954 ordered
-  pairs of *distinct* serials as abbreviations of one another. A skipped word
-  may now be three characters at most — every word ISO 4 deletes is an
-  article, a conjunction or a preposition, and 25,756 of the 26,497 words
-  skipped across NLM's 25,639 abbreviated titles are that short — which leaves
-  918 of those pairs.
+  Over the 37,989 serials in NLM's own list the rule accepted 27,851 ordered
+  pairs of serials with different titles as abbreviations of one another. A
+  skipped word may now be three characters at most — every word ISO 4 deletes
+  is an article, a conjunction or a preposition, and 25,758 of the 26,500 words
+  skipped across NLM's 25,641 abbreviated titles are that short — which leaves
+  903 of those pairs.
 - **A journal name the registry files under a leading article is reachable
   from the masthead form.** The rule took the article off the stored side
   only, so an entry storing *Canadian Journal of Statistics* failed against
@@ -264,7 +264,7 @@ so `uv sync --all-extras` does not install it into the test environment.
 - **A serial's parallel title is a container the registry carries.** NLM joins
   one journal's two names in `JT` with a spaced equals sign — `Journal of
   preventive medicine and public health = Yebang Uihakhoe chi` — on 607 of the
-  37,987 serials in its own list. Both halves are the journal's own name and a
+  37,989 serials in its own list. Both halves are the journal's own name and a
   bibliography stores whichever its house style uses, so each is offered as a
   `container_alternates` entry and matching one is an `info` note naming
   PubMed, exactly as `TA` already was.

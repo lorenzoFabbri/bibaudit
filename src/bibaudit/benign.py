@@ -102,7 +102,7 @@ _PRINT_DATE_REGISTRIES = frozenset({"crossref"})
 #: ISO 4 forms an abbreviation by shortening each significant word of a title
 #: and *deleting* the articles, conjunctions and prepositions between them, so
 #: the words a real abbreviation passes over are grammatical furniture:
-#: 25,756 of the 26,497 words skipped across the 25,639 abbreviated titles in
+#: 25,758 of the 26,500 words skipped across the 25,641 abbreviated titles in
 #: NLM's own serial list, ``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``, are
 #: three characters or fewer — *of*, *and*, *the*, *in*, *de*, *on*, *for*,
 #: *la*, *et*, *für*, *di*, *und*. A longer word is part of the name.
@@ -116,12 +116,12 @@ _PRINT_DATE_REGISTRIES = frozenset({"crossref"})
 #: Unbounded, the skip is what let ``Annals of Oncology`` be accepted as an
 #: abbreviation of ``Annals of surgical oncology`` — two serials NLM lists
 #: separately — and print an exoneration on a wrong bibliography that exited
-#: zero. Over all 37,987 serials the unbounded rule accepts 27,954 ordered
-#: pairs of *distinct* serials as abbreviations of one another; this bound
-#: leaves 918, and the pairs it newly refuses are the family confusions the
-#: end-of-name anchor was written for — ``Advances in biology`` against
-#: ``Advances in cell biology``, ``Advances in research`` against ``Advances
-#: in drug research``.
+#: zero. Over the 37,989 serials in the 2026-08-09 fetch of that list the
+#: unbounded rule accepts 27,851 ordered pairs of serials with different titles
+#: as abbreviations of one another; this bound leaves 903, and the pairs it
+#: newly refuses are the family confusions the end-of-name anchor was written
+#: for — ``Advances in biology`` against ``Advances in cell biology``,
+#: ``Advances in research`` against ``Advances in drug research``.
 _MAX_SKIPPED_WORD = 3
 
 #: Smallest gap, in years, between an entry's year and a registry ``issued``
@@ -638,7 +638,7 @@ def _container_medline_qualifier(field: str, stored: str, registry: str, ref: Re
     ``TA - ASAIO J``, in ``tests/data/pubmed_qualifier_inner_colon.txt``. NLM
     appends a qualifier — a place, a founding year, the issuing body, or
     several at once — wherever a bare title would be ambiguous in its
-    catalogue, on 2,698 of the 37,987 serials in its own list,
+    catalogue, on 2,698 of the 37,989 serials in its own list,
     ``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``. The masthead, Crossref and
     the bibliography carry the bare title, and where ``TA`` is a real
     abbreviation rather than the plain name nothing else reaches the entry:

@@ -502,8 +502,8 @@ class TestContainerAbbreviation:
 
         Every token being an in-order prefix reaching the registry's last one
         is satisfied by any name whose words are a subsequence of a longer
-        one, so the rule accepted 27,954 ordered pairs of distinct serials in
-        NLM's own list as abbreviations of one another.
+        one, so the rule accepted 27,851 ordered pairs of serials with
+        different titles in NLM's own list as abbreviations of one another.
         """
         assert classify("container", stored, registry, container_short=None) is None
 
@@ -539,7 +539,7 @@ class TestContainerAbbreviation:
     ) -> None:
         """The bound must not cost the abbreviations the rule exists for.
 
-        25,756 of the 26,497 words skipped across the 25,639 abbreviated
+        25,758 of the 26,500 words skipped across the 25,641 abbreviated
         titles in NLM's serial list are three characters or fewer.
         """
         assert classify("container", stored, registry, container_short=None) == (
@@ -807,7 +807,7 @@ class TestContainerMedlineSubtitle:
         official publication of the Arthroscopy Association of North America
         and the International Arthroscopy Association`` is NlmId 8506498's own
         filing title, verbatim from NLM's serial list
-        (``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``), where 401 of 37,987
+        (``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``), where 401 of 37,989
         serials carry two spaced colons. The masthead is *Arthroscopy*.
         Splitting on the last colon would compare the stored name against
         ``Arthroscopy : the journal of arthroscopic & related surgery`` and
@@ -987,7 +987,7 @@ class TestContainerMedlineQualifier:
 
     NLM appends one — a place, a founding year, the issuing body, or several
     at once — wherever a bare title would be ambiguous in its catalogue, on
-    2,698 of the 37,987 serials in ``J_Medline.txt``. In a catalogue that
+    2,698 of the 37,989 serials in ``J_Medline.txt``. In a catalogue that
     qualifier is exactly what tells two serials of the same base name apart,
     which is the objection this rule has to answer; in *this* comparison
     nothing is being looked up. ``compare`` reaches ``container`` only after
