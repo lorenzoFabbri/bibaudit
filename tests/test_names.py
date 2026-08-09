@@ -555,6 +555,34 @@ class TestAuthorListComparison:
         assert not diff.count_differs
         assert diff.reasons == {1: "registry lists a collective author"}
 
+    def test_one_group_name_against_the_same_group_name_is_simply_correct(self) -> None:
+        """Nothing was suppressed, so nothing may be reported as suppressed.
+
+        The escape above is for a group name standing against a *list of
+        people*. Both sides naming the organisation is the entry being right,
+        and printing "collective author" over the pair puts a correct entry in
+        the report under a reason its reader cannot act on.
+        """
+        stored = [Name(literal="The Study Group", collective=True)]
+        registry = [Name(literal="The Study Group", collective=True)]
+        diff = compare_author_lists(stored, registry)
+        assert diff.clean
+        assert not diff.reasons
+
+    def test_two_different_group_names_keep_the_escape(self) -> None:
+        """Equality of the comparison keys is the whole of the new branch.
+
+        One name against one name gives the positional comparison nothing to
+        work with either way, so a pair that does *not* agree stays where it
+        was — suppressed and stated — rather than becoming a mismatch on the
+        strength of a rule about organisations nobody has written.
+        """
+        stored = [Name(literal="The Other Study Group", collective=True)]
+        registry = [Name(literal="The Study Group", collective=True)]
+        diff = compare_author_lists(stored, registry)
+        assert not diff.mismatches
+        assert diff.reasons == {1: "collective author"}
+
 
 #: The byline of `clavelchapelon1997e3n` exactly as the corpus stores it. Ten
 #: creators; Crossref's deposit for the same DOI holds the last nine.

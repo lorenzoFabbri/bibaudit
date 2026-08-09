@@ -169,6 +169,15 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **An entry crediting the organisation the registry credits is no longer
+  suppressed.** The two collective escapes exist for a group name standing
+  against a list of *people* — one side names the consortium, the other its
+  members — and they fired ahead of the comparison whenever either side held a
+  single collective creator, so a byline naming the same organisation the
+  record does, character for character, was reported `REGISTRY-ARTIFACT` under
+  `collective author`. It is now compared and agrees. Two *different*
+  organisations keep the suppression: one name against one name leaves the
+  positional comparison nothing to work with either way.
 - **A suppression that edited both sides now says so.** Taking a journal's own
   acronym off the front of a stored name is matched against the names the
   record carries *and* against two reductions of them — NLM's spaced colon and

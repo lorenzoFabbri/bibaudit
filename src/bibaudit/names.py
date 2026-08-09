@@ -1199,14 +1199,31 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
     # A collective author on one side and a person list on the other is a
     # representation difference, not a defect: Crossref splits some consortium
     # bylines into members while the bibliography keeps the group name.
-    if len(stored) == 1 and stored[0].collective:
-        diff.note(1, Reason.STORED_COLLECTIVE)
-        diff.truncated = True
-        return diff
-    if len(registry) == 1 and registry[0].collective:
-        diff.note(1, Reason.REGISTRY_COLLECTIVE)
-        diff.truncated = True
-        return diff
+    #
+    # One group name against the same group name is not that difference. There
+    # is nothing to align around and nothing to suppress, and the pair below
+    # fired first anyway: an entry crediting the organisation the registry
+    # credits, character for character, was reported REGISTRY-ARTIFACT under
+    # "collective author" — a suppression printed over two identical strings,
+    # which a reader can neither act on nor argue with. Equality of the
+    # comparison keys and nothing looser: two *different* organisations are
+    # still one name against one name with no positions to check, and they keep
+    # the suppression rather than becoming a mismatch.
+    same_collective = (
+        len(stored) == len(registry) == 1
+        and stored[0].collective
+        and registry[0].collective
+        and family_key(stored[0]) == family_key(registry[0])
+    )
+    if not same_collective:
+        if len(stored) == 1 and stored[0].collective:
+            diff.note(1, Reason.STORED_COLLECTIVE)
+            diff.truncated = True
+            return diff
+        if len(registry) == 1 and registry[0].collective:
+            diff.note(1, Reason.REGISTRY_COLLECTIVE)
+            diff.truncated = True
+            return diff
 
     interleaved = _interleaved_collectives(stored, registry)
     if interleaved:
