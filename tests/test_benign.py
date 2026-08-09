@@ -1928,6 +1928,11 @@ class TestAuthorArtifacts:
         arithmetic the tool can check: three creators must survive the
         alignment. With only two the tool reports and lets a human decide,
         rather than clearing an invented attribution.
+
+        Both shifted positions are reported, not one. The reordering escape
+        used to absorb the second — `Papantoniou` and `Aragonés` do each appear
+        on the other side — and it no longer does, because the two bylines do
+        not hold the same creators counted.
         """
         ref = make_ref(
             authors=[
@@ -1943,7 +1948,8 @@ class TestAuthorArtifacts:
             ]
         )
         result = compare(ref, {"crossref": record})
-        assert errors(result, "authors") == ["mismatch"]
+        assert errors(result, "authors") == ["mismatch", "mismatch"]
+        assert artifacts(result, "authors") == []
         assert result.fails
 
     def test_a_registry_missing_an_interior_author_is_still_a_defect(self) -> None:
@@ -1967,11 +1973,13 @@ class TestAuthorArtifacts:
             authors=[Name(family="Clavel-Chapelon", given="F"), *registry[:1], *registry[2:4]]
         )
         result = compare(ref, {"crossref": record})
-        # The shift past the hole is partly absorbed by the reordering rule —
-        # `Niravong` really does appear on both sides — so what survives is one
-        # positional mismatch. One error is all it takes: the entry is reported
-        # and the build fails, which is the outcome this test is about.
-        assert errors(result, "authors") == ["mismatch"]
+        # Every position past the hole is reported. `Niravong` does appear on
+        # both sides, which is what the reordering escape used to accept, and
+        # it is not enough: the byline the registry holds is one creator short
+        # of the entry's, so the two do not hold the same creators counted and
+        # the shift is not a reordering.
+        assert errors(result, "authors") == ["mismatch", "mismatch"]
+        assert artifacts(result, "authors") == []
         assert result.fails
 
     def test_a_registry_surname_missing_its_first_letter_is_not_a_defect(self) -> None:

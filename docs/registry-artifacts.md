@@ -358,10 +358,36 @@ that both sides may serialise differently.
 
 **Reported as.** `reordered`.
 
-**Detection.** `names.compare_author_lists`. A position is only excused when the
-stored surname key appears somewhere in the registry list *and* the registry
-surname key appears somewhere in the stored list — a genuine exchange, not a name
-that merely went missing.
+**Detection.** `names.compare_author_lists`, on two conditions together. The two
+bylines must hold **the same creators counted** — every surname key, with its
+multiplicity, on both sides — and at the disagreeing position the stored surname
+key must appear somewhere in the registry list *and* the registry surname key
+somewhere in the stored list.
+
+**Counted, because presence alone is not a reordering.** Set membership was the
+whole test, and it excused a byline that had *lost* an author: a one-position
+shift puts every stored creator somewhere in the registry list and every
+registry creator somewhere in the stored one, so each shifted position was
+excused and what survived was a count *warning*, which does not fail. Position 1
+is what should have stopped it — the dropped surname has nowhere to be found in
+the shortened list — and does not when that surname repeats later in the byline,
+which is routine in Chinese, Korean and Japanese author lists. PMID 38213033's
+thirteen creators are Lee, Jung, Kim, Lee, Lee, Baek, Kwon, Shin, Kim, Shin,
+Park, Park, Kim, and with the first removed every one of the twelve remaining
+positions read as a reordering. **104 of 2,551 live entries** took that shape.
+
+Counting also makes a length difference impossible, which is what *not a name
+that merely went missing* means. Measured over 3,040 MEDLINE/Crossref pairs of
+the same work, 9 entries carry a `reordered` position; 6 hold the same creators
+counted and keep it, and the 3 that lose it are the three whose bylines differ in
+length — 13 against 6, 3 against 2, 14 against 13.
+
+**What it now reports that it used to excuse, stated plainly.** A reordering in a
+byline that *also* carries a difference of spelling — a mojibake surname, a
+particle one side files and the other does not — no longer holds the same keys
+counted, so its moved positions are reported. That compound shape has no
+witnessed instance, and the direction of the mistake is the one that shows: the
+tool complains where it might have stayed quiet, rather than the reverse.
 
 **Why it is narrow.** Read together with *Consortia credited between people in
 the author array*: when a consortium sits inside the byline, every position after

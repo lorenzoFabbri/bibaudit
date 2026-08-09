@@ -49,6 +49,7 @@ evidence a list-level rule then counts:
 from __future__ import annotations
 
 import re
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from enum import StrEnum, unique
 from types import MappingProxyType
@@ -1181,8 +1182,8 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
     4. within a byline proven to be mis-decoded, a surname that lost its first
        character *and* is the one uncapitalised surname in the deposit
        (:func:`_surname_truncated_by_mojibake`, 10.5271/sjweh.3626);
-    5. a pair that disagrees where both names appear in the other list, which is
-       a reordering.
+    5. a pair that disagrees inside two bylines holding the same creators
+       counted, where both names appear in the other list — a reordering.
 
     Nothing here is dropped: every escape records a reason, and
     ``compare._check_authors`` prints it with both values under
@@ -1252,13 +1253,17 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
         diff.truncated = True
         return diff
 
-    # Empty keys are excluded from both sets. ``family_key`` returns "" for a
-    # creator with no surname *and* for every surname written outside the
-    # comparison alphabet, so keeping them would put one shared "" in both sets
-    # and let the reordering escape below fire on any two such creators — a
-    # substitution reported as a harmless reordering.
-    stored_keys = {key for key in (family_key(n) for n in stored) if key}
-    registry_keys = {key for key in (family_key(n) for n in registry) if key}
+    # Counted, and over every creator including the ones with no usable key, so
+    # this says "the same people, in a different order" and nothing weaker.
+    # Membership alone cannot: a byline in which a surname repeats supplies its
+    # own alibi, and one that dropped its first author then read as a
+    # reordering at every shifted position — 104 of 2,551 live entries, whose
+    # only remaining trace was a count *warning*, which does not fail. Equal
+    # counts also make a length difference impossible, which is what "not a
+    # name that merely went missing" means.
+    reordering = Counter(family_key(n) for n in stored) == Counter(
+        family_key(n) for n in registry
+    )
     # Evidence gathered once for the whole byline, because the truncation rule
     # below is only safe in the presence of proven damage to *this* deposit.
     mojibake_byline = _list_carries_registry_mojibake(stored, registry)
@@ -1274,7 +1279,12 @@ def compare_author_lists(stored: list[Name], registry: list[Name]) -> AuthorDiff
             diff.note(index + 1, Reason.MOJIBAKE_TRUNCATED)
             continue
         left_key, right_key = family_key(left), family_key(right)
-        if left_key in registry_keys and right_key in stored_keys:
+        # Both sides need a key of their own. ``family_key`` returns "" for a
+        # creator with no surname *and* for every surname written outside the
+        # comparison alphabet, so a byline of those counts equal against any
+        # other byline of those — and 王 against 李 is a substitution, not a
+        # creator that moved.
+        if reordering and left_key and right_key:
             diff.note(index + 1, Reason.REORDERED)
             continue
         diff.mismatches.append((index + 1, str(left), str(right)))

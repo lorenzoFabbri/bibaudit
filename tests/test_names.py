@@ -541,6 +541,21 @@ class TestAuthorListComparison:
         assert not diff.mismatches
         assert set(diff.reasons.values()) == {"reordered"}
 
+    def test_a_rotation_is_still_a_reordering(self) -> None:
+        """Neither list is wrong and no creator moved in or out of the byline.
+
+        The rule is the same creators counted, not a pairwise exchange: a
+        registry that files the senior author first shifts everybody, and every
+        shifted position is excused.
+        """
+        stored = [Name(family="Malats"), Name(family="Real"), Name(family="Kaaks")]
+        registry = [Name(family="Kaaks"), Name(family="Malats"), Name(family="Real")]
+
+        diff = compare_author_lists(stored, registry)
+
+        assert not diff.mismatches
+        assert set(diff.reasons.values()) == {"reordered"}
+
     def test_count_difference_is_reported(self) -> None:
         stored = [Name(family="Malats"), Name(family="Real")]
         registry = [Name(family="Malats")]
@@ -582,6 +597,84 @@ class TestAuthorListComparison:
         diff = compare_author_lists(stored, registry)
         assert not diff.mismatches
         assert diff.reasons == {1: "collective author"}
+
+
+class TestABylineThatLostAnAuthorIsNotAReordering:
+    """Set membership let a repeated surname supply its own alibi.
+
+    A byline missing its first author is a one-position shift, and at every
+    shifted position both surnames do appear in the other list — so each was
+    excused as a reordering and the entry came back non-failing with a count
+    warning. 104 of 2,551 live entries took that shape, while
+    `docs/registry-artifacts.md` promised the opposite: "a genuine exchange,
+    not a name that merely went missing".
+
+    Position 1 is what should have stopped it, and does not when the dropped
+    surname repeats later in the byline — routine in Chinese, Korean and
+    Japanese author lists. PMID 38213033's real thirteen-creator byline is one:
+    Lee, Jung, Kim, Lee, Lee, Baek, Kwon, Shin, Kim, Shin, Park, Park, Kim.
+    """
+
+    _BYLINE = (
+        "Lee, A", "Jung, B", "Kim, C", "Lee, D", "Lee, E", "Baek, F", "Kwon, G",
+        "Shin, H", "Kim, I", "Shin, J", "Park, K", "Park, L", "Kim, M",
+    )
+
+    def _registry(self) -> list[Name]:
+        return [parse_name(value) for value in self._BYLINE]
+
+    def test_every_shifted_position_is_reported(self) -> None:
+        stored = [parse_name(value) for value in self._BYLINE[1:]]
+
+        diff = compare_author_lists(stored, self._registry())
+
+        assert diff.mismatches
+        assert "reordered" not in set(diff.reasons.values())
+
+    def test_the_same_byline_merely_reordered_is_still_excused(self) -> None:
+        """The false positive this must not create.
+
+        The identical thirteen creators with the first two exchanged: nobody
+        went missing, so the difference is an order the two sources serialise
+        differently and neither is wrong.
+        """
+        swapped = [self._BYLINE[1], self._BYLINE[0], *self._BYLINE[2:]]
+        stored = [parse_name(value) for value in swapped]
+
+        diff = compare_author_lists(stored, self._registry())
+
+        assert not diff.mismatches
+        assert set(diff.reasons.values()) == {"reordered"}
+
+    def test_two_surnames_the_alphabet_cannot_hold_are_not_a_reordering(self) -> None:
+        """Counted keys are equal for any two bylines the alphabet discards.
+
+        `family_key` returns "" for every surname outside it, so a byline of
+        those counts equal against any other, and the escape would then excuse
+        the whole of it. 王 against 李 is a substitution — the initials that
+        separate them are what `names_agree` already refused on.
+        """
+        stored = [Name(family="王", given="L"), Name(family="李", given="M")]
+        registry = [Name(family="李", given="M"), Name(family="王", given="L")]
+
+        diff = compare_author_lists(stored, registry)
+
+        assert diff.mismatches
+        assert "reordered" not in set(diff.reasons.values())
+
+    def test_a_substitution_inside_a_reordering_is_reported(self) -> None:
+        """Counted, so an exchanged pair cannot cover a replaced creator.
+
+        The same length, and every other position still finds its own surname
+        somewhere in the other list.
+        """
+        swapped = [self._BYLINE[1], self._BYLINE[0], "Fabricado, X", *self._BYLINE[3:]]
+        stored = [parse_name(value) for value in swapped]
+
+        diff = compare_author_lists(stored, self._registry())
+
+        assert diff.mismatches
+        assert "reordered" not in set(diff.reasons.values())
 
 
 #: The byline of `clavelchapelon1997e3n` exactly as the corpus stores it. Ten
