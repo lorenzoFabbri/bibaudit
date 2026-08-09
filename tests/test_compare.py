@@ -797,6 +797,63 @@ class TestCorrection:
         assert result.verdict == "RETRACTED"
 
 
+class TestAMilderNoticeBesideARetraction:
+    """One report may not say a work has been withdrawn and that it stands.
+
+    Two sources reporting different kinds for one work is ordinary: Retraction
+    Watch logs a correction over a retraction it already logged, and NLM keeps
+    an ``ECI`` cross-reference on a paper's record after adding ``PT -
+    Retracted Publication``. Both findings are printed — they are separate
+    statements and all of them are true — but the milder note's closing clause
+    said the work stands and the citation is legitimate, beside a
+    ``status/retracted`` line saying it has been withdrawn.
+    """
+
+    def _with(self, kind: str) -> Result:
+        return compare(
+            make_ref(),
+            {
+                "crossref": make_record(retracted=True, retraction_kind="retraction"),
+                "retraction-watch": make_retraction_watch(kind),
+            },
+        )
+
+    def test_a_correction_does_not_say_the_work_stands(self) -> None:
+        note = next(i.note for i in self._with("correction").issues if i.kind == "correction")
+        assert "The work stands and citing it is correct" not in note
+        assert "does not undo the retraction" in note
+
+    def test_a_concern_does_not_say_the_work_stands(self) -> None:
+        note = next(
+            i.note for i in self._with("expression of concern").issues
+            if i.kind == "expression-of-concern"
+        )
+        assert "the work stands" not in note
+        assert "does not undo the retraction" in note
+
+    def test_both_findings_are_still_printed_and_the_verdict_is_retracted(self) -> None:
+        """Nothing is dropped for it. A source recording the milder notice has
+        not contradicted the retraction, and its notice is a fact about the
+        work the reader may want to chase.
+        """
+        result = self._with("correction")
+        assert result.verdict == "RETRACTED"
+        assert [i.kind for i in result.issues if i.field == "status"] == [
+            "retracted",
+            "correction",
+        ]
+
+    def test_the_ordinary_wording_survives_where_nothing_was_retracted(self) -> None:
+        """The pairing: a corrected paper on its own still reads as citable."""
+        result = compare(
+            make_ref(),
+            {"crossref": make_record(), "retraction-watch": make_retraction_watch("correction")},
+        )
+        note = next(i.note for i in result.issues if i.kind == "correction")
+        assert "The work stands and citing it is correct" in note
+        assert "does not undo the retraction" not in note
+
+
 class TestRetractionEvidenceIsNeverAssumed:
     """An unreachable registry does not answer "not retracted".
 

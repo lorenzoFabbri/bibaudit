@@ -881,6 +881,22 @@ _CONCERN_KINDS = frozenset({"expression of concern"})
 #: "Retraction and correction" is a retraction.
 _CORRECTION_KINDS = frozenset({"correction"})
 
+#: What a concern and a correction say instead of "the work stands" when a
+#: retraction is recorded for the same work by another source.
+#:
+#: Both notes otherwise close on the work standing and the citation being
+#: legitimate, which beside ``status/retracted`` tells a reader in one report
+#: that the work has been withdrawn and that it stands. Neither finding is
+#: dropped for it — they are separate statements, all of them true at once, and
+#: a source recording the milder one has not contradicted the retraction — but
+#: the clause that reads as a second opinion against the finding goes.
+#:
+#: Not hypothetical in either direction: Retraction Watch's 2026-08-09 export
+#: carries 48 DOIs with a retraction row under a later correction and four with
+#: one under a later concern, and NLM keeps its ``ECI`` cross-reference on a
+#: paper's record after adding ``PT - Retracted Publication``.
+_BESIDE_A_RETRACTION = "It does not undo the retraction recorded for this work"
+
 
 def _detail(kinds: Mapping[str, str], names: Sequence[str]) -> str:
     """The registry column for one status issue, qualified only when it must be.
@@ -975,12 +991,15 @@ def _status_issues(
         submission — but never under the word "retracted". See
         :data:`_CONCERN_KINDS` for the paper this was found on. It stays an
         error, so an entry that failed before this distinction existed still
-        fails: the finding is re-labelled, never relaxed.
+        fails: the finding is re-labelled, never relaxed. Where another source
+        records a retraction as well, the note says what the concern does not
+        do rather than that the work stands — see :data:`_BESIDE_A_RETRACTION`.
 
     ``status/correction`` (info)
         A registry records a correction. The work stands and citing it is
         correct; what a reader may want is the corrected version's numbers
-        rather than the original's. See :data:`_CORRECTION_KINDS` for the
+        rather than the original's — or, beside a retraction, that the
+        correction does not undo it. See :data:`_CORRECTION_KINDS` for the
         notice that forced the distinction.
 
         ``info``, and so the verdict does not move — a corrected paper is
@@ -1108,9 +1127,14 @@ def _status_issues(
                 source=",".join(concerned),
                 note=(
                     "an expression of concern has been published about the cited "
-                    f"work; recorded by {', '.join(concerned)}. That is a stated "
-                    "doubt, not a retraction: the work stands, and citing it is "
-                    "legitimate once the notice has been read"
+                    f"work; recorded by {', '.join(concerned)}. "
+                    + (
+                        _BESIDE_A_RETRACTION
+                        if retracting
+                        else "That is a stated doubt, not a retraction: the work "
+                        "stands, and citing it is legitimate once the notice has "
+                        "been read"
+                    )
                 ),
             )
         )
@@ -1126,9 +1150,13 @@ def _status_issues(
                 source=",".join(corrected),
                 note=(
                     "a correction has been published for the cited work; "
-                    f"recorded by {', '.join(corrected)}. The work stands and "
-                    "citing it is correct; the corrected version is the one to "
-                    "read the numbers off"
+                    f"recorded by {', '.join(corrected)}. "
+                    + (
+                        _BESIDE_A_RETRACTION
+                        if retracting
+                        else "The work stands and citing it is correct; the "
+                        "corrected version is the one to read the numbers off"
+                    )
                 ),
             )
         )

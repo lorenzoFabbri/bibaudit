@@ -139,7 +139,12 @@ a substring — the two vocabularies overlap in real data, and a notice titled
 Anything not in that closed set counts as a retraction, including a kind this
 tool has never seen: a source it has not heard of cannot talk it out of the
 finding. If one source records a retraction and another a concern for the same
-work, both findings are printed and the verdict is `RETRACTED`.
+work, both findings are printed and the verdict is `RETRACTED` — but the
+concern's note then reads *it does not undo the retraction recorded for this
+work* rather than that the work stands. The same goes for a correction. Both
+statements are true at once and neither finding is dropped for the other; what
+may not stand is a report telling a reader in one breath that a work has been
+withdrawn and that citing it is legitimate.
 
 One source recording both resolves to the retraction alone. A concern raised
 first and a retraction issued afterwards is the ordinary escalation, and NLM
@@ -169,7 +174,9 @@ finding is for is the reader who wants the corrected version's numbers rather
 than the original's, and it reaches them through the JSON report and
 `--verbose`, the same routes `year/alternate-date` and `doi/alias` take. There
 is no `--fail-on` switch that makes it bite: `--fail-on` selects verdicts, and
-a correction produces none of its own.
+a correction produces none of its own. Beside a retraction another source
+recorded, the note says the correction does not undo it and the entry fails on
+the retraction, as it would have anyway.
 
 Anything not in the concern or the correction vocabulary is still a retraction,
 kind included when this tool has never seen it. The two sets are for kinds this
