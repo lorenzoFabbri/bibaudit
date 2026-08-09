@@ -338,12 +338,14 @@ that carries the signal and was not asked:
 | a book resolved by its ISBN | `crossref, pubmed, retraction-watch` | take a DOI or a PMID this reference does not carry |
 | any reference under `--no-retraction-check` | `retraction-watch` | was not queried on this run |
 
-The third column is in the printed note, and it is there because the two
-reasons are not one. No rerun asks Retraction Watch about a reference that has
-no DOI, and the reader can do nothing about it; a source that *had* a key and
-went unasked was left out by a flag they chose, and dropping the flag is the
-whole of the remedy. A run can produce both clauses at once, and each names its
-own sources.
+The third column is in the printed note, and it names the identifiers the
+*group* takes rather than each source's own: the second row's `a DOI or a PMID`
+is Crossref's and Retraction Watch's key **or** PubMed's, and the reference
+carries neither. The clause is there because the two reasons are not one. No
+rerun asks Retraction Watch about a reference that has no DOI, and the reader
+can do nothing about it; a source that *had* a key and went unasked was left
+out by a flag they chose, and dropping the flag is the whole of the remedy. A
+run can produce both clauses at once, and each names its own sources.
 
 It reaches the reader by the three routes above, the banner line ending in `not
 asked` rather than `unreachable`. An entry a source *did* report a retraction for
