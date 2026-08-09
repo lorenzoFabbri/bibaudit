@@ -913,8 +913,9 @@ oncology`, `Journal of Cancer` against `Journal of gastrointestinal cancer`,
 `Cancer` against `Pediatric blood & cancer`, all pairs of serials NLM lists
 separately. Over the 37,989 serials in the 2026-08-09 fetch of
 `J_Medline.txt` the unbounded rule accepts **27,851** ordered pairs of serials
-with different titles as abbreviations of one another; bounded, **903**. `REGISTRY-ARTIFACT` is not a failing verdict, so
-each of those was an exoneration printed on a wrong bibliography that exited 0.
+with different titles as abbreviations of one another; bounded, **903**.
+`REGISTRY-ARTIFACT` is not a failing verdict, so each of those was an
+exoneration printed on a wrong bibliography that exited 0.
 
 **Why a length and not a word list.** ISO 4 shortens each significant word of a
 title and deletes the articles, conjunctions and prepositions between them, so
