@@ -148,7 +148,6 @@ class Reference:
 
     doi: str | None = None
     pmid: str | None = None
-    arxiv: str | None = None
     isbn: str | None = None
     url: str | None = None
 
@@ -168,18 +167,25 @@ class Reference:
     def identifier(self) -> str | None:
         """The strongest identifier present, for cache keys and dedup.
 
+        Only these three, because these are the three ``audit`` builds a
+        request from: Crossref and DataCite take a DOI, PubMed a DOI or a PMID,
+        Open Library an ISBN. Ranking a fourth would not widen coverage — it
+        would narrow it, because :mod:`~bibaudit.compare` reads this property
+        to decide an entry has an identifier at all and reports a truthy one
+        that resolved nowhere as ``BAD-ID``, "resolves in no consulted
+        registry". An identifier nothing looks up resolves nowhere by
+        construction, so every entry carrying one would be accused about a
+        value no registry was ever asked.
+
         The stored ``pmid`` counts only when :func:`~bibaudit.normalize.
-        normalize_pmid` accepts it, because nothing downstream ever builds a
-        request from one it refuses (``audit._pmid_key``) and this property is
-        what :mod:`~bibaudit.compare` reads to decide an entry has an
-        identifier at all. A ``PMC5860629`` copied into the ``pmid`` field from
-        the line under it in a Zotero ``Extra`` was reported as resolving "in
-        no consulted registry" — an authoritative absence about a number no
-        registry was asked for. Refused here, the entry falls through to the
-        identifier-less path and is checked the way any other entry without one
-        is.
+        normalize_pmid` accepts it, for that same reason one step further in: a
+        ``PMC5860629`` copied into the ``pmid`` field from the line under it in
+        a Zotero ``Extra`` was reported as resolving "in no consulted registry"
+        — an authoritative absence about a number no registry was asked for.
+        Refused here, the entry falls through to the identifier-less path and
+        is checked the way any other entry without one is.
         """
-        for value in (self.doi, normalize_pmid(self.pmid), self.arxiv, self.isbn):
+        for value in (self.doi, normalize_pmid(self.pmid), self.isbn):
             if value:
                 return value
         return None

@@ -17,6 +17,7 @@ payloads in ``tests/data/compare_*`` were fetched from the live APIs on
 from __future__ import annotations
 
 import ast
+import dataclasses
 import json
 from pathlib import Path
 from typing import Any
@@ -139,6 +140,37 @@ class TestIdentifierProblems:
         result = compare(make_ref(), {}, unreachable={"crossref", "datacite", "pubmed"})
         assert result.verdict == "UNCHECKED"
         assert not result.fails
+
+    def test_only_identifiers_some_registry_is_asked_about_are_ranked(self) -> None:
+        """``Reference.identifier`` may rank a DOI, a PMID and an ISBN, and nothing else.
+
+        The branch above turns a truthy ``identifier`` that resolved nowhere
+        into ``BAD-ID``, "resolves in no consulted registry". An identifier no
+        ``audit`` branch builds a request from resolves nowhere by
+        construction, so ranking one accuses every entry carrying it about a
+        value no registry was ever asked. ``Reference.arxiv`` was ranked above
+        ``isbn`` while ``audit`` had no arXiv branch and no adapter populated
+        the field: ``Reference(arxiv="1706.03762")`` reached this branch and
+        reported ``BAD-ID`` on the identifier of a paper Crossref and PubMed
+        hold under a DOI neither was handed.
+
+        Driven off the dataclass rather than off a literal list, so the
+        assertion is about what the type can carry, not about what somebody
+        remembered to write down.
+        """
+        probe = "8675309"  # a DOI, a PMID and an ISBN are all just strings here
+        optional = [
+            f.name
+            for f in dataclasses.fields(Reference)
+            if f.default is None and f.name != "year"
+        ]
+        ranked = set()
+        for name in optional:
+            ref = Reference(key="k", locator="refs.bib:1")
+            setattr(ref, name, probe)
+            if ref.identifier:
+                ranked.add(name)
+        assert ranked == {"doi", "pmid", "isbn"}
 
 
 class TestWrongWork:

@@ -182,6 +182,18 @@ so `uv sync --all-extras` does not install it into the test environment.
   resolvers accept every later pre-release, and a lockfile constrains this
   repository rather than an install of the published package.
 
+### Removed
+
+- **`Reference.arxiv`.** No adapter ever set it, and `Reference.identifier`
+  ranked it above `isbn` — so had one, every entry carrying an arXiv id would
+  have been reported `BAD-ID`, "resolves in no consulted registry", about a
+  value no registry is ever asked for: Crossref and DataCite take a DOI,
+  PubMed a DOI or a PMID, Open Library an ISBN. That property is what the
+  field's removal restores, and the identifiers a reference may be resolved by
+  are exactly the three the documentation already named. An arXiv preprint is
+  still reached the way it always was, through the DOI its repository minted
+  (`10.48550/arXiv.1706.03762`), which DataCite answers for.
+
 ### Fixed
 
 - **A zero-padded article number is one.** `is_article_number` measured the
