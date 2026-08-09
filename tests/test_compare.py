@@ -718,6 +718,85 @@ class TestExpressionOfConcern:
         assert "not by crossref" in retraction.note
 
 
+def make_retraction_watch(kind: str) -> Record:
+    """Retraction Watch's contribution, as ``audit._merge_retraction_notices``
+    builds it: a status and nothing else, on a DOI some other registry resolved.
+    """
+    return Record(
+        source="retraction-watch",
+        doi="10.1093/ije/dyx269",
+        retracted=True,
+        retraction_kind=kind,
+    )
+
+
+class TestCorrection:
+    """A correction is neither a retraction nor a concern, and says so.
+
+    ``registries.retractions`` mints ``correction`` from Retraction Watch's
+    ``RetractionNature`` column, and every kind outside the concern vocabulary
+    counted as a retraction — so an entry citing a paper Retraction Watch logs
+    a correction for printed ``RETRACTED — the cited work has itself been
+    retracted``, with the word ``correction`` in the registry column, and
+    exited 1. A false statement about a named work, made with the tool's full
+    authority, arriving by the second of two routes.
+
+    The pairing matters as much: the finding is stated rather than dropped,
+    because a reader wanting the corrected version's numbers is who it is for.
+    """
+
+    def test_a_correction_is_not_reported_as_a_retraction(self) -> None:
+        result = compare(
+            make_ref(),
+            {"crossref": make_record(), "retraction-watch": make_retraction_watch("correction")},
+        )
+        assert result.verdict != "RETRACTED"
+        status = next(i for i in result.issues if i.field == "status")
+        assert status.kind == "correction"
+        assert "has been retracted" not in status.note
+
+    def test_the_verdict_and_the_exit_code_do_not_move(self) -> None:
+        """A corrected paper is perfectly citable. Failing a build over one is
+        the false alarm this project's third rule is about.
+        """
+        result = compare(
+            make_ref(),
+            {"crossref": make_record(), "retraction-watch": make_retraction_watch("correction")},
+        )
+        assert result.verdict == "OK"
+        assert not result.fails
+
+    def test_but_it_is_still_reported_and_names_its_source(self) -> None:
+        """The half that must not be lost: ``info`` is stated, not dropped."""
+        result = compare(
+            make_ref(),
+            {"crossref": make_record(), "retraction-watch": make_retraction_watch("correction")},
+        )
+        status = next(i for i in result.issues if i.kind == "correction")
+        assert status.severity == "info"
+        assert status.source == "retraction-watch"
+        assert status.registry == "correction"
+        assert "the corrected version is the one to read the numbers off" in status.note
+
+    @pytest.mark.parametrize(
+        "kind",
+        [
+            # Membership is exact on the folded kind, never a substring: a
+            # notice titled "Retraction and correction" is a retraction, and a
+            # registry wording this tool has never seen cannot talk it out of
+            # the finding.
+            "retraction and correction",
+            "correction and retraction",
+            "corrected and republished article",
+        ],
+    )
+    def test_a_retraction_that_merely_mentions_a_correction_is_not_softened(
+        self, kind: str
+    ) -> None:
+        result = compare(make_ref(), {"crossref": make_record(retracted=True, retraction_kind=kind)})
+        assert result.verdict == "RETRACTED"
+
+
 class TestRetractionEvidenceIsNeverAssumed:
     """An unreachable registry does not answer "not retracted".
 
