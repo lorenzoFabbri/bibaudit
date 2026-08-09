@@ -104,6 +104,7 @@ from __future__ import annotations
 import csv
 import io
 import warnings
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
@@ -385,6 +386,7 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int]:
     #: builds even where a DOI is logged many times over.
     standing: dict[str, dict[str, tuple[datetime, RetractionNotice]]] = {}
     reinstated: dict[str, datetime] = {}
+    unranked: Counter[str] = Counter()
     read = 0
 
     for row in csv.DictReader(io.StringIO(text)):
@@ -401,15 +403,23 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int]:
             # rows in the 2026-08-09 export): the whole database's subject is
             # retractions, so an untagged row is read as one rather than
             # silently dropped — a missed retraction costs more than a stray
-            # one whose specific nature could not be classified.
+            # one whose specific nature could not be classified. A blank cell
+            # is not the same evidence as an unrecognised value below: it makes
+            # no claim about the kind at all, and the database's subject
+            # supplies the one it left out, while a value this module cannot
+            # rank is a claim it has no way to read.
             kind = "retraction"
         else:
             kind = _RW_KIND_MAP.get(nature)
             if kind is None:
-                # A RetractionNature this module has never been taught.
-                # Conservative per CLAUDE.md's third rule: skip rather than
-                # guess "retraction" for a future category that might turn
-                # out to be something far milder.
+                # A RetractionNature this module has never been taught. Guessing
+                # "retraction" for it would be the false alarm CLAUDE.md's third
+                # rule exists to prevent — the next category RW adds may be
+                # milder than any of these — so the row is skipped. What it may
+                # not be is skipped in silence: skipping is a *missed* notice on
+                # the one field where a miss has no remedy, and nothing else in
+                # this run would ever mention it. See the warning below.
+                unranked[nature] += 1
                 continue
 
         date_str, sortable = _parse_rw_date(row.get("RetractionDate") or "")
@@ -434,6 +444,22 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int]:
                 notice_doi=notice_doi if _looks_like_doi(notice_doi) else None,
                 date=date_str,
             ),
+        )
+
+    if unranked:
+        named = ", ".join(
+            f"{nature!r} ({count} row{'s' if count != 1 else ''})"
+            for nature, count in sorted(unranked.items())
+        )
+        warnings.warn(
+            f"Retraction Watch's export carries a RetractionNature this build "
+            f"does not recognise: {named}. Those rows are not indexed, so a DOI "
+            "whose only notice is one of them carries no signal from this "
+            "source in this run. Every value in the 2026-08-09 export was "
+            "recognised, so this is a new category rather than a parsing "
+            "failure, and reading it needs an entry in this module's kind map.",
+            RuntimeWarning,
+            stacklevel=2,
         )
 
     index: dict[str, RetractionNotice] = {}

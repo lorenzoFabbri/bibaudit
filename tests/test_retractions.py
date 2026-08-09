@@ -413,9 +413,43 @@ class TestRetractionWatchCsv:
         conservative side of CLAUDE.md's third rule.
         """
         doi = "10.9999/unknown-nature-paper"
-        stub = _client(rw_csv=_rw_sample())
-        result = Retractions(stub, cache_dir=tmp_path).status_for([doi]).notices
+        csv = _rw_rows((doi, "1/1/2020 0:00", "Republication", "10.9999/notice"))
+        stub = _client(rw_csv=csv)
+        with pytest.warns(RuntimeWarning, match="does not recognise"):
+            result = Retractions(stub, cache_dir=tmp_path).status_for([doi]).notices
         assert doi not in result
+
+    def test_a_nature_this_build_cannot_rank_is_said_out_loud(
+        self, tmp_path: Path
+    ) -> None:
+        """Skipping the row is a *missed* notice on the one field where a miss
+        has no remedy, and nothing else in the run would ever mention it. The
+        warning names the value and how many rows carried it, because the fix
+        is an entry in this module's kind map and nobody can make it without
+        knowing what to add.
+        """
+        doi = "10.9999/unknown-nature-paper"
+        csv = _rw_rows(
+            (doi, "1/1/2020 0:00", "Retract and replace", "10.9999/a"),
+            ("10.9999/other", "1/1/2021 0:00", "Retract and replace", "10.9999/b"),
+            ("10.9999/third", "1/1/2021 0:00", "Retraction", "10.9999/c"),
+        )
+        with pytest.warns(RuntimeWarning) as caught:
+            Retractions(_client(rw_csv=csv), cache_dir=tmp_path).status_for([doi])
+        [warning] = [w for w in caught if "does not recognise" in str(w.message)]
+        assert "'retract and replace' (2 rows)" in str(warning.message)
+
+    def test_a_vocabulary_this_build_knows_says_nothing(self, tmp_path: Path) -> None:
+        """The true-negative half. Every value in the 2026-08-09 export is one
+        this module ranks, so an ordinary run must be silent — a warning on
+        every run is one nobody reads on the run that matters.
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            status = Retractions(
+                _client(rw_csv=_rw_sample()), cache_dir=tmp_path
+            ).status_for([WAKEFIELD_DOI])
+        assert status.notices[WAKEFIELD_DOI.lower()].kind == "retraction"
 
     def test_a_blank_nature_defaults_to_retraction(self, tmp_path: Path) -> None:
         """190 of 71,496 live rows carry no ``RetractionNature`` tag at all; the

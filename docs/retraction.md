@@ -218,6 +218,18 @@ or before it and leaves any later one standing — `10.1308/rcsann.2020.0038` wa
 reinstated in September 2021 and had an expression of concern raised against it
 six months after.
 
+A `RetractionNature` this build cannot rank is skipped — guessing "retraction"
+for the next category Retraction Watch adds would be the false alarm the third
+rule exists to prevent, and it may turn out to be milder than anything here —
+but the run says so out loud, in a `RuntimeWarning` naming the value and how
+many rows carried it. Skipping is a *missed* notice on the field where a miss
+has no remedy, and nothing else in the run would ever mention it. Every value
+in the 2026-08-09 export is one this tool ranks (`Retraction` 66,155,
+`Expression of concern` 3,586, `Correction` 1,499, blank 241, `Reinstatement`
+160), so the warning is silence on an ordinary run. A blank cell is different
+evidence and is read as a retraction: it makes no claim about the kind at all,
+and the database's whole subject supplies the one it left out.
+
 An unreadable date is ignorance on both sides of that comparison, and ignorance
 may neither clear a retraction nor be cleared by one. A reinstatement carrying
 one never becomes a cutoff; a notice carrying one is not dated "at or before"

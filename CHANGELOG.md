@@ -184,6 +184,14 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A `RetractionNature` this build cannot rank is announced rather than
+  dropped in silence.** Such a row is still skipped — guessing "retraction" for
+  a category that may be milder is the false alarm the third rule exists to
+  prevent — but the run now warns, naming the value and its row count, because
+  skipping is a missed notice on the one field where a miss has no remedy and
+  nothing else in the run mentioned it. Every value in the 2026-08-09 export is
+  recognised, so an ordinary run is silent.
+
 - **A retraction whose date Retraction Watch left blank is no longer withdrawn
   by a reinstatement.** An unreadable date sorted as the earliest date there
   is, so a notice carrying one counted as "dated at or before" every
