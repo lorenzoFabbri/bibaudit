@@ -412,6 +412,24 @@ class TestAuthors:
         assert str(record.authors[2]) == "Dutch Colorectal Cancer Group"
 
 
+    def test_an_et_al_marker_in_au_is_truncation_and_not_a_creator(self) -> None:
+        """NLM writes the marker: 41 citations answer ``"et al"[au]``.
+
+        Every one of them carries ``FAU`` as well, so this route has no
+        witnessed instance. It asserts the behaviour rather than the guard:
+        the answer is the same either way today, because the synthetic comma
+        this function inserts is deleted again by ``fold`` before
+        ``parse_name`` looks for the marker, and the guard is what stops that
+        coincidence from being load-bearing. Read as a creator the marker adds
+        a person to the registry's byline and fails the count against a
+        bibliography that has it right.
+        """
+        name = pubmed._parse_au_fallback("Et al")
+
+        assert name.et_al
+        assert (name.family, name.given) == ("", "")
+
+
 class TestRetractionSignals:
     """``PT`` says which side of a retraction a record is on. Both directions.
 
