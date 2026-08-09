@@ -441,6 +441,87 @@ class TestAuthors:
         assert str(name) == "Et al"
 
 
+class TestACorporateByline:
+    """``CN`` is MEDLINE's corporate author, and for some citations it is all
+    there is.
+
+    ``tests/data/pubmed_corporate_author.txt`` is NCBI's own bytes for PMID
+    42538063 — a committee opinion in *Fertility and Sterility* credited to
+    ``CN - Practice Committee of the American Society for Reproductive
+    Medicine`` and carrying no ``FAU`` or ``AU`` line at all.
+    """
+
+    def test_a_corporate_byline_is_read_as_the_records_creator(self) -> None:
+        """Left unread it is not a shorter byline, it is no byline.
+
+        ``compare._check_authors`` returns before comparing anything when the
+        record has no creators, so an entry could invent the whole byline and
+        be told every checked field agrees.
+        """
+        record = _resolve_one(
+            "corporate_author", pmid="42538063", doi="10.1016/j.fertnstert.2026.03.026"
+        )
+        assert [str(name) for name in record.authors] == [
+            "Practice Committee of the American Society for Reproductive Medicine"
+        ]
+
+    def test_the_organisation_is_one_creator_and_keeps_its_whole_name(self) -> None:
+        """Never split, and never reduced to a last token.
+
+        This name carries marker words, but plenty of corporate bylines carry
+        none — ``Frontiers Production Office`` and ``FinnGen`` are two from a
+        live sample — so the tag decides that it is an organisation, not the
+        words in it. Parsed as a person the surname here would be *Medicine*.
+        """
+        record = _resolve_one(
+            "corporate_author", pmid="42538063", doi="10.1016/j.fertnstert.2026.03.026"
+        )
+        [creator] = record.authors
+        assert creator.collective
+        assert (creator.family, creator.given) == ("", "")
+
+    def test_a_corporate_name_with_no_marker_word_is_still_one_creator(self) -> None:
+        """The tag decides, not the words.
+
+        ``names.parse_name`` reads a comma-less string as "Given Family" unless
+        one of its marker words is in it, and 5 of the 35 ``CN`` values on a
+        live sample of 3,000 citations carry none: PMID 42569236's whole byline
+        is this one, and read as a person it is somebody surnamed *Office*.
+        """
+        creator = pubmed._corporate_creator("Frontiers Production Office")
+
+        assert creator.collective
+        assert (creator.family, creator.given) == ("", "")
+        assert str(creator) == "Frontiers Production Office"
+
+    def test_a_corporate_byline_is_not_reported_as_an_editor_list(self) -> None:
+        """``FED``/``ED`` set a flag that tells the reader which list they are
+        looking at. A corporate author is an author, and stamping the record
+        with the editor flag would say the byline is the volume's editors.
+        """
+        record = _resolve_one(
+            "corporate_author", pmid="42538063", doi="10.1016/j.fertnstert.2026.03.026"
+        )
+        assert "authors_source" not in record.raw
+
+    def test_a_corporate_name_beside_a_personal_byline_is_left_alone(self) -> None:
+        """PMID 42552006 writes ``CN - ITC Project Collaborators`` in the middle
+        of its ``FAU`` list, and 26 of 30 sampled citations carrying ``CN``
+        have it beside people that way.
+
+        The position it belongs at is what a comparison would need, and the
+        parser keeps each tag's values in order but not the tags against one
+        another — so a list built by appending states a byline order the record
+        does not carry. ``names._byline_collectives`` covers the case from the
+        entry's side instead.
+        """
+        record = _resolve_one(
+            "collective_creator", pmid="42552006", doi="10.1136/bmjopen-2025-107667"
+        )
+        assert len(record.authors) == 8
+        assert not any(name.collective for name in record.authors)
+
+
 class TestRetractionSignals:
     """``PT`` says which side of a retraction a record is on. Both directions.
 

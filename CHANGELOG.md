@@ -139,6 +139,21 @@ so `uv sync --all-extras` does not install it into the test environment.
   particle filing, compound surnames shortened to their final element,
   one-character spelling variants, author lists in a different order, and the
   four comparisons that agree without being evidence of anything.
+- **MEDLINE's corporate byline is read.** `CN` is where NLM credits a
+  consortium, a society committee or a writing group, and for some citations it
+  is the whole byline: PMID 42538063, a committee opinion in *Fertility and
+  Sterility*, is credited to `CN - Practice Committee of the American Society
+  for Reproductive Medicine` and carries no `FAU` or `AU` line at all, as do 4
+  of 3,000 citations in a live sample. Unread, those records reached the
+  comparison with no creators, which returns before comparing anything, so an
+  entry whose byline was three invented people was reported `OK`. It is now one
+  collective creator — never split, never parsed as a person, since a corporate
+  name need carry no word this project would recognise (`Frontiers Production
+  Office` arrives as a surname *Office*) — and an entry naming people instead
+  is a `REGISTRY-ARTIFACT` line stating what the record credits. `CN` beside a
+  personal byline stays unread, 26 of those 30 sampled citations: the position
+  it belongs at is what a comparison would need, and the record does not carry
+  one.
 - `CONTRIBUTING.md`, `SECURITY.md`, a Dependabot configuration, a coverage floor
   (`fail_under = 92`, with branch coverage on), and a tag-triggered release
   workflow using PyPI Trusted Publishing.

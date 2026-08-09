@@ -198,18 +198,54 @@ def _parse_au_fallback(raw: str) -> Name:
     return parse_name(f"{surname}, {initials}")
 
 
+def _corporate_creator(raw: str) -> Name:
+    """One ``CN`` value as a single collective creator.
+
+    Deliberately not through :func:`~bibaudit.names.parse_name`, which reads a
+    comma-less string as "Given Family" unless one of its marker words is in
+    it. Plenty of corporate bylines carry none: 5 of the 35 ``CN`` values on a
+    live sample of 3,000 citations (``"2026/07"[dp]``) are read as a person
+    that way, ``Frontiers Production Office`` arriving as a surname *Office*
+    and ``FinnGen`` as a surname of its own. Nothing has to be inferred about
+    this string — ``CN`` is NLM's corporate-author tag, so what it holds is an
+    organisation by construction, and an organisation is one creator whose
+    name is given whole.
+    """
+    return Name(literal=clean(raw), collective=True)
+
+
 def _authors_from(fields: dict[str, list[str]]) -> tuple[list[Name], bool]:
     """The record's creators, and whether they came from the editor tags.
 
-    ``FAU`` when present, else ``AU`` — see :func:`_parse_au_fallback`. A
-    record with neither falls back to ``FED``/``ED``, MEDLINE's editor tags, in
-    that same order and for the reason ``crossref._authors`` falls back to
-    ``editor``: an edited volume's byline *is* its editors, and comparing an
-    empty list against the entry's compares nothing. PMID 20301295, the
-    *GeneReviews* book record, carries six ``FED`` lines and no ``FAU`` or
-    ``AU`` at all; 111 of 200 records in a live sample of ``pubmed books[sb]``
-    have the same shape. The flag reaches ``Record.raw`` so a reader can tell
-    which list they are looking at.
+    ``FAU`` when present, else ``AU`` — see :func:`_parse_au_fallback`. Then
+    ``CN``, MEDLINE's corporate author, which for some citations is the whole
+    byline: PMID 42538063, a committee opinion in *Fertility and Sterility*,
+    credits ``CN - Practice Committee of the American Society for Reproductive
+    Medicine`` and carries no ``FAU`` or ``AU`` line at all, and 4 of 3,000
+    citations in the live sample above have that shape. Unread, those records
+    reach ``compare._check_authors`` with an empty list, which returns before
+    comparing anything: an entry whose byline was three invented people was
+    reported ``OK`` against a record whose one creator is an organisation.
+
+    ``CN`` is read *only* where nothing else names a creator, and beside a
+    personal byline it stays unread — 26 of those 30 sampled citations. There
+    the position it belongs at is what a comparison would need and what
+    neither this record nor this parser has: ``_parse_medline_records`` keeps
+    each tag's own values in order but not the tags' order against one another,
+    and NLM groups several consortia together where Crossref interleaves them
+    among people (PMID 42521817). A list built by appending would state a
+    byline order the record does not carry, and ``names._byline_collectives``
+    already covers that case from the entry's side without needing one.
+
+    A record with none of the three falls back to ``FED``/``ED``, MEDLINE's
+    editor tags, in that same order and for the reason ``crossref._authors``
+    falls back to ``editor``: an edited volume's byline *is* its editors, and
+    comparing an empty list against the entry's compares nothing. PMID
+    20301295, the *GeneReviews* book record, carries six ``FED`` lines and no
+    ``FAU`` or ``AU`` at all; 111 of 200 records in a live sample of ``pubmed
+    books[sb]`` have the same shape. The flag reaches ``Record.raw`` so a
+    reader can tell which list they are looking at — and it is ``False`` for a
+    corporate author, which is an author and not an editor.
     """
     full = fields.get("FAU")
     if full:
@@ -217,6 +253,9 @@ def _authors_from(fields: dict[str, list[str]]) -> tuple[list[Name], bool]:
     abbreviated = fields.get("AU")
     if abbreviated:
         return [_parse_au_fallback(value) for value in abbreviated if value], False
+    corporate = fields.get("CN")
+    if corporate:
+        return [_corporate_creator(value) for value in corporate if value], False
     editors_full = fields.get("FED")
     if editors_full:
         return [parse_name(value) for value in editors_full if value], True

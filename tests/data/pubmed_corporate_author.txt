@@ -1,0 +1,102 @@
+
+PMID- 42538063
+OWN - NLM
+STAT- MEDLINE
+DCOM- 20260731
+LR  - 20260731
+IS  - 1556-5653 (Electronic)
+IS  - 0015-0282 (Linking)
+VI  - 126
+IP  - 2
+DP  - 2026 Aug
+TI  - Recurrent implantation failure: a committee opinion.
+PG  - 277-293
+LID - S0015-0282(26)00178-0 [pii]
+LID - 10.1016/j.fertnstert.2026.03.026 [doi]
+AB  - Patients who have several unsuccessful embryo transfers may be at risk for 
+      possible conditions that affect implantation. This document reviews diagnostic 
+      criteria for recurrent implantation failure and provides an evidence-based 
+      evaluation for these patients.
+CI  - Copyright (c) 2026 American Society for Reproductive Medicine. Published by 
+      Elsevier Inc. All rights reserved.
+CN  - Practice Committee of the American Society for Reproductive Medicine
+AD  - American Society for Reproductive Medicine, Washington, D.C.
+LA  - eng
+PT  - Journal Article
+PT  - Review
+PL  - United States
+TA  - Fertil Steril
+JT  - Fertility and sterility
+JID - 0372772
+SB  - IM
+MH  - Humans
+MH  - Pregnancy
+MH  - *Embryo Implantation/physiology
+MH  - *Embryo Transfer/standards/adverse effects
+MH  - Female
+MH  - *Fertilization in Vitro/standards/adverse effects
+MH  - Treatment Failure
+MH  - *Infertility, Female/therapy/diagnosis/physiopathology
+MH  - Risk Factors
+OTO - NOTNLM
+OT  - IVF
+OT  - Implantation failure
+OT  - embryo transfer
+OT  - infertility
+OT  - pregnancy
+FIR - Gracia, Clarisa
+IR  - Gracia C
+FIR - Amato, Paula
+IR  - Amato P
+FIR - Flyckt, Rebecca
+IR  - Flyckt R
+FIR - Ginsburg, Elizabeth
+IR  - Ginsburg E
+FIR - Brannigan, Robert
+IR  - Brannigan R
+FIR - Sakkas, Denny
+IR  - Sakkas D
+FIR - Senapati, Suneeta
+IR  - Senapati S
+FIR - Smith, Ryan
+IR  - Smith R
+FIR - Plowden, Torie C
+IR  - Plowden TC
+FIR - Brooks, Madeline
+IR  - Brooks M
+FIR - Goldstein, Jessica
+IR  - Goldstein J
+FIR - Hansen, Karl
+IR  - Hansen K
+FIR - Hill, Micah
+IR  - Hill M
+FIR - Jindal, Sangita
+IR  - Jindal S
+FIR - Kalra, Suleena
+IR  - Kalra S
+FIR - Jain, Tarun
+IR  - Jain T
+FIR - Pier, Bruce
+IR  - Pier B
+FIR - Robins, Jared
+IR  - Robins J
+FIR - Shannon, Chevis Ns
+IR  - Shannon CN
+FIR - Steiner, Anne
+IR  - Steiner A
+FIR - Tanrikut, Cigdem
+IR  - Tanrikut C
+FIR - Yauger, Belinda
+IR  - Yauger B
+EDAT- 2026/08/01 00:36
+MHDA- 2026/08/01 00:37
+CRDT- 2026/07/31 20:54
+PHST- 2026/03/18 00:00 [received]
+PHST- 2026/03/19 00:00 [accepted]
+PHST- 2026/08/01 00:37 [medline]
+PHST- 2026/08/01 00:36 [pubmed]
+PHST- 2026/07/31 20:54 [entrez]
+AID - S0015-0282(26)00178-0 [pii]
+AID - 10.1016/j.fertnstert.2026.03.026 [doi]
+PST - ppublish
+SO  - Fertil Steril. 2026 Aug;126(2):277-293. doi: 10.1016/j.fertnstert.2026.03.026.

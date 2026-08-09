@@ -2079,6 +2079,76 @@ class TestAConsortiumMedlineFilesApartFromTheByline:
         assert not result.suppressed
 
 
+class TestAConsortiumThatIsTheWholeByline:
+    """MEDLINE's ``CN`` is the byline, and there is no ``FAU`` beside it.
+
+    Replayed against ``tests/data/pubmed_corporate_author.txt``, NCBI's own
+    bytes for PMID 42538063 (10.1016/j.fertnstert.2026.03.026): a committee
+    opinion in *Fertility and Sterility* credited to ``CN - Practice Committee
+    of the American Society for Reproductive Medicine`` and to nobody else.
+
+    The class next door is the case where ``CN`` sits *beside* a personal
+    byline and is left unread, because the position it belongs at is what a
+    comparison would need. Here there is no position to get wrong: the record
+    has exactly one creator, and reading none of them meant an entry could
+    invent the whole byline and be told every checked field agrees.
+    """
+
+    def _entry(self, authors: list[Name]) -> Result:
+        ref = Reference(
+            key="asrm2026implantation",
+            locator="references.bib:31",
+            kind="article",
+            pmid="42538063",
+            title="Recurrent implantation failure: a committee opinion",
+            authors=authors,
+            year=2026,
+            container="Fertility and Sterility",
+            volume="126",
+            issue="2",
+            pages="277-293",
+        )
+        return compare(ref, {"pubmed": pubmed_record("pubmed_corporate_author.txt")})
+
+    def test_a_fabricated_byline_is_no_longer_compared_against_nothing(self) -> None:
+        """Every other field of this entry is the record's own.
+
+        With the corporate byline unread the record carried no creators, so
+        ``_check_authors`` returned before comparing anything and the entry was
+        reported ``OK`` — the clean bill of health on an invented byline that
+        the full author comparison exists to prevent.
+        """
+        result = self._entry([
+            Name(family="Fabricated", given="Author Q."),
+            Name(family="Invented", given="Second R."),
+            Name(family="Nonexistent", given="Third S."),
+        ])
+
+        [artifact] = [i for i in result.suppressed if i.field == "authors"]
+        assert artifact.note == "registry lists a collective author"
+        assert artifact.registry == (
+            "Practice Committee of the American Society for Reproductive Medicine"
+        )
+        assert artifact.source == "pubmed"
+
+    def test_the_organisation_is_one_creator_named_whole(self) -> None:
+        """An entry citing the committee is right, and matches it outright.
+
+        The name carries no comparison marker word this project would have to
+        recognise for it to be one creator — it is one because ``CN`` is where
+        NLM writes an organisation — and it survives to the report unsplit.
+        """
+        result = self._entry([
+            Name(
+                literal="Practice Committee of the American Society for Reproductive Medicine",
+                collective=True,
+            )
+        ])
+
+        assert not result.fails
+        assert not [i for i in result.issues if i.field == "authors"]
+
+
 class TestMedlineJournalTitleOnThePmidPath:
     """The journal name a PMID-resolved entry is compared against is MEDLINE's.
 
