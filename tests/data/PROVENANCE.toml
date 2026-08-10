@@ -221,6 +221,13 @@ url = "https://api.crossref.org/works/10.5271%2Fsjweh.3626"
 fetched = 2026-08-10
 
 [[fixture]]
+file = "names_crossref_mojibake_cp1252.json"
+source = "crossref"
+id = "10.14748/adipo.v4.289"
+url = "https://api.crossref.org/works/10.14748%2Fadipo.v4.289"
+fetched = 2026-08-10
+
+[[fixture]]
 file = "names_crossref_mojibake_latin_extended_a.json"
 source = "crossref"
 id = "10.1111/j.1574-6968.1992.tb05540.x"

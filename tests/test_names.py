@@ -667,6 +667,52 @@ class TestMojibake:
         assert reason == "registry mojibake"
 
     @pytest.mark.parametrize(
+        ("broken", "expected"),
+        [
+            # 10.14748/adipo.v4.289, recorded as
+            # tests/data/names_crossref_mojibake_cp1252.json: C5 9F, where 0x9F
+            # is a C1 control in Latin-1 and `Ÿ` in cp1252.
+            ("Ionescu-TÃ®rgoviÅŸte", "Ionescu-Tîrgovişte"),
+            # 10.14419/ijet.v7i4.3.19550: D0 9A, one Cyrillic capital opening an
+            # otherwise Latin surname, deposited that way by the publisher. The
+            # expected value is written as an escape because U+041A and `K` are
+            # indistinguishable by eye, which is the point of it.
+            ("Ðšravets", "\u041aravets"),
+        ],
+    )
+    def test_a_surname_mis_decoded_as_cp1252_is_repaired(
+        self, broken: str, expected: str
+    ) -> None:
+        """Latin-1 cannot re-encode what cp1252 decoded, and vice versa.
+
+        The two agree above 0x9F and disagree below it, so a value mis-decoded
+        by one is unreachable through the other: `Ÿ` is not a Latin-1 character
+        and cp1252 has nothing at 0x8D.
+        """
+        repaired, was_mojibake = demojibake(broken)
+        assert was_mojibake
+        assert repaired == expected
+
+    @pytest.mark.parametrize(
+        "surname",
+        # U+2019 RIGHT SINGLE QUOTATION MARK, U+2013 EN DASH: written as escapes
+        # because neither is distinguishable from its ASCII lookalike by eye.
+        ["O\u2019Brien", "D\u2019Angelo", "H\u00e4kkinen\u2013Virtanen"],
+    )
+    def test_a_name_carrying_typographic_punctuation_is_not_repaired(
+        self, surname: str
+    ) -> None:
+        """cp1252 is what makes a curly quote or an en dash encodable at all.
+
+        U+2019 becomes byte 0x92, a continuation byte with no lead in front of
+        it, so the round trip refuses the string rather than inventing a repair
+        for a name that was never mis-decoded.
+        """
+        repaired, was_mojibake = demojibake(surname)
+        assert not was_mojibake
+        assert repaired == surname
+
+    @pytest.mark.parametrize(
         "surname",
         ["Åström", "Ångström", "Öberg", "Ärlig", "Øst", "Ćurić", "Škoda", "Žitnik"],
     )

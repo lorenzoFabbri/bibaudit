@@ -236,6 +236,16 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A value mis-decoded as cp1252 is repaired too.** The round trip re-encoded
+  as Latin-1 alone, and the two character sets disagree below 0x9F, so a byline
+  a publisher's pipeline had read as cp1252 could not be recovered through it at
+  all: `Ionescu-TÃ®rgoviÅŸte` for *Ionescu-Tîrgovişte*
+  (`10.14748/adipo.v4.289`) carries `Ÿ`, which is not a Latin-1 character, and
+  `Ðšravets` for *Кravets* (`10.14419/ijet.v7i4.3.19550`) carries `š`. Both are
+  now repaired, and `BeliÄ\x8d`, which cp1252 cannot encode either, still is.
+  A name carrying a curly apostrophe or an en dash is refused as before, its
+  bytes not forming UTF-8.
+
 - **A mis-decoded surname is repaired whatever alphabet it was written in.**
   `names.demojibake` attempted its round trip only for strings carrying one of
   five tell-tale characters, and those five reach the Latin-1 Supplement and

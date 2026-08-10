@@ -99,6 +99,20 @@ Lithuanian diacritics, whose lead bytes are C4 and C5. `LaniÅ¡nik` folds to
 `lania nik`, which is the same broken-into-tokens surname as `AragonÃ©s` and
 just as much a phantom mismatch.
 
+The repair re-encodes as Latin-1 **and** as cp1252, because a pipeline reading
+UTF-8 as text reads it as one or the other and neither can stand in for the
+other. They agree on every byte above 0x9F and disagree below it, where Latin-1
+has the C1 controls and cp1252 has 27 printable characters and 5 undefined
+slots. `BeliÄ\x8d` (C4 8D) re-encodes only as Latin-1, cp1252 having nothing at
+0x8D; `Ionescu-TÃ®rgoviÅŸte` (C5 9F, `10.14748/adipo.v4.289`, recorded as
+`tests/data/names_crossref_mojibake_cp1252.json`) only as cp1252, `Ÿ` not being
+a Latin-1 character at all. `Ðšravets` for *Кravets*
+(`10.14419/ijet.v7i4.3.19550`) is the same shape, one Cyrillic capital opening
+an otherwise Latin surname. Where both encode they encode identically, so trying
+both decides nothing beyond which values can be reached — and a name carrying
+typographic punctuation, `O’Brien` among them, is still refused: `’` becomes
+byte 0x92, a continuation with no lead in front of it.
+
 **Also observed.** Crossref's byline for **`10.1111/j.1574-6968.1992.tb05540.x`**
 (Lanišnik Rižner et al., *Fungal 17β-hydroxysteroid dehydrogenase*, *FEMS
 Microbiol Lett* 1992) is mis-decoded at all three positions — `LaniÅ¡nik`,

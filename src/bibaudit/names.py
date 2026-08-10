@@ -164,6 +164,16 @@ _MIN_CAPITALISED_WITNESSES = 2
 #: are. See :func:`names_agree`.
 _MIN_SPELLING_VARIANT_SURNAME = 6
 
+#: The character sets a pipeline reads UTF-8 as when it mis-decodes it. They
+#: agree on every byte above 0x9F and disagree below it, where Latin-1 has the
+#: C1 controls and cp1252 has 27 printable characters and 5 undefined slots, so
+#: neither can stand in for the other: ``BeliÄ\x8d`` (C4 8D, *Belič*) re-encodes
+#: only as Latin-1, because cp1252 has nothing at 0x8D, and
+#: ``Ionescu-TÃ®rgoviÅŸte`` (C5 9F, *Ionescu-Tîrgovişte*) only as cp1252, because
+#: ``Ÿ`` is not a Latin-1 character at all. Where both encode they encode
+#: identically, so the order they are tried in decides nothing.
+_MISDECODINGS = ("latin-1", "cp1252")
+
 #: Leads of a mis-decoded two-byte UTF-8 sequence whose *second* character may be
 #: restored by :func:`_restore_nfkc_continuations`. Only the Latin-1 Supplement
 #: leads (UTF-8 ``C2``/``C3``) are listed. The Cyrillic ones (``D0``/``D1``,
@@ -219,7 +229,7 @@ def _restore_nfkc_continuations(text: str) -> str:
 
 
 def demojibake(text: str) -> tuple[str, bool]:
-    """Repair UTF-8 that was decoded as Latin-1, if that is what *text* is.
+    """Repair UTF-8 that was decoded as Latin-1 or cp1252, if that is what *text* is.
 
     ``Gómez`` mis-decoded becomes ``GÃ³mez``; round-tripping through Latin-1
     recovers the original exactly. It is attempted on every string, and the
@@ -235,24 +245,28 @@ def demojibake(text: str) -> tuple[str, bool]:
     tried at all — while the round trip refuses everything such a list would
     have excluded, for a reason that does not depend on having seen the case.
 
-    If the direct round trip fails, one further candidate is tried, in which
-    NFKC's rewriting of the pair's second character is undone first — see
-    :data:`_NFKC_CONTINUATION_INVERSE`. Nothing else is attempted: a string that
-    does not decode as UTF-8 after that is not mojibake, and guessing further
-    would be exactly the kind of unfalsifiable repair this tool refuses to make.
+    Both codecs in :data:`_MISDECODINGS` are tried, because a pipeline reading
+    UTF-8 as text reads it as one or the other and the two are not
+    interchangeable. If the direct round trip fails, one further candidate is
+    tried, in which NFKC's rewriting of the pair's second character is undone
+    first — see :data:`_NFKC_CONTINUATION_INVERSE`. Nothing else is attempted: a
+    string that does not decode as UTF-8 after that is not mojibake, and
+    guessing further would be exactly the kind of unfalsifiable repair this tool
+    refuses to make.
 
     Returns the (possibly repaired) string and whether a repair happened.
     """
     for candidate in (text, _restore_nfkc_continuations(text)):
-        try:
-            repaired = candidate.encode("latin-1").decode("utf-8")
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            continue
-        # A successful repair removes the marker; if it survives, this was not
-        # mojibake.
-        if repaired == text or "Ã" in repaired or "Â" in repaired:
-            continue
-        return repaired, True
+        for codec in _MISDECODINGS:
+            try:
+                repaired = candidate.encode(codec).decode("utf-8")
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                continue
+            # A successful repair removes the marker; if it survives, this was
+            # not mojibake.
+            if repaired == text or "Ã" in repaired or "Â" in repaired:
+                continue
+            return repaired, True
     return text, False
 
 
