@@ -340,16 +340,16 @@ class TestTitleCleanup:
         assert record.title.endswith("a Multicase-Control Study in Spain (MCC-Spain)")
 
     def test_a_title_ending_in_an_abbreviation_keeps_its_period(self) -> None:
-        """NLM does not double the period after "U.S." — one serves both.
+        """NLM does not double the period after "U.S.A." — one serves both.
 
-        Stripping it yields "... mortality in the U.S", which the folded
-        comparison forgives but the report does not: `compare._check_title`
-        emits a cosmetic issue whenever the folded titles agree and the
-        display strings differ, and `--suggest` would offer the mangled
-        spelling as a replacement for the entry's correct one.
+        Stripping it yields "... in U.S.A", which the folded comparison
+        forgives but the report does not: `compare._check_title` emits a
+        cosmetic issue whenever the folded titles agree and the display
+        strings differ, and `--suggest` would offer the mangled spelling as a
+        replacement for the entry's correct one.
         """
-        record = _resolve_one("abbreviated_title", pmid="27532363", doi="10.1002/ajim.22619")
-        assert record.title == "Occupational exposures and the burden of cancer mortality in the U.S."
+        record = _resolve_one("abbreviated_title", pmid="24903303", doi="10.1111/add.12602")
+        assert record.title == "Regulation of e-cigarettes in U.S.A."
 
     def test_bracketed_translated_title_is_unwrapped(self) -> None:
         """PubMed brackets its English gloss of a non-English title.

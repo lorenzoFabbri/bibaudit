@@ -1,19 +1,35 @@
-PMID- 27532363
+
+PMID- 24903303
 OWN - NLM
 STAT- MEDLINE
-DP  - 2016 Nov
-VI  - 59
-IP  - 11
-TI  - Occupational exposures and the burden of cancer mortality in the U.S.
-PG  - 1080-1089
-FAU - Purdue, Mark P
-AU  - Purdue MP
-AD  - Division of Cancer Epidemiology and Genetics, National Cancer Institute,
-      Bethesda, Maryland.
+DCOM- 20150917
+LR  - 20260128
+IS  - 1360-0443 (Electronic)
+IS  - 0965-2140 (Linking)
+VI  - 109
+IP  - 7
+DP  - 2014 Jul
+TI  - Regulation of e-cigarettes in U.S.A.
+PG  - 1216
+LID - 10.1111/add.12602 [doi]
 LA  - eng
-PT  - Journal Article
-PL  - United States
-TA  - Am J Ind Med
-JT  - American journal of industrial medicine
-AID - 10.1002/ajim.22619 [doi]
+PT  - News
+PL  - England
+TA  - Addiction
+JT  - Addiction (Abingdon, England)
+JID - 9304118
+SB  - IM
+MH  - *Electronic Nicotine Delivery Systems
+MH  - Humans
+MH  - Smoking/*legislation & jurisprudence
+MH  - United States
+MH  - United States Food and Drug Administration
+EDAT- 2014/06/07 06:00
+MHDA- 2015/09/18 06:00
+CRDT- 2014/06/07 06:00
+PHST- 2014/06/07 06:00 [entrez]
+PHST- 2014/06/07 06:00 [pubmed]
+PHST- 2015/09/18 06:00 [medline]
+AID - 10.1111/add.12602 [doi]
 PST - ppublish
+SO  - Addiction. 2014 Jul;109(7):1216. doi: 10.1111/add.12602.
