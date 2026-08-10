@@ -793,6 +793,23 @@ class TestRetractionSignals:
         )
         assert record.raw["PT"] == ["Retraction Notice"]
 
+    def test_a_record_carrying_both_types_is_a_retracted_work(self) -> None:
+        """Opposite in meaning is not exclusive in fact: 488 citations carry both.
+
+        A notice is as retractable as anything else NLM indexes, and a journal
+        that files the retraction on the article's own citation produces the
+        same shape. PMID 42061029 is one of them, and its ``PT`` list is
+        quoted here as NLM sends it. There is nothing to tie-break: the
+        question asked is whether *this record's own article* was retracted,
+        and on all 488 the answer is yes.
+        """
+        retracted, kind = pubmed._retraction(
+            {"PT": ["Journal Article", "Retracted Publication", "Retraction Notice"]}
+        )
+
+        assert retracted is True
+        assert kind == "Retracted Publication"
+
     def test_an_ordinary_article_is_not_retracted(self) -> None:
         """Guards the other tail: a ``PT`` list of ordinary types.
 

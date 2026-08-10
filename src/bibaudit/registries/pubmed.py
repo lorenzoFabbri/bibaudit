@@ -116,12 +116,21 @@ _ABBREVIATION_TAIL_RE = re.compile(r"(?:[A-Za-z]\.){2,}$")
 #: Publication``; PMID 20137807, the Lancet notice that retracted it, carries
 #: ``PT  - Retraction Notice`` and nothing else.
 #:
+#: Opposite in meaning is not exclusive in fact: 488 citations carry both, a
+#: notice being as retractable as anything else NLM indexes. The loop below
+#: needs no tie-break for them — it asks only whether this record's own article
+#: was retracted, and on those 488 the answer is yes.
+#:
 #: ``Retraction of Publication`` was the preferred term for the notice until
-#: NLM renamed MeSH descriptor D016440 in 2025. It is an entry term now, so no
-#: MEDLINE record carries it and ``"Retraction of Publication"[pt]`` answers
-#: zero; a rule written against the old spelling would silently stop matching
-#: rather than fail. Nothing here reads either notice value — the direction is
-#: enforced by naming only the retracted paper's own type.
+#: NLM renamed MeSH descriptor D016440 in 2025 (``esummary`` gives its
+#: ``ds_yearintroduced`` as ``2025(2008)`` and lists the old spelling among the
+#: descriptor's entry terms). No MEDLINE record carries it: a 400-citation
+#: sample of ``"Retraction Notice"[pt]`` returns that value on all 400 and the
+#: old spelling on none, and ``"Retraction of Publication"[pt]`` answers zero
+#: against the 32,753 the current spelling answers. A rule written against the
+#: old spelling would silently stop matching rather than fail. Nothing here
+#: reads either notice value — the direction is enforced by naming only the
+#: retracted paper's own type, of which there are 33,710.
 _PT_RETRACTED = "retracted publication"
 
 #: What NLM writes in ``TI`` when it holds no English title for an article —
@@ -483,9 +492,9 @@ def _retraction(fields: dict[str, list[str]]) -> tuple[bool, str | None]:
     Returns the flag and the publication type verbatim, for the report. See
     :data:`_PT_RETRACTED` for why the direction matters and why the match is
     an equality test on the folded value rather than anything looser: a
-    record whose only retraction-related ``PT`` is ``Retraction of
-    Publication`` is a retraction *notice*, and reporting it as retracted
-    would flag the correction while clearing the paper it corrects.
+    record whose only retraction-related ``PT`` is ``Retraction Notice`` *is*
+    the notice, and reporting it as retracted would flag the correction while
+    clearing the paper it corrects.
 
     PubMed is consulted precisely because NLM curates this independently of
     the publisher's Crossref deposit, so a paper Crossref never received a
