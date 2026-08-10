@@ -356,9 +356,16 @@ def _kind_rank(kind: str) -> int:
 
 
 def _looks_like_doi(value: str) -> bool:
-    """Cheap shape check, not a validity one — good enough to reject blanks
-    and RW's own "no DOI available" sentinel (``Unavailable``, 3,422 rows in
-    the 2026-08-09 snapshot) without writing a second DOI regex.
+    """Cheap shape check, not a validity one — good enough to reject blanks and
+    RW's own "no DOI available" sentinel without writing a second DOI regex.
+
+    Of the 71,641 rows of the export this project last read whole, 6,187 carry
+    an ``OriginalPaperDOI`` that is not a DOI, and 2,235 of those are the
+    sentinel ``Unavailable``. Both numbers are the point: naming the sentinel
+    alone understates by two thirds what this rejects, and neither is a reason
+    to widen the test, because a row with no DOI to index by is one this module
+    cannot key on however it is spelled.
+
     ``normalize.DOI_PATTERN`` is not reused here because these are already
     isolated CSV cells, not free text a pattern needs to be found *within* —
     see :func:`~bibaudit.normalize.normalize_doi`'s own docstring for why a
