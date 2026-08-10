@@ -122,11 +122,37 @@ Microbiol Lett* 1992) is mis-decoded at all three positions — `LaniÅ¡nik`,
 *Téllez-Téllez*, where the name was deposited decomposed and what was
 mis-decoded is the combining acute accent's own two bytes, CC 81.
 
-`clean()` runs an NFKC pass, and NFKC maps `Ã³` to `ó` **before** `demojibake`
-ever sees the bytes it needs — which silently defeated the repair on every
-surname containing ó, ², ³, ª or º, `GÃ³mez` among them.
-`names._NFKC_CONTINUATION_INVERSE` undoes that one substitution first; that is
+`clean()` runs an NFKC pass, and NFKC rewrites fourteen of the sixty-four
+Latin-1 characters that can stand as the second byte of a mis-decoded pair —
+`Ã³` becomes `Ã3` **before** `demojibake` ever sees the bytes it needs.
+`names._nfkc_continuation_inverse` undoes that substitution first, and that is
 the only reason the rule works on the witnessed record.
+
+The table is read out of `unicodedata` rather than written down, because a
+written one is a claim about what NFKC does and drifts from it exactly where
+nobody checked. Five of the fourteen rewritings are one character for one —
+`¹²³ªº` — and a table naming those five leaves the other nine irreparable:
+NFKC expands `¼`, `½` and `¾` to three characters apiece and turns the four
+spacing accents into a space and a combining mark, so `MÃ¼ller` for *Müller*,
+`MichÃ¨le` for *Michèle*, `SÃ¸rensen` for *Sørensen* and
+`Å½akelj-MavriÄ\x8d` for *Žakelj-Mavrič* all arrive here longer than they left
+the registry and none of them round-trips.
+
+Where a rewriting's image is a bare ASCII character — `a`, `o`, `1`, `2`, `3` —
+ordinary text produces that image too, so it is read as a continuation byte only
+directly after `Ã` or `Â` (`names._NFKC_INVERSE_LEADS`), a position where such a
+character cannot arise any other way. Admitting every UTF-8 lead there repairs
+9 correct names in 399,450 creator values from a random Crossref sample —
+`Çavdar` to `Ǫvdar`, `Çolak` to `Ǻlak`, `Ñanculef` to `Ѫnculef`. Every other
+image carries a combining mark, a fraction slash or a Greek letter, which a
+creator name does not, and needs no positional guard at all.
+
+**The one rewriting left uninverted, and it is a guard against a case nobody has
+witnessed.** U+00A0 is a space by the time this runs — `clean`'s whitespace pass
+collapsed it, not NFKC — and nothing here can tell it from a space the deposit
+really had. Reading it back would repair `JosÃ©Â Antonio` and mangle a correct
+name shaped like it in equal measure. No value in the 399,450 carries `Ã` or `Â`
+before a space, so the shape is undecided by evidence in either direction.
 
 **Why it matters.** Reducing a surname to its last token turns `aragona s` into
 `s`, and a checker then reports a one-letter surname mismatch on a correct

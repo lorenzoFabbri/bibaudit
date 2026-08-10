@@ -236,6 +236,21 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **The NFKC substitutions the repair has to undo are read out of
+  `unicodedata`, not listed.** `clean` normalises every value before `names`
+  sees it, and NFKC rewrites fourteen of the sixty-four Latin-1 characters that
+  can stand as the second byte of a mis-decoded pair. The inverse named five of
+  them, the five that are one character for one, so a mis-decoded `ü`, `è`,
+  `ø`, `ô`, `õ`, `ï`, `ý` or `þ` — `¼`, `½` and `¾` expand to three characters
+  apiece and the four spacing accents to a space and a combining mark — could
+  not be recovered at all. `MÃ¼ller`, `MichÃ¨le`, `SÃ¸rensen` and
+  `Å½akelj-MavriÄ\x8d` (`10.1111/j.1574-6968.1992.tb05540.x`) are now repaired,
+  as is `YÐµvtushenko` (`10.14419/ijet.v7i4.3.19550`), whose image is a Greek
+  mu. An image that is a bare ASCII character is still read as a continuation
+  byte only directly after `Ã` or `Â`: admitting every UTF-8 lead there would
+  repair 9 correct names in 399,450 creator values from a random Crossref
+  sample, `Çavdar` and `Ñanculef` among them.
+
 - **A value mis-decoded as cp1252 is repaired too.** The round trip re-encoded
   as Latin-1 alone, and the two character sets disagree below 0x9F, so a byline
   a publisher's pipeline had read as cp1252 could not be recovered through it at

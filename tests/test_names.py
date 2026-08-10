@@ -23,6 +23,7 @@ import pytest
 
 from bibaudit.model import Name
 from bibaudit.names import (
+    _NFKC_CONTINUATION_INVERSE,
     AuthorDiff,
     Reason,
     compare_author_lists,
@@ -727,6 +728,84 @@ class TestMojibake:
         repaired, was_mojibake = demojibake(surname)
         assert not was_mojibake
         assert repaired == surname
+
+    @pytest.mark.parametrize(
+        ("broken", "expected"),
+        [
+            # 10.1111/j.1574-6968.1992.tb05540.x: `½`, which NFKC expands to
+            # three characters, so no one-for-one substitution reaches it.
+            ("Å½akelj-MavriÄ\x8d", "Žakelj-Mavrič"),
+            # `¼`, the commonest of the three by a wide margin: every mis-decoded
+            # `ü` in every German surname there is.
+            ("MÃ¼ller", "Müller"),
+            # The four spacing accents, which NFKC turns into a space and a
+            # combining mark: `è` and `ø`.
+            ("MichÃ¨le", "Michèle"),
+            ("S\u00c3\u00b8rensen", "Sørensen"),
+        ],
+    )
+    def test_an_nfkc_image_of_more_than_one_character_is_restored(
+        self, broken: str, expected: str
+    ) -> None:
+        """A one-for-one table reaches five of the fourteen rewritings NFKC makes.
+
+        The other nine expand a Latin-1 character into two or three, and a
+        substitution written character-for-character cannot invert one.
+        """
+        damaged = clean(broken)
+        # The test would prove nothing if `clean` had not already done the harm.
+        assert damaged != broken
+        repaired, was_mojibake = demojibake(damaged)
+        assert was_mojibake
+        assert unicodedata.normalize("NFC", repaired) == expected
+
+    def test_a_rewritten_continuation_is_restored_after_any_lead(self) -> None:
+        """`µ` is not an ASCII image, so it needs no positional guard.
+
+        Crossref's byline for `10.14419/ijet.v7i4.3.19550` carries one Cyrillic
+        letter inside a Latin surname, mis-decoded as `Ðµ` — whose lead is not
+        one of the two after which an ASCII image is read as a continuation.
+        """
+        damaged = clean("YÐµvtushenko")
+        assert "μ" in damaged
+        repaired, was_mojibake = demojibake(damaged)
+        assert was_mojibake
+        assert repaired == "Y\u0435vtushenko"
+
+    def test_the_inverse_is_read_out_of_unicodedata_rather_than_listed(self) -> None:
+        """A written table is a claim about NFKC, and drifts from it unwatched.
+
+        Every Latin-1 character that can stand as a continuation byte and that
+        NFKC rewrites needs an entry, or the surname carrying it is
+        irreparable — which is how `ü`, `è`, `ø`, `ô`, `õ`, `ï`, `ý` and `þ`
+        came to be outside a table that named `¹²³ªº`.
+        """
+        rewritten = {
+            chr(point)
+            for point in range(0x80, 0xC0)
+            if unicodedata.normalize("NFKC", chr(point)) != chr(point)
+        }
+        assert set(_NFKC_CONTINUATION_INVERSE.values()) == rewritten - {"\xa0"}
+        # U+00A0 is the one exclusion, and `clean`'s whitespace pass rather than
+        # NFKC is what destroyed it. See the test below for what it costs.
+        assert "\xa0" in rewritten
+        assert " " not in _NFKC_CONTINUATION_INVERSE
+
+    def test_a_space_after_a_mojibake_lead_is_not_read_back_as_a_hard_one(self) -> None:
+        """The one rewriting left uninverted, and what it costs.
+
+        `clean` collapses U+00A0 to an ordinary space before this module runs,
+        so a space standing after a mojibake lead cannot be told from one the
+        deposit really had, and reading it back would repair `JosÃ©Â Antonio`
+        and mangle any correct name shaped like it in equal measure. **NO
+        WITNESSED INSTANCE** either way: no value in 399,450 from a random
+        Crossref sample carries `Ã` or `Â` before a space.
+        """
+        damaged = clean("Jos\u00c3\u00a9\u00c2\u00a0Antonio")
+        assert damaged == "Jos\u00c3\u00a9\u00c2 Antonio"
+        repaired, was_mojibake = demojibake(damaged)
+        assert not was_mojibake
+        assert repaired == damaged
 
     @pytest.mark.parametrize("surname", ["Ñoriega", "Ñuñez", "Ñíguez"])
     def test_an_enye_surname_is_not_rewritten_by_the_inverse(self, surname: str) -> None:

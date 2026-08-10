@@ -49,6 +49,7 @@ evidence a list-level rule then counts:
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from enum import StrEnum, unique
@@ -174,57 +175,99 @@ _MIN_SPELLING_VARIANT_SURNAME = 6
 #: identically, so the order they are tried in decides nothing.
 _MISDECODINGS = ("latin-1", "cp1252")
 
-#: Leads of a mis-decoded two-byte UTF-8 sequence whose *second* character may be
-#: restored by :func:`_restore_nfkc_continuations`. Only the Latin-1 Supplement
-#: leads (UTF-8 ``C2``/``C3``) are listed. The Cyrillic ones (``D0``/``D1``,
-#: seen as ``Ð``/``Ñ``) are deliberately excluded: ``Ñ`` is an ordinary Spanish
-#: letter, and substituting after it would turn a real surname beginning
-#: ``Ño`` into a byte pair that happens to decode, inventing a repair where the
-#: unmodified round trip correctly refuses one.
+#: Leads after which an *ASCII* NFKC image is read as a rewritten continuation
+#: byte rather than as itself — see :func:`_nfkc_continuation_inverse`. Only the
+#: Latin-1 Supplement leads (UTF-8 ``C2``/``C3``, seen as ``Ã``/``Â``) are
+#: listed, and every other lead is deliberately excluded, because ``Ñ`` and
+#: ``Ç`` are ordinary letters and ``Ña``, ``Ño``, ``Ça`` and ``Ço`` open
+#: ordinary surnames. Admitting every UTF-8 lead here repairs 9 correct names
+#: in 399,450 creator values from a random Crossref sample — ``Çavdar`` becomes
+#: ``Ǫvdar``, ``Çolak`` becomes ``Ǻlak``, ``Ñanculef`` becomes ``Ѫnculef`` —
+#: which is a repair invented where the unmodified round trip correctly refuses
+#: one. After ``Ã`` and ``Â`` a bare ``a``, ``o``, ``1``, ``2`` or ``3`` cannot
+#: arise any other way; 1,235 values in the same sample carry one directly after
+#: some other lead, and every one of them is spelled correctly.
 _NFKC_INVERSE_LEADS = "ÃÂ"
 
-#: NFKC images of the Latin-1 characters that can stand as the *second*
-#: character of a mis-decoded two-byte UTF-8 sequence.
-#:
-#: This exists because of an interaction with :func:`~bibaudit.normalize.clean`,
-#: which every creator string has already been through by the time it reaches
-#: this module: ``clean`` applies NFKC, and NFKC rewrites nine Latin-1 code
-#: points to ASCII. Superscript three is one of them. So *Gómez* mis-decoded is
-#: ``GÃ³mez``, but what arrives here is ``GÃ3mez`` — and that no longer encodes
-#: to valid UTF-8, so the round trip below fails and a correct bibliography is
-#: accused of a surname mismatch. Auditable instance: Crossref's record for
-#: 10.5271/sjweh.3626 (``papantoniou2017colorectal``) gives ``PÃ©rez-GÃ³mez``
-#: for *Pérez-Gómez* at position 8; ``fold`` turns the stored form into
-#: ``perez gomez`` and the registry form into ``parez ga3mez``, which agree
-#: nowhere. The fixture is ``tests/data/names_crossref_mojibake_author_list.json``.
-#:
-#: Restoring the code point is the deterministic inverse of a known lossy step,
-#: not a guess, and it is applied *only* to a character standing immediately
-#: after a mojibake lead — a position where a bare ASCII digit cannot arise any
-#: other way. The other NFKC-altered Latin-1 points are left out on purpose:
-#: U+00A0 has already been collapsed to a space by ``clean``'s whitespace pass
-#: and cannot be told from a real one, and the vulgar fractions expand to three
-#: characters, so neither can be inverted by a one-for-one substitution.
-_NFKC_CONTINUATION_INVERSE = {
-    "1": "¹",  # SUPERSCRIPT ONE
-    "2": "²",  # SUPERSCRIPT TWO
-    "3": "³",  # SUPERSCRIPT THREE
-    "a": "ª",  # FEMININE ORDINAL INDICATOR
-    "o": "º",  # MASCULINE ORDINAL INDICATOR
-}
+
+def _nfkc_continuation_inverse() -> Mapping[str, str]:
+    """Every rewriting NFKC performs on a continuation byte, reversed.
+
+    This exists because of an interaction with :func:`~bibaudit.normalize.clean`,
+    which every creator string has already been through by the time it reaches
+    this module: ``clean`` applies NFKC, and NFKC rewrites fourteen of the
+    sixty-four Latin-1 characters that can stand as the *second* byte of a
+    mis-decoded two-byte sequence. *Gómez* mis-decoded is ``GÃ³mez``, but what
+    arrives here is ``GÃ3mez`` — which no longer encodes to valid UTF-8, so the
+    round trip fails and a correct bibliography is accused of a surname
+    mismatch. Auditable instance: Crossref's record for 10.5271/sjweh.3626
+    (``papantoniou2017colorectal``) gives ``PÃ©rez-GÃ³mez`` for *Pérez-Gómez* at
+    position 8; ``fold`` turns the stored form into ``perez gomez`` and the
+    registry form into ``parez ga3mez``, which agree nowhere. The fixture is
+    ``tests/data/names_crossref_mojibake_author_list.json``.
+
+    The table is read out of :mod:`unicodedata` rather than written down,
+    because a written one is a claim about what NFKC does and drifts from it in
+    exactly the places nobody checked. A list naming ``¹²³ªº`` and no more
+    leaves ``è``, ``ï``, ``ô``, ``õ``, ``ø``, ``ü``, ``ý`` and ``þ``
+    irreparable, because NFKC expands ``¼``, ``½`` and ``¾`` to three characters
+    apiece and turns the four spacing accents (U+00A8, U+00AF, U+00B4, U+00B8)
+    into a space and a combining mark: ``MÃ¼ller`` for *Müller* reaches this
+    module five characters longer
+    than it left Crossref. So do ``Å½akelj-MavriÄ\x8d`` for *Žakelj-Mavrič*
+    (10.1111/j.1574-6968.1992.tb05540.x) and ``YÐµvtushenko``, one Cyrillic
+    letter inside a Latin surname (10.14419/ijet.v7i4.3.19550).
+
+    Restoring the character is the deterministic inverse of a known lossy step,
+    not a guess. Where its image is a bare ASCII character — ``a``, ``o``, ``1``,
+    ``2``, ``3`` — ordinary text produces that image too, so the inverse is
+    applied only directly after one of :data:`_NFKC_INVERSE_LEADS`, a position
+    where such a character cannot arise any other way. Every other image carries
+    a combining mark, a fraction slash or a Greek letter, which a creator name
+    does not, and needs no positional guard at all.
+
+    Two characters are left out because ``clean``'s whitespace pass, not NFKC,
+    is what destroyed them: U+0085 and U+00A0 have both been collapsed to an
+    ordinary space by the time this runs, and neither can be told from a real
+    one.
+    """
+    inverse: dict[str, str] = {}
+    for point in range(0x80, 0xC0):
+        character = chr(point)
+        image = unicodedata.normalize("NFKC", character)
+        if image == character or character.isspace():
+            continue
+        inverse[image] = character
+    # Longest image first, so the image of ½ is read as ½ and not as ¹.
+    return MappingProxyType(dict(sorted(inverse.items(), key=lambda kv: -len(kv[0]))))
+
+
+_NFKC_CONTINUATION_INVERSE = _nfkc_continuation_inverse()
 
 
 def _restore_nfkc_continuations(text: str) -> str:
     """Undo NFKC's rewriting of the second character of a mojibake pair.
 
-    Only a character directly following one of :data:`_NFKC_INVERSE_LEADS` is
-    touched, and only if NFKC could have produced it, so ordinary text is
-    returned unchanged.
+    Only an image NFKC could have produced is touched, and an image ordinary
+    text also produces only where it directly follows one of
+    :data:`_NFKC_INVERSE_LEADS`, so ordinary text is returned unchanged.
     """
-    out = list(text)
-    for index in range(1, len(out)):
-        if out[index - 1] in _NFKC_INVERSE_LEADS:
-            out[index] = _NFKC_CONTINUATION_INVERSE.get(out[index], out[index])
+    out: list[str] = []
+    index = 0
+    while index < len(text):
+        for image, character in _NFKC_CONTINUATION_INVERSE.items():
+            if not text.startswith(image, index):
+                continue
+            if image.isascii() and (
+                index == 0 or text[index - 1] not in _NFKC_INVERSE_LEADS
+            ):
+                continue
+            out.append(character)
+            index += len(image)
+            break
+        else:
+            out.append(text[index])
+            index += 1
     return "".join(out)
 
 
