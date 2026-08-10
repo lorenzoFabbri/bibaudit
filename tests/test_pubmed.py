@@ -286,19 +286,28 @@ class TestMedlineWrapping:
             "leukemia: a Multicase-Control Study in Spain (MCC-Spain)"
         )
 
-    def test_a_wrapped_author_name_is_one_author_not_two(self) -> None:
+    def test_a_wrapped_creator_name_is_one_creator_not_two(self) -> None:
         """A consortium byline is long enough to wrap, and it is one creator.
 
-        Treating the continuation line as a new ``FAU`` value would give this
-        record five authors instead of three and report an author-count defect
-        against a bibliography that has it right.
+        The creator tag that actually wraps is ``CN``: NLM files an
+        organisation there, and 206 of 3,587 sampled citations carry a ``CN``
+        broken over a continuation line while not one carries a wrapped
+        ``FAU``, ``AU``, ``FED`` or ``ED``. Treating the continuation as a new
+        ``CN`` value would give this record three creators instead of two and
+        report an author-count defect against a bibliography that has it
+        right.
         """
-        record = _resolve_one("wrapped_authors", pmid="33069326", doi="10.1371/journal.pone.0240506")
-        assert len(record.authors) == 3
-        assert record.authors[2].collective
-        assert str(record.authors[2]) == (
-            "MCC-Spain Multi Case-Control Study Group of the Consortium for "
-            "Biomedical Research in Epidemiology and Public Health"
+        record = _resolve_one(
+            "wrapped_creator",
+            pmid="40953983",
+            doi="10.3760/cma.j.cn112148-20250401-00234",
+        )
+        assert len(record.authors) == 2
+        assert record.authors[0].collective
+        assert str(record.authors[0]) == (
+            "National Essential Public Health Service Program Office for "
+            "Management of Hypertension in Primary Health Care, National "
+            "Center for Cardiovascular Diseases"
         )
 
     def test_a_wrapped_affiliation_never_leaks_into_an_author(self) -> None:
@@ -306,23 +315,35 @@ class TestMedlineWrapping:
 
         Its continuation lines are the most common wrapped text in a MEDLINE
         record; appending them to whatever field was last seen instead of to
-        ``AD`` would invent an author called "08003 Barcelona, Spain."
+        ``AD`` would invent an author called "Medicine, Karolinska Institutet,
+        Stockholm, Sweden."
         """
-        record = _resolve_one("wrapped_authors", pmid="33069326", doi="10.1371/journal.pone.0240506")
-        # The list is asserted non-empty first. "No author mentions Barcelona"
-        # is trivially true of an empty list, so on its own this test stayed
-        # green for a parser that produced no authors at all.
-        assert len(record.authors) == 3
-        assert not any("Barcelona" in str(name) for name in record.authors)
-        # And the continuation line went somewhere: onto ``AD``, whole.
-        assert record.raw["AD"][0].endswith("08003 Barcelona, Spain.")
+        record = _resolve_one("wrapped_title", pmid=WRAPPED_PMID, doi=WRAPPED_DOI)
+        # The list is asserted non-empty first. "No author mentions
+        # Karolinska" is trivially true of an empty list, so on its own this
+        # test stayed green for a parser that produced no authors at all.
+        assert len(record.authors) == 13
+        assert not any("Karolinska" in str(name) for name in record.authors)
+        # And the continuation line went somewhere: onto ``AD``, whole. It is
+        # the fourth affiliation of the first author, the one that wraps.
+        assert record.raw["AD"][3].endswith("Karolinska Institutet, Stockholm, Sweden.")
 
-    def test_the_authors_before_and_after_a_wrap_are_intact(self) -> None:
-        record = _resolve_one("wrapped_authors", pmid="33069326", doi="10.1371/journal.pone.0240506")
-        assert [(n.family, n.given) for n in record.authors[:2]] == [
-            ("Espinosa", "Ana"),
-            ("Kogevinas", "Manolis"),
-        ]
+    def test_the_creator_after_a_wrap_is_intact_and_still_second(self) -> None:
+        """Order, not just count: the continuation must not overtake its own tag.
+
+        A parser that files a continuation as it reads it, rather than folding
+        it into the value already open, appends it *before* that value is
+        flushed — so the tail of the first creator arrives as creator one and
+        the byline this record states is reordered as well as lengthened.
+        """
+        record = _resolve_one(
+            "wrapped_creator",
+            pmid="40953983",
+            doi="10.3760/cma.j.cn112148-20250401-00234",
+        )
+        assert str(record.authors[1]) == (
+            "National Committee on Hypertension Management in Primary Health Care"
+        )
 
 
 class TestTitleCleanup:

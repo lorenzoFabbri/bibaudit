@@ -1,0 +1,40 @@
+
+PMID- 40953983
+OWN - NLM
+STAT- MEDLINE
+DCOM- 20250916
+LR  - 20250916
+IS  - 0253-3758 (Print)
+IS  - 0253-3758 (Linking)
+VI  - 53
+IP  - 9
+DP  - 2025 Sep 24
+TI  - [National clinical practice guidelines on the management of hypertension in 
+      primary health care in China (2025)].
+PG  - 977-991
+LID - 10.3760/cma.j.cn112148-20250401-00234 [doi]
+CN  - National Essential Public Health Service Program Office for Management of 
+      Hypertension in Primary Health Care, National Center for Cardiovascular Diseases
+CN  - National Committee on Hypertension Management in Primary Health Care
+LA  - chi
+PT  - Journal Article
+PL  - China
+TA  - Zhonghua Xin Xue Guan Bing Za Zhi
+JT  - Zhonghua xin xue guan bing za zhi
+JID - 7910682
+SB  - IM
+MH  - Humans
+MH  - *Hypertension/therapy/prevention & control
+MH  - China
+MH  - *Primary Health Care
+MH  - Practice Guidelines as Topic
+EDAT- 2025/09/16 00:32
+MHDA- 2025/09/16 18:31
+CRDT- 2025/09/15 21:45
+PHST- 2025/09/16 18:31 [medline]
+PHST- 2025/09/16 00:32 [pubmed]
+PHST- 2025/09/15 21:45 [entrez]
+AID - 10.3760/cma.j.cn112148-20250401-00234 [doi]
+PST - ppublish
+SO  - Zhonghua Xin Xue Guan Bing Za Zhi. 2025 Sep 24;53(9):977-991. doi: 
+      10.3760/cma.j.cn112148-20250401-00234.
