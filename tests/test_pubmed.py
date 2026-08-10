@@ -293,13 +293,17 @@ class TestMedlineWrapping:
     def test_a_wrapped_creator_name_is_one_creator_not_two(self) -> None:
         """A consortium byline is long enough to wrap, and it is one creator.
 
-        The creator tag that actually wraps is ``CN``: NLM files an
-        organisation there, and 206 of 3,587 sampled citations carry a ``CN``
-        broken over a continuation line while not one carries a wrapped
-        ``FAU``, ``AU``, ``FED`` or ``ED``. Treating the continuation as a new
-        ``CN`` value would give this record three creators instead of two and
-        report an author-count defect against a bibliography that has it
-        right.
+        Any creator tag wraps once its value passes MEDLINE's line width, and
+        an organisation is the value long enough to do it. NLM files one under
+        ``CN``, and also under ``FAU``/``AU`` where the publisher deposited it
+        as an author: PMIDs 41839547, 41833343 and 41663297 carry twelve wrapped
+        ``FAU``/``AU`` values between them. Treating the continuation as a new
+        value would give this record three creators instead of two and report an
+        author-count defect against a bibliography that has it right.
+
+        ``_parse_medline_records`` appends a continuation for whichever tag it
+        follows, so the tag itself is not what makes this safe — no rule here
+        may rest on one tag wrapping and another not.
         """
         record = _resolve_one(
             "wrapped_creator",

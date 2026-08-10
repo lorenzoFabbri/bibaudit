@@ -166,7 +166,9 @@ bibliography. `names.family_key` compares the whole family name for this reason.
 lost outright: Crossref holds `ierssen` for *Dierssen*. A round trip cannot
 repair this — mis-decoding never deletes a byte, so there is nothing to undo.
 
-**Observed.** `10.5271/sjweh.3626` again, position 15 of 24 creators.
+**Observed.** `10.5271/sjweh.3626` again, position 19 of 24 creators. Position 15
+is `Lorca`, undamaged; a reader checking the rule there finds a correctly spelled
+surname and concludes it has no instance behind it.
 
 **Reported as.** `registry mojibake truncated the surname`.
 
