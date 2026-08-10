@@ -5,11 +5,11 @@ Offline only. :class:`_StubClient` stands in for
 network — including the Retraction Watch fetch, which a naive test would
 otherwise turn into a ~66 MB download on every run.
 
-Two groups of fixtures matter more than the rest, and both are real, recorded
-data rather than invented for the test:
+Two groups of fixtures matter more than the rest:
 
-* ``tests/data/retraction_watch_sample.csv`` is a small extract of the live
-  export covering five DOIs RW logged more than once, which is what proves
+* ``tests/data/retraction_watch_sample.csv`` is **fourteen rows copied
+  verbatim from the live export, and five this project wrote**. The copied
+  rows cover five DOIs RW logged more than once, which is what proves
   :func:`~bibaudit.registries.retractions._parse_rw_csv` picks the strongest
   notice rather than the newest, the first or the last: the Wakefield paper
   (a 2004 correction and a later 2010 retraction), 10.1002/ana.24658 (a 2016
@@ -20,6 +20,17 @@ data rather than invented for the test:
   those, and the single ``Correction`` row for 10.1016/j.ymthe.2023.01.020,
   are the two DOIs the sources disagree about — one in each direction; see
   :class:`TestSourcesThatDisagree`.
+
+  The written rows carry ``Record ID`` 90001-90004 and 90006 and say so in
+  their own ``Title`` column. Each stands for a shape the export holds
+  thousands of but never beside a DOI these tests already use: a
+  reinstatement withdrawing an earlier retraction of the same DOI
+  (90001/90002), a blank ``OriginalPaperDOI`` (2,765 rows in the 2026-08-10
+  export), RW's ``Unavailable`` sentinel in that column (2,235 rows), and a
+  blank ``RetractionNature`` (241 rows). Copying a real row for each would
+  have pulled in a second DOI per case with its own notice history, which is
+  what the DOIs above are for; these carry ``10.9999/`` identifiers precisely
+  so that nothing here can be mistaken for a citation.
 * ``tests/data/pubmed_eci_concern*.txt`` are MEDLINE ``efetch`` output for
   PMID 23741377 (the affected paper) and PMID 34710116 (the notice), fetched
   live. The pair is what proves ``ECI`` ("Expression of Concern In:") is read
