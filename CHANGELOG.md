@@ -236,6 +236,22 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A mis-decoded surname is repaired whatever alphabet it was written in.**
+  `names.demojibake` attempted its round trip only for strings carrying one of
+  five tell-tale characters, and those five reach the Latin-1 Supplement and
+  Cyrillic and nothing else. Latin Extended-A — the Polish, Czech, Slovak,
+  Croatian, Slovene, Turkish, Romanian, Hungarian, Latvian and Lithuanian
+  diacritics, lead bytes C4 and C5 — was excluded outright, so Crossref's
+  mis-decoded byline for `10.1111/j.1574-6968.1992.tb05540.x` (`LaniÅ¡nik` for
+  *Lanišnik*, `BeliÄ\x8d` for *Belič*) was never tried, and a bibliography
+  spelling all three Slovene surnames correctly failed `FIELD-MISMATCH` with
+  three `authors/mismatch` lines and no reason recorded. So was a decomposed
+  name whose combining accent is what got mis-decoded (`TeÌ\x81llez` for
+  *Téllez*, `10.1615/intjmedmushrooms.2024052864`). The round trip is now
+  attempted on every value and is its own guard: `Åström`, `Ćurić` and `Škoda`
+  are refused by it, as an ordinary `Ã` always was. Over 280,441 creator values
+  from a random Crossref sample, no value without a mis-decode was repaired.
+
 - **A creator name carrying one letter from another script is compared as the
   name.** A publisher deposits a forename or a surname with a Cyrillic or Greek
   letter where its Latin lookalike belongs, and both registries inherit it:

@@ -16,6 +16,7 @@ corroborating evidence, which must still be reported.
 from __future__ import annotations
 
 import json
+import unicodedata
 from pathlib import Path
 
 import pytest
@@ -622,6 +623,64 @@ class TestMojibake:
         repaired, was_mojibake = demojibake(damaged)
         assert was_mojibake
         assert repaired == "Pérez-Gómez"
+
+    @pytest.mark.parametrize(
+        ("broken", "expected"),
+        [
+            # 10.1111/j.1574-6968.1992.tb05540.x, recorded as
+            # tests/data/names_crossref_mojibake_latin_extended_a.json: two
+            # Slovenian surnames whose lead bytes are C5 and C4, the Latin
+            # Extended-A block.
+            ("LaniÅ¡nik", "Lanišnik"),
+            ("BeliÄ\x8d", "Belič"),
+            # 10.1615/intjmedmushrooms.2024052864: *Téllez* deposited
+            # decomposed, so what was mis-decoded is the combining acute's own
+            # bytes, CC 81.
+            ("TeÌ\x81llez-TeÌ\x81llez", "Téllez-Téllez"),
+        ],
+    )
+    def test_a_lead_byte_outside_the_latin1_supplement_is_repaired(
+        self, broken: str, expected: str
+    ) -> None:
+        """Mis-decoding is not confined to the characters Spanish needs.
+
+        Latin Extended-A carries the Polish, Czech, Slovak, Croatian, Slovene,
+        Turkish, Romanian, Hungarian, Latvian and Lithuanian diacritics, and
+        `Lanišnik` mis-decoded folds to `lania nik` — the surname broken into
+        tokens, which is the `AragonÃ©s` failure arriving by a second route.
+        """
+        repaired, was_mojibake = demojibake(broken)
+        assert was_mojibake
+        assert unicodedata.normalize("NFC", repaired) == expected
+
+    def test_a_correct_bibliography_is_not_accused_over_a_slovene_surname(self) -> None:
+        """The end of the same story: what the entry pays for the missed repair.
+
+        Crossref's byline for `10.1111/j.1574-6968.1992.tb05540.x` is
+        mis-decoded; an entry holding the surnames correctly is the one that
+        gets reported unless the repair is attempted.
+        """
+        agreed, reason = names_agree(
+            Name(family="Lanišnik", given="Tea"), Name(family="LaniÅ¡nik", given="Tea")
+        )
+        assert agreed
+        assert reason == "registry mojibake"
+
+    @pytest.mark.parametrize(
+        "surname",
+        ["Åström", "Ångström", "Öberg", "Ärlig", "Øst", "Ćurić", "Škoda", "Žitnik"],
+    )
+    def test_a_nordic_or_slavic_surname_is_not_repaired_into_something_else(
+        self, surname: str
+    ) -> None:
+        """The round trip is the guard, so it has to hold with nothing ahead of it.
+
+        `Å` before an ASCII letter is not a valid UTF-8 lead byte, and a
+        surname written in Latin Extended-A does not encode to Latin-1 at all.
+        """
+        repaired, was_mojibake = demojibake(surname)
+        assert not was_mojibake
+        assert repaired == surname
 
     @pytest.mark.parametrize("surname", ["Ñoriega", "Ñuñez", "Ñíguez"])
     def test_an_enye_surname_is_not_rewritten_by_the_inverse(self, surname: str) -> None:

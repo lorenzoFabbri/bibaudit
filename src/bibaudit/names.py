@@ -222,10 +222,18 @@ def demojibake(text: str) -> tuple[str, bool]:
     """Repair UTF-8 that was decoded as Latin-1, if that is what *text* is.
 
     ``Gómez`` mis-decoded becomes ``GÃ³mez``; round-tripping through Latin-1
-    recovers the original exactly. The round trip is attempted only when the
-    string contains one of the tell-tale sequences, and the result is accepted
-    only if it decodes cleanly, so ordinary text with a legitimate ``Ã`` is left
-    alone.
+    recovers the original exactly. It is attempted on every string, and the
+    round trip is its own guard: mis-decoded UTF-8 re-encodes to the bytes it
+    came from, and ordinary text does not. ``Åström`` is refused at the second
+    step, because ``Å`` followed by an ASCII letter is not a valid lead byte
+    and a legitimate ``Ã`` fails the same way.
+
+    Nothing selects which strings are worth trying. A list of tell-tale
+    characters is only ever as wide as the deposits whoever wrote it had in
+    front of them — one reaching the Latin-1 Supplement and Cyrillic excludes
+    the whole of Latin Extended-A, and *Lanišnik* and *Belič* are then never
+    tried at all — while the round trip refuses everything such a list would
+    have excluded, for a reason that does not depend on having seen the case.
 
     If the direct round trip fails, one further candidate is tried, in which
     NFKC's rewriting of the pair's second character is undone first — see
@@ -235,8 +243,6 @@ def demojibake(text: str) -> tuple[str, bool]:
 
     Returns the (possibly repaired) string and whether a repair happened.
     """
-    if not any(marker in text for marker in ("Ã", "Â", "â€", "Ð", "Ñ")):
-        return text, False
     for candidate in (text, _restore_nfkc_continuations(text)):
         try:
             repaired = candidate.encode("latin-1").decode("utf-8")

@@ -82,10 +82,31 @@ would have found no mojibake and concluded it was invented.
 
 **Reported as.** `registry mojibake`.
 
-**Detection.** Round-trip repair: `text.encode("latin-1").decode("utf-8")`. If
-the result decodes cleanly and matches the stored name, the registry value was
-mis-decoded. Implemented in `names.demojibake`, which is deterministic and does
-not guess — an ordinary name containing `Ã` is left alone.
+**Detection.** Round-trip repair: `text.encode("latin-1").decode("utf-8")`,
+attempted on every value. If the result decodes cleanly and matches the stored
+name, the registry value was mis-decoded. Implemented in `names.demojibake`,
+which is deterministic and does not guess — an ordinary name containing `Ã` is
+left alone, because `Ã` before an ASCII letter is not a valid UTF-8 lead byte
+and the round trip refuses it.
+
+Nothing pre-selects which values are worth trying. A list of tell-tale
+characters is only as wide as the deposits whoever wrote it had seen, and the
+round trip already refuses everything such a list would exclude — so the list
+can only subtract. One reaching the Latin-1 Supplement and Cyrillic
+(`Ã`, `Â`, `â€`, `Ð`, `Ñ`) leaves out the whole of Latin Extended-A: the Polish,
+Czech, Slovak, Croatian, Slovene, Turkish, Romanian, Hungarian, Latvian and
+Lithuanian diacritics, whose lead bytes are C4 and C5. `LaniÅ¡nik` folds to
+`lania nik`, which is the same broken-into-tokens surname as `AragonÃ©s` and
+just as much a phantom mismatch.
+
+**Also observed.** Crossref's byline for **`10.1111/j.1574-6968.1992.tb05540.x`**
+(Lanišnik Rižner et al., *Fungal 17β-hydroxysteroid dehydrogenase*, *FEMS
+Microbiol Lett* 1992) is mis-decoded at all three positions — `LaniÅ¡nik`,
+`Å½akelj-MavriÄ\x8d`, `BeliÄ\x8d`, lead bytes C5 and C4. The recorded response is
+`tests/data/names_crossref_mojibake_latin_extended_a.json`. A second shape, from
+`10.1615/intjmedmushrooms.2024052864`: `TeÌ\x81llez-TeÌ\x81llez` for
+*Téllez-Téllez*, where the name was deposited decomposed and what was
+mis-decoded is the combining acute accent's own two bytes, CC 81.
 
 `clean()` runs an NFKC pass, and NFKC maps `Ã³` to `ó` **before** `demojibake`
 ever sees the bytes it needs — which silently defeated the repair on every
