@@ -176,6 +176,21 @@ so `uv sync --all-extras` does not install it into the test environment.
   (`fail_under = 92`, with branch coverage on), and a tag-triggered release
   workflow using PyPI Trusted Publishing.
 
+- **Every file in `tests/data/` has to say where it came from, and the build
+  fails for one that cannot.** `tests/data/PROVENANCE.toml` records, per file,
+  the registry, the identifier the response was requested under and that
+  request's URL, and `tests/test_fixture_provenance.py` fails on a file with no
+  entry, an entry with no file, an entry whose identifier is not the one inside
+  the file, or a URL no client in `src/bibaudit/registries/` would issue. Those
+  checks establish that a claim hangs together and nothing more — a MEDLINE
+  citation written around a live PMID satisfies every one of them, and four of
+  the ten fabricated fixtures this gate was built after were exactly that. `uv
+  run pytest -m network` re-fetches every URL and diffs the answer against the
+  bytes on disk, which is the only thing here able to tell a recorded registry
+  response from a written one; it now reaches Crossref, DataCite, PubMed and
+  Retraction Watch, where before this it reached none. The procedure for adding
+  a fixture is in `CONTRIBUTING.md` and its third step is not automated.
+
 ### Changed
 
 - **An entry carrying a PMID is no longer searched for by title and author.**
@@ -221,17 +236,77 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A creator name carrying one letter from another script is compared as the
+  name.** A publisher deposits a forename or a surname with a Cyrillic or Greek
+  letter where its Latin lookalike belongs, and both registries inherit it:
+  creator four of `10.26442/00403660.2024.07.202907` has a forename opening on
+  CYRILLIC CAPITAL LETTER TE, and NLM's XML for the same paper (PMID 39106512)
+  carries that same code point. `fold` had no romanisation for such a letter
+  and deleted it, which leaves a comparison key one letter *shorter* rather
+  than empty — and short reads as knowledge where empty reads as ignorance.
+  The surname was compared missing a letter, and the forename's second letter
+  was read as its first. Both directions were wrong at once: an entry spelling
+  the forename *Tatiana* was reported `authors/forename`, and one spelling it
+  *Anna* was cleared. Such a letter is now read as the Latin letter it is drawn
+  as, from Unicode's own UTS #39 confusables table, and only where the value
+  carries a Latin letter of its own and every non-Latin letter in it has a row
+  — so a name a registry deposits in its own script still has no comparison key
+  and is still reported as one this tool cannot express. 23 of the 91,226
+  creators in a 32,000-work random Crossref sample carry one; 19 are repaired.
+  Lower-case Greek is deliberately excluded, being this literature's notation
+  rather than a substitution: `TNF-α` and `IFN-γ` fold exactly as before.
+  `docs/limits.md` states what is left.
+
+- **The character NLM spells out because its format is ASCII is read back.**
+  `medline` cannot emit a character outside ASCII, so it writes the character's
+  own Unicode name instead, with the script moved to the end: PMID 40778922 is
+  `FAU - Panferov, capital A, Cyrillic S`. That phrase carries a comma, and
+  `FAU` is `Surname, Initials`, so the byline split at the wrong one and the
+  forename became `capital A, Cyrillic S` — initialling on `c`, which reported
+  `Panferov, A. S.` and cleared `Panferov, Carl S.` The same citation's XML
+  carries `<ForeName>&#x410; S</ForeName>`, so the rendering is put back to the
+  character NLM holds, on every field rather than the byline alone.
+  `unicodedata.lookup` is the whole of the guard: a phrase it does not know is
+  left exactly as found.
+
+- **An entry whose verdict is quiet but whose finding is not is printed.** The
+  terminal report chose which groups to show by verdict alone, so an
+  error-severity issue riding on a verdict outside that set was dropped with
+  its entry. A run in which Crossref, DataCite and PubMed all time out while
+  Retraction Watch answers reaches `UNCHECKED` carrying `status/retracted` —
+  deliberately, since calling the entry `RETRACTED` would assert that the work
+  Retraction Watch logged is the work this reference cites — and printed
+  `UNCHECKED 1` beside `errors by field  status=1`, an error counted with no
+  citekey, no locator and no field. The JSON report carried the issue all
+  along, so the two reports disagreed on the one field whose miss puts a
+  retracted paper in a manuscript. An outage on its own is still not printed
+  per entry: the filter is loosened for errors, not abandoned.
+
+- **A PMID batch whose answer named no citation no longer reports the numbers
+  in it absent.** `by_pmids` attributes each MEDLINE block by the block's own
+  `PMID` line. A block carrying none was skipped silently, so its batch's
+  numbers fell into the state that means "`efetch` answered and holds no
+  citation under them" — the whole of the evidence a `BAD-ID` on a PMID rests
+  on. An answer nobody could read was being reported as an answer that the
+  citation does not exist. The batch is inconclusive now, as it already was for
+  a 404 on `efetch.fcgi` itself.
+
 - **The publication type NLM puts on a retraction notice is named as the one it
-  emits.** Five statements in shipped source and test docstrings said, in the
+  emits.** Six statements in shipped source and test docstrings said, in the
   present tense, that PMID 20137807 carries `PT - Retraction of Publication`,
   and a `tests/data/` fixture presented as a real MEDLINE response carried it.
   NLM renamed MeSH descriptor D016440 in 2025: the record carries `PT -
-  Retraction Notice` and nothing else, and `"Retraction of Publication"[pt]`
-  matches no record in PubMed. No verdict moves — `pubmed._PT_RETRACTED` is
+  Retraction Notice` and nothing else, `"Retraction of Publication"[pt]`
+  matches no record in PubMed, and the two spellings the current vocabulary
+  does answer for are `Retracted Publication` (33,710 citations) and
+  `Retraction Notice` (32,753). No verdict moves — `pubmed._PT_RETRACTED` is
   exact fold-equality against the retracted paper's own type, so both spellings
   of the notice's type were safely non-matching — but the direction rule was
   being proved against a snapshot that had drifted, and the fixture is now
-  refetched verbatim with its `PT` list pinned.
+  refetched verbatim with its `PT` list pinned. Opposite in meaning is not
+  exclusive in fact, which the file also now says: 488 citations carry both
+  types, and on those the answer to "was this record's own article retracted"
+  is yes.
 
 - **A creator the entry names past the registry's last is reported.**
   `names.compare_author_lists` walks two bylines in step and stops at the
