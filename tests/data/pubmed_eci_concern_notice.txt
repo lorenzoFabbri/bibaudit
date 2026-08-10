@@ -1,3 +1,4 @@
+
 PMID- 34710116
 OWN - NLM
 STAT- PubMed-not-MEDLINE
@@ -7,7 +8,7 @@ IS  - 1932-6203 (Linking)
 VI  - 16
 IP  - 10
 DP  - 2021
-TI  - Expression of Concern: Adult Bone Marrow Neural Crest Stem Cells and Mesenchymal
+TI  - Expression of Concern: Adult Bone Marrow Neural Crest Stem Cells and Mesenchymal 
       Stem Cells Are Not Able to Replace Lost Neurons in Acute MPTP-Lesioned Mice.
 PG  - e0256488
 LID - 10.1371/journal.pone.0256488 [doi]
@@ -22,13 +23,19 @@ TA  - PLoS One
 JT  - PloS one
 JID - 101285081
 SB  - IM
-ECF - PLoS One. 2013 May 31;8(5):e64723. doi: 10.1371/journal.pone.0064723. PMID:
+ECF - PLoS One. 2013 May 31;8(5):e64723. doi: 10.1371/journal.pone.0064723. PMID: 
       23741377
 PMC - PMC8553060
 EDAT- 2021/10/29 06:00
 MHDA- 2021/10/29 06:01
+PMCR- 2021/10/28
+CRDT- 2021/10/28 17:23
+PHST- 2021/10/28 17:23 [entrez]
+PHST- 2021/10/29 06:00 [pubmed]
+PHST- 2021/10/29 06:01 [medline]
+PHST- 2021/10/28 00:00 [pmc-release]
 AID - PONE-D-21-25780 [pii]
 AID - 10.1371/journal.pone.0256488 [doi]
 PST - epublish
-SO  - PLoS One. 2021 Oct 28;16(10):e0256488. doi: 10.1371/journal.pone.0256488.
+SO  - PLoS One. 2021 Oct 28;16(10):e0256488. doi: 10.1371/journal.pone.0256488. 
       eCollection 2021.

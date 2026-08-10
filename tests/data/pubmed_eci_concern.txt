@@ -1,3 +1,4 @@
+
 PMID- 23741377
 OWN - NLM
 STAT- MEDLINE
@@ -8,19 +9,31 @@ IS  - 1932-6203 (Linking)
 VI  - 8
 IP  - 5
 DP  - 2013
-TI  - Adult bone marrow neural crest stem cells and mesenchymal stem cells are not able
+TI  - Adult bone marrow neural crest stem cells and mesenchymal stem cells are not able 
       to replace lost neurons in acute MPTP-lesioned mice.
 PG  - e64723
 LID - 10.1371/journal.pone.0064723 [doi]
 LID - e64723
-AB  - Adult bone marrow stroma contains multipotent stem cells (BMSC) that are a mixed
-      population of mesenchymal and neural-crest derived stem cells. Both cells are
-      endowed with in vitro multi-lineage differentiation abilities, then constituting
-      an attractive and easy-available source of material for cell therapy in
-      neurological disorders.
+AB  - Adult bone marrow stroma contains multipotent stem cells (BMSC) that are a mixed 
+      population of mesenchymal and neural-crest derived stem cells. Both cells are 
+      endowed with in vitro multi-lineage differentiation abilities, then constituting 
+      an attractive and easy-available source of material for cell therapy in 
+      neurological disorders. Whereas the in vivo integration and differentiation of 
+      BMSC in neurons into the central nervous system is currently matter of debate, we 
+      report here that once injected into the striatum of 
+      1-methyl-4-phenyl-1,2,3,6-tetrahydropyridine (MPTP)-treated mice, pure 
+      populations of either bone marrow neural crest stem cells (NCSC) or mesenchymal 
+      stem cells (MSC) survived only transiently into the lesioned brain. Moreover, 
+      they do not migrate through the brain tissue, neither modify their initial 
+      phenotype, while no recovery of the dopaminergic system integrity was observed. 
+      Consequently, we tend to conclude that MSC/NCSC are not able to replace lost 
+      neurons in acute MPTP-lesioned dopaminergic system through a suitable integration 
+      and/or differentiation process. Altogether with recent data, it appears that 
+      neuroprotective, neurotrophic and anti-inflammatory features characterizing BMSC 
+      are of greater interest as regards CNS lesions management.
 FAU - Neirinckx, Virginie
 AU  - Neirinckx V
-AD  - Groupe Interdisciplinaire de Genoproteomique Appliquee (GIGA), Unit of
+AD  - Groupe Interdisciplinaire de Genoproteomique Appliquee (GIGA), Unit of 
       Neurosciences, University of Liege, Liege, Belgium.
 FAU - Marquet, Alice
 AU  - Marquet A
@@ -38,12 +51,35 @@ PL  - United States
 TA  - PLoS One
 JT  - PloS one
 JID - 101285081
+RN  - 9P21XSP91P (1-Methyl-4-phenyl-1,2,3,6-tetrahydropyridine)
 SB  - IM
-ECI - PLoS One. 2021 Oct 28;16(10):e0256488. doi: 10.1371/journal.pone.0256488. PMID:
+ECI - PLoS One. 2021 Oct 28;16(10):e0256488. doi: 10.1371/journal.pone.0256488. PMID: 
       34710116
+MH  - 1-Methyl-4-phenyl-1,2,3,6-tetrahydropyridine
+MH  - Animals
+MH  - Bone Marrow Cells/*cytology/physiology
+MH  - Brain Injuries/chemically induced/pathology/*therapy
+MH  - Cell Death
+MH  - Dopaminergic Neurons/pathology
+MH  - Mesenchymal Stem Cells/*cytology/physiology
+MH  - Mice
+MH  - Mice, Inbred C57BL
+MH  - Mice, Transgenic
+MH  - Neural Stem Cells/*cytology/physiology
+MH  - *Stem Cell Transplantation
+MH  - Treatment Failure
 PMC - PMC3669410
+COIS- Competing Interests: The authors have declared that no competing interests exist.
 EDAT- 2013/06/07 06:00
 MHDA- 2014/02/19 06:00
+PMCR- 2013/05/31
+CRDT- 2013/06/07 06:00
+PHST- 2013/03/20 00:00 [received]
+PHST- 2013/04/18 00:00 [accepted]
+PHST- 2013/06/07 06:00 [entrez]
+PHST- 2013/06/07 06:00 [pubmed]
+PHST- 2014/02/19 06:00 [medline]
+PHST- 2013/05/31 00:00 [pmc-release]
 AID - PONE-D-13-12071 [pii]
 AID - 10.1371/journal.pone.0064723 [doi]
 PST - epublish

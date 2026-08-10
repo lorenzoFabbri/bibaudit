@@ -5,6 +5,7 @@ STAT- PubMed-not-MEDLINE
 DCOM- 20260805
 LR  - 20260805
 IS  - 2049-0801 (Print)
+IS  - 2049-0801 (Electronic)
 IS  - 2049-0801 (Linking)
 VI  - 88
 IP  - 7
@@ -80,12 +81,14 @@ OT  - peroral endoscopic myotomy
 COIS- The authors declare that they have no conflicts of interest.
 EDAT- 2026/08/05 18:38
 MHDA- 2026/08/05 18:39
+PMCR- 2026/05/15
 CRDT- 2026/08/05 12:46
-PHST- 2026/08/05 18:39 [medline]
-PHST- 2026/08/05 18:38 [pubmed]
 PHST- 2025/10/19 00:00 [received]
 PHST- 2026/04/04 00:00 [accepted]
+PHST- 2026/08/05 18:39 [medline]
+PHST- 2026/08/05 18:38 [pubmed]
 PHST- 2026/08/05 12:46 [entrez]
+PHST- 2026/05/15 00:00 [pmc-release]
 AID - AMSU-D-25-03175 [pii]
 AID - 10.1097/MS9.0000000000005074 [doi]
 PST - epublish

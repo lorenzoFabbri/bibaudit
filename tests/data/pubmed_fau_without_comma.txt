@@ -1,6 +1,9 @@
+
 PMID- 11278851
 OWN - NLM
 STAT- MEDLINE
+DCOM- 20010726
+LR  - 20211203
 IS  - 0021-9258 (Print)
 IS  - 0021-9258 (Linking)
 VI  - 276
@@ -9,11 +12,36 @@ DP  - 2001 Jun 1
 TI  - Paclitaxel induces prolonged activation of the Ras/MEK/ERK pathway independently 
       of activating the programmed cell death machinery.
 PG  - 19555-64
+AB  - Paclitaxel is a widely used chemotherapeutic agent and is known to induce 
+      programmed cell death (apoptosis) in a variety of cell types, but the precise 
+      underlying mechanisms are poorly understood. To elucidate these mechanisms, we 
+      challenged human esophageal squamous cancer cell lines with paclitaxel and 
+      investigated its effects upon signal transduction pathways. Physiologically 
+      relevant concentrations of paclitaxel (1-1,000 nm) induced apoptosis. All three 
+      mitogen-activated protein kinase (MAPK) family members, c-Jun N-terminal kinase 
+      (JNK), p38 MAPK, and extracellular signal-regulated kinase (ERK) were activated 
+      upon paclitaxel treatment. Interestingly, JNK activation and p38 MAPK activation 
+      were delayed and peaked at 48 h, whereas ERK activity was sustained over 72 h. In 
+      addition, Ras activation and MAPK/ERK kinase (MEK) phosphorylation were observed 
+      in concordance with ERK activation. While ERK activation was completely ablated 
+      by MEK inhibitors, immunoprecipitation and Western blot analysis revealed that 
+      neither MEK-1 nor MEK-2 was involved, but instead another member of the MEK 
+      family may potentially participate. Although pretreatment with a general caspase 
+      inhibitor, benzyloxycarbonyl-Val-Ala-Asp-fluoromethylketone rescued the cell 
+      death, it did not prevent Ras or ERK activation. Furthermore, inhibition of JNK, 
+      p38 MAPK, or MEK did not alter PARP cleavage and the cell death induced by 
+      paclitaxel. These results in aggregate suggest that the delayed activation of 
+      JNK, p38 MAPK, and ERK was not linked to activation of the cell death machinery.
 FAU - Okano J
 AU  - Okano J
+AD  - Division of Gastroenterology, Cancer Center, Department of Genetics, and Abramson 
+      Family Cancer Research Institute, University of Pennsylvania, Philadelphia, 
+      Pennsylvania 19104, USA.
 FAU - Rustgi, A K
 AU  - Rustgi AK
 LA  - eng
+GR  - P30 DK 50306/DK/NIDDK NIH HHS/United States
+GR  - R01 DK57735/DK/NIDDK NIH HHS/United States
 PT  - Journal Article
 PT  - Research Support, U.S. Gov't, P.H.S.
 DEP - 20010305
@@ -21,6 +49,66 @@ PL  - United States
 TA  - J Biol Chem
 JT  - The Journal of biological chemistry
 JID - 2985121R
+RN  - 0 (Amino Acid Chloromethyl Ketones)
+RN  - 0 (Antineoplastic Agents, Phytogenic)
+RN  - 0 (Protein Isoforms)
+RN  - 0 (benzyloxycarbonylvalyl-alanyl-aspartyl fluoromethyl ketone)
+RN  - 62229-50-9 (Epidermal Growth Factor)
+RN  - EC 2.7.1.- (MAP2K2 protein, human)
+RN  - EC 2.7.10.1 (Protein-Tyrosine Kinases)
+RN  - EC 2.7.11.1 (Protein Serine-Threonine Kinases)
+RN  - EC 2.7.11.24 (JNK Mitogen-Activated Protein Kinases)
+RN  - EC 2.7.11.24 (Mitogen-Activated Protein Kinases)
+RN  - EC 2.7.11.24 (p38 Mitogen-Activated Protein Kinases)
+RN  - EC 2.7.12.2 (MAP Kinase Kinase 1)
+RN  - EC 2.7.12.2 (MAP Kinase Kinase 2)
+RN  - EC 2.7.12.2 (MAP2K1 protein, human)
+RN  - EC 2.7.12.2 (Mitogen-Activated Protein Kinase Kinases)
+RN  - EC 3.4.22.- (CASP7 protein, human)
+RN  - EC 3.4.22.- (Caspase 7)
+RN  - EC 3.4.22.- (Caspases)
+RN  - EC 3.6.5.2 (ras Proteins)
+RN  - P88XT4IS4D (Paclitaxel)
+SB  - IM
+MH  - Amino Acid Chloromethyl Ketones/pharmacology
+MH  - Antineoplastic Agents, Phytogenic/*pharmacology
+MH  - *Apoptosis
+MH  - Blotting, Western
+MH  - Caspase 7
+MH  - Caspases/metabolism
+MH  - Cell Nucleus/metabolism
+MH  - Cell Survival
+MH  - Dose-Response Relationship, Drug
+MH  - Enzyme Activation
+MH  - Epidermal Growth Factor/pharmacology
+MH  - Flow Cytometry
+MH  - Humans
+MH  - JNK Mitogen-Activated Protein Kinases
+MH  - MAP Kinase Kinase 1
+MH  - MAP Kinase Kinase 2
+MH  - MAP Kinase Signaling System
+MH  - Mitogen-Activated Protein Kinase Kinases/*metabolism
+MH  - Mitogen-Activated Protein Kinases/*metabolism
+MH  - Models, Biological
+MH  - Paclitaxel/*pharmacology
+MH  - Phosphorylation
+MH  - Precipitin Tests
+MH  - Protein Isoforms
+MH  - Protein Serine-Threonine Kinases/metabolism
+MH  - Protein-Tyrosine Kinases/metabolism
+MH  - Signal Transduction
+MH  - Time Factors
+MH  - Tumor Cells, Cultured
+MH  - p38 Mitogen-Activated Protein Kinases
+MH  - ras Proteins/*metabolism
+EDAT- 2001/03/30 10:00
+MHDA- 2001/07/28 10:01
+CRDT- 2001/03/30 10:00
+PHST- 2001/03/30 10:00 [pubmed]
+PHST- 2001/07/28 10:01 [medline]
+PHST- 2001/03/30 10:00 [entrez]
 AID - S0021-9258(19)67100-0 [pii]
 AID - 10.1074/jbc.M011164200 [doi]
 PST - ppublish
+SO  - J Biol Chem. 2001 Jun 1;276(22):19555-64. doi: 10.1074/jbc.M011164200. Epub 2001 
+      Mar 5.
