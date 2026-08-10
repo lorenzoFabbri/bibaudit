@@ -465,6 +465,96 @@ class TestTerminalReport:
         assert [r.ref.key for r in summary.failing] == ["b"]
 
 
+class TestAnErrorUnderAQuietVerdict:
+    """The terminal report chose groups by verdict, and errors do not follow it.
+
+    ``compare`` reports every status finding it has even where no bibliographic
+    registry could be reached, so a run in which Crossref, DataCite and PubMed
+    all time out while Retraction Watch answers yields UNCHECKED carrying
+    ``status/retracted`` at error severity. That verdict pairing is deliberate:
+    calling the entry RETRACTED would assert that the work Retraction Watch
+    logged is the work this reference cites, which is exactly what nothing
+    could confirm.
+
+    UNCHECKED is not in the default group set, so the whole entry was dropped
+    and the report printed ``UNCHECKED 1`` beside ``errors by field
+    status=1`` — a count with no citekey, no locator and no field. The JSON
+    report carried the issue all along, so the two reports disagreed, on the
+    one field whose miss puts a retracted paper into a manuscript.
+    """
+
+    def _retracted_but_unchecked(self) -> Result:
+        return make_result(
+            key="wakefield1998",
+            verdict="UNCHECKED",
+            issues=(
+                Issue(
+                    field="status",
+                    kind="retracted",
+                    severity="error",
+                    stored="",
+                    registry="Retraction",
+                    source="retraction-watch",
+                    note="the cited work has been retracted; recorded by retraction-watch",
+                ),
+                Issue(
+                    field="doi",
+                    kind="unreachable",
+                    severity="info",
+                    stored="10.1234/example",
+                    note="no registry could be reached; not checked",
+                ),
+            ),
+        )
+
+    def test_the_entry_is_named(self) -> None:
+        output = text_of([self._retracted_but_unchecked()])
+
+        assert "wakefield1998" in output
+        assert "references.bib:12" in output
+
+    def test_the_finding_itself_is_printed(self) -> None:
+        """A citekey with no field beside it is only half a report."""
+        output = text_of([self._retracted_but_unchecked()])
+
+        assert "status/retracted" in output
+        assert "Retraction" in output
+
+    def test_an_informational_issue_under_the_same_verdict_stays_hidden(self) -> None:
+        """The filter is loosened for errors, not abandoned.
+
+        An outage on its own is UNCHECKED with nothing but ``info`` issues,
+        which is every entry of a run that lost its network — printing those
+        per entry is what the by-verdict filter is for.
+        """
+        outage = make_result(
+            key="quiet2020",
+            verdict="UNCHECKED",
+            issues=(
+                Issue(
+                    field="doi",
+                    kind="unreachable",
+                    severity="info",
+                    stored="10.1234/example",
+                    note="no registry could be reached; not checked",
+                ),
+            ),
+        )
+        output = text_of([outage])
+
+        assert "quiet2020" not in output
+        assert "UNCHECKED" in output
+
+    def test_the_json_report_carried_it_before_and_still_does(self) -> None:
+        """Pins the asymmetry that made this findable, and closes it."""
+        payload = json_of([self._retracted_but_unchecked()])
+        results = payload["results"]
+        assert isinstance(results, list)
+        kinds = [i["kind"] for i in results[0]["issues"]]
+
+        assert "retracted" in kinds
+
+
 class TestAdjudicationIsNotARegistryDefect:
     """The two things that used to share one verdict, and now must not.
 

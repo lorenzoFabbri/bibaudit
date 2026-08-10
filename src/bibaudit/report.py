@@ -307,7 +307,25 @@ def render_text(
     for verdict in _VERDICT_ORDER:
         group = [r for r in results if r.verdict == verdict]
         if verdict not in interesting:
-            # ``--show-suppressed`` has to be able to list what the summary
+            # Two exceptions to the by-verdict filter, both because a group
+            # the reader is not shown can still hold something addressed to
+            # them.
+            #
+            # An **error-severity issue**, whatever verdict it rides on.
+            # ``compare`` reports every status finding it has even where no
+            # bibliographic registry could be reached, so a run in which
+            # Crossref, DataCite and PubMed all time out while Retraction
+            # Watch answers produces UNCHECKED carrying ``status/retracted``
+            # at error severity — deliberately, since calling the entry
+            # RETRACTED would assert that the work Retraction Watch logged is
+            # the work this reference cites, which is what nothing could
+            # confirm. Filtered by verdict alone, the terminal report printed
+            # ``UNCHECKED 1`` and ``errors by field  status=1`` and named
+            # neither the citekey nor the retraction; the JSON report carried
+            # both all along, so the two reports disagreed about the one field
+            # where a miss puts a retracted paper in a manuscript.
+            #
+            # And, under ``--show-suppressed``, the entries the summary
             # counted. Suppression's own verdict, REGISTRY-ARTIFACT, sits
             # outside the default group set, so without this the flag printed
             # nothing at all unless --verbose happened to be passed too — and
@@ -315,7 +333,12 @@ def render_text(
             # flag that did nothing. Only the entries that actually carry a
             # suppressed difference are pulled in, so asking to see them does
             # not also reprint every clean entry.
-            group = [r for r in group if r.suppressed] if show_suppressed else []
+            group = [
+                r
+                for r in group
+                if any(i.severity == "error" for i in r.issues)
+                or (show_suppressed and r.suppressed)
+            ]
         if not group:
             continue
         heading = f"{style.for_verdict(verdict)}  ({len(group)})"
