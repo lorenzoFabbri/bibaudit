@@ -502,9 +502,26 @@ def _forename_is_a_surname_element(name: Name, other: Name) -> bool:
     surname, not forename, and there is nothing left in it to compare. Requiring
     every token, rather than any, keeps a genuine forename that merely collides
     with a surname element — ``Lopez Bernal, Lopez Miguel`` — in scope.
+
+    And only where the two sides file *different* surnames, which dividing a
+    compound differently necessarily means they do. Two sides that file the same
+    surname agree about where the boundary falls, so neither ``given`` field can
+    be holding the element the other kept, and a forename that happens to repeat
+    the surname is a forename: 54 of 51,534 compared creator positions in live
+    MEDLINE/Crossref pairs are a person named ``Li, Li``, ``Yang, Yang`` or
+    ``Wei, Wei``, and without this the check stands down at every one of them
+    and a substituted forename is missed. The witnessed compound survives
+    untouched — MEDLINE files ``Lopez Bernal``, Crossref files ``Bernal``, and
+    those are not the same key — as does the same shape with a single-token
+    surname on the other side, which is commoner than the compound: Crossref
+    files *María Maitre Azcárate* as ``"family":"Azcarate"``,
+    ``"given":"Maria Maitre"`` against MEDLINE's ``Maitre, Azcarate``
+    (10.1007/bf00801918).
     """
     given = set(fold(name.given).split())
-    return bool(given) and given <= set(family_key(other).split())
+    if not given or family_key(name) == family_key(other):
+        return False
+    return given <= set(family_key(other).split())
 
 
 def _forenames_are_incompatible(stored: Name, registry: Name) -> bool:

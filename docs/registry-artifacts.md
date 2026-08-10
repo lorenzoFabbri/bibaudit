@@ -625,7 +625,22 @@ had to survive or the check would be a false-alarm machine:
   shortened to their final element*, above — but one `given` field is then
   holding surname, and comparing it against `A` accuses a correct citation.
   `names._forename_is_a_surname_element` stands the check down whenever *every*
-  token of one side's forename is a token of the other side's surname.
+  token of one side's forename is a token of the other side's surname **and the
+  two sides file different surnames**, which dividing a compound differently
+  necessarily means they do. Both halves are load-bearing. Without the second,
+  the subset test degenerates on a single-token surname into "the forename
+  equals the surname", which is a person named *Li Li*: 54 of 51,534 compared
+  creator positions in live MEDLINE/Crossref pairs are `Li, Li`, `Yang, Yang`
+  or `Wei, Wei` — both registries agreeing — and the check stood down at every
+  one, so an entry crediting somebody else came back agreed with no reason
+  attached and nothing for `--show-suppressed` to recover. Narrowing it the
+  other way instead, to a *compound* surname on the other side, breaks the
+  exception it exists for: Crossref files *María Maitre Azcárate* as
+  `"family":"Azcarate","given":"Maria Maitre"` against MEDLINE's
+  `Maitre, Azcarate` (`10.1007/bf00801918`), one element each in opposite
+  fields, and that shape is commoner than the compound — 15 of the same 51,534
+  positions, every one a registry that filed `given` and `family` the other way
+  round.
 
 **Detection.** `names._forenames_are_incompatible`, called from
 `names.names_agree` **ahead of** every surname rule — a mojibake repair, a

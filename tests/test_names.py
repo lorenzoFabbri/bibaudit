@@ -26,6 +26,7 @@ from bibaudit.names import (
     _NFKC_CONTINUATION_INVERSE,
     AuthorDiff,
     Reason,
+    _forenames_are_incompatible,
     compare_author_lists,
     demojibake,
     family_key,
@@ -1944,6 +1945,60 @@ class TestForenameDifferencesRegistriesProduce:
         )
         assert agreed, reason
         assert reason == "compound surname shortened"
+
+    @pytest.mark.parametrize(
+        ("surname", "forename"), [("Li", "Li"), ("Yang", "Yang"), ("Wei", "Wei")]
+    )
+    def test_a_creator_whose_forename_is_also_their_surname_is_still_compared(
+        self, surname: str, forename: str
+    ) -> None:
+        """A person named *Li Li* is not a compound surname divided two ways.
+
+        Both registries file `Yang, Yang` for creator five of PMID 39780408
+        (10.1111/jog.16205), and the subset test then reads the `given` field as
+        surname and stands the whole comparison down — so an entry crediting
+        somebody else entirely came back agreed, with no reason attached and
+        nothing for `--show-suppressed` to recover. The shape is 54 of 51,534
+        compared creator positions in live MEDLINE/Crossref pairs.
+        """
+        agreed, reason = names_agree(
+            Name(family=surname, given="Zbigniew"), Name(family=surname, given=forename)
+        )
+        assert not agreed, reason
+
+    def test_a_creator_credited_to_somebody_else_reaches_the_report(self) -> None:
+        """The end of the same story: a position that returned `OK` with no reason."""
+        diff = compare_author_lists(
+            [Name(family="Yang", given="Zbigniew")], [Name(family="Yang", given="Yang")]
+        )
+        assert diff.miscredited == [(1, "Yang, Zbigniew", "Yang, Yang")]
+        assert not diff.clean
+
+    def test_a_surname_element_in_the_given_field_is_not_read_as_a_forename(
+        self,
+    ) -> None:
+        """What the stand-down is for, on a surname of one token.
+
+        Crossref files *María Maitre Azcárate* as `"family":"Azcarate"`,
+        `"given":"Maria Maitre"` against MEDLINE's `Maitre, Azcarate`
+        (10.1007/bf00801918) — one surname element each, in opposite fields.
+        The two sides disagree about the surname, so the position is reported
+        whatever this predicate says; what would be wrong is *what* it says.
+        Narrowing the stand-down to a compound surname on the other side instead
+        makes this a forename disagreement at 15 of 51,534 live positions, every
+        one of them a registry that filed `given` and `family` the other way
+        round.
+        """
+        assert not _forenames_are_incompatible(
+            Name(family="Maitre", given="Azcarate"),
+            Name(family="Azcarate", given="Maria Maitre"),
+        )
+        # And it is the surname the report names.
+        diff = compare_author_lists(
+            [Name(family="Maitre", given="Azcarate")],
+            [Name(family="Azcarate", given="Maria Maitre")],
+        )
+        assert diff.mismatches == [(1, "Maitre, Azcarate", "Azcarate, Maria Maitre")]
 
     def test_a_forename_that_merely_collides_with_a_surname_element_still_fires(self) -> None:
         """Every token, not any: `Lopez Miguel` is a forename that is not surname."""

@@ -236,6 +236,21 @@ so `uv sync --all-extras` does not install it into the test environment.
 
 ### Fixed
 
+- **A creator whose forename is also their surname is compared like anyone
+  else.** The stand-down for a compound surname the two registries divide
+  differently — one side's `given` field holding the element the other kept —
+  tested only whether every token of one forename appeared in the other
+  surname. On a surname of one token that is the same test as "the forename
+  equals the surname", so `Li, Li`, `Yang, Yang` and `Wei, Wei` had the
+  forename comparison switched off entirely and an entry crediting a different
+  person of the same surname came back `OK`, with nothing suppressed and so
+  nothing recorded. The stand-down now also requires the two sides to file
+  different surnames, which dividing a compound differently necessarily means
+  they do. Measured over 51,534 compared creator positions in live
+  MEDLINE/Crossref pairs: 54 carry the shape, a substituted forename at one was
+  missed 54 times out of 54 and is now caught 54 out of 54, and no byline that
+  was clean is newly reported.
+
 - **The NFKC substitutions the repair has to undo are read out of
   `unicodedata`, not listed.** `clean` normalises every value before `names`
   sees it, and NFKC rewrites fourteen of the sixty-four Latin-1 characters that
