@@ -107,6 +107,13 @@ _PRINT_DATE_REGISTRIES = frozenset({"crossref"})
 #: three characters or fewer — *of*, *and*, *the*, *in*, *de*, *on*, *for*,
 #: *la*, *et*, *für*, *di*, *und*. A longer word is part of the name.
 #:
+#: Every serial-list count in this module is the 2026-08-09 fetch of that
+#: file. NLM rebuilds it daily, so a recount gives a slightly different answer
+#: — the catalogue moving, not a rule that drifted — and "37,989 serials" is
+#: the number of records carrying a ``MedAbbr``, of 37,990 records in all. The
+#: write-up in ``docs/registry-artifacts.md`` says the same thing once, beside
+#: the pair counts.
+#:
 #: A bound on the word's length rather than a list of the words, because which
 #: words an abbreviation deletes is a fact about a language: requiring a
 #: stop-word vocabulary would put one language's function words in the verdict

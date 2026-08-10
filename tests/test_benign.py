@@ -574,7 +574,8 @@ class TestContainerAbbreviation:
         """The bound must not cost the abbreviations the rule exists for.
 
         25,758 of the 26,500 words skipped across the 25,641 abbreviated
-        titles in NLM's serial list are three characters or fewer.
+        titles in the 2026-08-09 fetch of NLM's serial list are three
+        characters or fewer.
         """
         assert classify("container", stored, registry, container_short=None) == (
             "stored name abbreviates the registry name"
@@ -868,8 +869,8 @@ class TestContainerMedlineSubtitle:
         official publication of the Arthroscopy Association of North America
         and the International Arthroscopy Association`` is NlmId 8506498's own
         filing title, verbatim from NLM's serial list
-        (``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``), where 401 of 37,989
-        serials carry two spaced colons. The masthead is *Arthroscopy*.
+        (``ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt``), where 401 of the
+        37,989 serials in the 2026-08-09 fetch carry two spaced colons. The masthead is *Arthroscopy*.
         Splitting on the last colon would compare the stored name against
         ``Arthroscopy : the journal of arthroscopic & related surgery`` and
         report a correct entry as a mismatch.
@@ -1048,7 +1049,7 @@ class TestContainerMedlineQualifier:
 
     NLM appends one — a place, a founding year, the issuing body, or several
     at once — wherever a bare title would be ambiguous in its catalogue, on
-    2,698 of the 37,989 serials in ``J_Medline.txt``. In a catalogue that
+    2,698 of the 37,989 serials in the 2026-08-09 fetch of ``J_Medline.txt``. In a catalogue that
     qualifier is exactly what tells two serials of the same base name apart,
     which is the objection this rule has to answer; in *this* comparison
     nothing is being looked up. ``compare`` reaches ``container`` only after
@@ -1283,8 +1284,9 @@ class TestTheQualifierComesOffEveryNameTheRecordCarries:
     def test_a_remainder_of_one_token_is_not_a_name(self) -> None:
         """NlmId 9302033, ``TA - Proc (Bayl Univ Med Cent)``.
 
-        ``Proc`` opens 442 serials' abbreviations in NLM's list — its own
-        among them — and is the whole of none of them. 825 of the 2,695 qualified abbreviations reduce to a single token
+        ``Proc`` opens 442 serials' abbreviations in that fetch of NLM's
+        list — its own among them — and is the whole of none of them.
+        825 of the 2,695 qualified abbreviations reduce to a single token
         and 208 of those are some other serial's whole abbreviation, so the
         floor refuses them all — at the cost of 67 correct bibliographies it
         declines to rescue, ``Rehabilitation`` against ``TA - Rehabilitation

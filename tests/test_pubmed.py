@@ -1222,7 +1222,8 @@ class TestParallelJournalTitles:
     beside ``TA - J Prev Med Public Health``. Both halves are the journal's own
     name and a bibliography stores whichever its house style uses, so the whole
     of ``JT`` was the only value a correct entry could be compared against and
-    it matched neither. 607 of the 37,989 serials in NLM's own list carry one.
+    it matched neither. 607 of the 37,989 serials in NLM's own list carry one,
+    the same count in the 2026-08-09 and 2026-08-10 fetches of it.
     """
 
     def _record(self) -> Record:

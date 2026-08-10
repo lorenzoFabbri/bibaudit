@@ -209,10 +209,12 @@ row for `10.1002/ana.24658` is a 2019 correction whose `Reason` column reads
 `Upgrade/Update of Prior Notice(s)`, over a 2016 retraction, so the newest-row
 rule indexed a retracted paper as corrected.
 
-52 DOIs in the 2026-08-09 export are indexed differently by the two rules: 47
-carry a correction dated strictly later than every retraction row, one more
-(`10.1080/03014460601011871`) carries one of the same date, and four carry a
-later expression of concern. On that export the change moves no *verdict*:
+93 DOIs in the 2026-08-09 export are indexed differently by the two rules, 52
+of them a *retraction* downgraded: 47 carry a correction dated strictly later
+than every retraction row, one more (`10.1080/03014460601011871`) carries one
+of the same date, and four carry a later expression of concern. The remaining
+41 are a concern downgraded to a correction. On that export the change moves no
+*verdict* for any of the 52:
 asked through this tool's own clients, Crossref's `updated-by` independently
 flags 51 of the 52 and MEDLINE's `PT` flags 38, so they read `RETRACTED` under
 either rule. The one Crossref does not carry, `10.1002/ana.24658`, resolves in
@@ -235,11 +237,14 @@ rule exists to prevent, and it may turn out to be milder than anything here —
 but the run says so out loud, in a `RuntimeWarning` naming the value and how
 many rows carried it. Skipping is a *missed* notice on the field where a miss
 has no remedy, and nothing else in the run would ever mention it. Every value
-in the 2026-08-09 export is one this tool ranks (`Retraction` 66,155,
-`Expression of concern` 3,586, `Correction` 1,499, blank 241, `Reinstatement`
-160), so the warning is silence on an ordinary run. A blank cell is different
-evidence and is read as a retraction: it makes no claim about the kind at all,
-and the database's whole subject supplies the one it left out.
+in the 2026-08-10 export is one this tool ranks (`Retraction` 66,155,
+`Expression of concern` 3,586, `Correction` 1,499, `Reinstatement` 160, and
+241 rows carrying nothing), so the warning is silence on an ordinary run. A
+blank cell is different evidence and is read as a retraction: it makes no
+claim about the kind at all, and the database's whole subject supplies the one
+it left out. That reading has never been exercised on live data — the 241 are
+the export's blank trailing lines, and the check that requires an
+`OriginalPaperDOI` drops every one of them first.
 
 That warning is issued on every run, not only on the one that parsed the export.
 What a parse could not read is cached beside what it read, because the parse is
@@ -258,8 +263,9 @@ may neither clear a retraction nor be cleared by one. A reinstatement carrying
 one never becomes a cutoff; a notice carrying one is not dated "at or before"
 anything either, so no reinstatement removes it. Read as a very old date
 instead, an undated retraction was withdrawn by any reinstatement in the file —
-the same sentence running the other way. 241 rows of the 2026-08-09 export
-carry no date at all.
+the same sentence running the other way. No row of the 2026-08-10 export
+reaches that rule: the 241 with no date are its blank trailing lines, and all
+65,454 rows that survive the `OriginalPaperDOI` check carry a readable one.
 
 !!! note "Where a concern lands in the verdict table"
 
@@ -459,7 +465,7 @@ whole of the remedy. A run can produce several clauses at once, and each names
 its own sources.
 
 **"Takes a DOI" is this tool's key, not a limit of Retraction Watch's.** 33,403
-of the 71,641 rows in the 2026-08-09 export carry an `OriginalPaperPubMedID`,
+of the 71,641 rows in the 2026-08-10 export carry an `OriginalPaperPubMedID`,
 and 715 retraction rows carry one with no DOI beside it — works reachable by a
 PMID and by nothing this tool asks with. This module indexes the export by its
 DOI column alone, so a reference resolved by its PMID loses Retraction Watch's

@@ -105,10 +105,12 @@ can challenge. And the default test run deselects anything networked: 1,828 of
 the 1,879 tests run and pass with no internet at all. A suite that needs the
 network gets skipped, and a skipped suite protects nobody.
 
-The 51 that are deselected are not ceremony. They re-fetch every URL in
-[`tests/data/PROVENANCE.toml`](https://github.com/lorenzoFabbri/bibaudit/blob/main/tests/data/PROVENANCE.toml)
+Fifty of the 51 that are deselected are not ceremony. They re-fetch every URL
+in [`tests/data/PROVENANCE.toml`](https://github.com/lorenzoFabbri/bibaudit/blob/main/tests/data/PROVENANCE.toml)
 from Crossref, DataCite, PubMed and Retraction Watch and diff the answer
 against the bytes on disk, which is the only thing in this repository able to
 tell a recorded registry response from a written one — ten files had been
-written. `uv run pytest -m network` is the command, and it is nobody's
+written. The fifty-first is ceremony on purpose: it asserts only that it ran,
+because one marked test has to exist or `-m "not network"` filters an empty set
+and the promise above is untested as well as unenforced. `uv run pytest -m network` is the command, and it is nobody's
 default.

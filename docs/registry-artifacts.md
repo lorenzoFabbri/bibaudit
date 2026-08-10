@@ -1359,6 +1359,17 @@ oncology`, `Journal of Cancer` against `Journal of gastrointestinal cancer`,
 separately. Over the 37,989 serials in the 2026-08-09 fetch of
 `J_Medline.txt` the unbounded rule accepts **27,851** ordered pairs of serials
 with different titles as abbreviations of one another; bounded, **903**.
+
+!!! note "Every serial-list figure on this page is that one fetch"
+
+    NLM rebuilds
+    [`J_Medline.txt`](https://ftp.ncbi.nlm.nih.gov/pubmed/J_Medline.txt) daily —
+    its `Last-Modified` on 2026-08-10 was that morning — so re-running any count
+    below gives a slightly different answer, and the difference is the catalogue
+    moving rather than a rule that has drifted. The 2026-08-10 file holds 37,990
+    records, 37,989 of them carrying a `MedAbbr`, which is what "37,989 serials"
+    counts here and in `benign.py`. Where a figure names a date, that is the
+    fetch it was measured on; where it does not, it is this one.
 `REGISTRY-ARTIFACT` is not a failing verdict, so each of those was an
 exoneration printed on a wrong bibliography that exited 0.
 

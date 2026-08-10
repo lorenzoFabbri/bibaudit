@@ -1045,7 +1045,7 @@ def _detail(kinds: Mapping[str, str], names: Sequence[str]) -> str:
 #: column, while PubMed answers to a PMID as readily.
 #:
 #: It is the lookup key and not a property of the source, and the difference
-#: shows on Retraction Watch: 33,403 of the 71,641 rows in the 2026-08-09
+#: shows on Retraction Watch: 33,403 of the 71,641 rows in the 2026-08-10
 #: export carry an ``OriginalPaperPubMedID``, and 715 retraction rows carry one
 #: with no DOI beside it, so those works are reachable by a PMID and by nothing
 #: this tool asks with. Written as the source's own limit, the note told a

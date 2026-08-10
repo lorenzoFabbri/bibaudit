@@ -122,7 +122,7 @@ from .pubmed import PubMed
 __all__ = ["RW_CACHE_SUBDIR", "RetractionNotice", "Retractions", "concern_in"]
 
 #: Crossref Labs' distribution of the Retraction Watch database. Verified
-#: live (2026-08-09): a keyless, unauthenticated ``GET`` streams a 65,722,306-byte,
+#: live (2026-08-10): a keyless, unauthenticated ``GET`` streams a 65,722,306-byte,
 #: 71,641-row CSV (``Content-Disposition: attachment; filename=retractions.csv``).
 #: The historical ``labs.crossref.org/data/retraction-watch.csv`` URL this
 #: brief was written against no longer serves the file; this is the
@@ -163,7 +163,7 @@ _RW_INDEX_CACHE_KEY = "index-v2"
 #: came to leave the one cache holding retraction status untouched.
 RW_CACHE_SUBDIR = "retraction-watch"
 
-#: RW's ``RetractionNature`` values (2026-08-09 snapshot, 71,641 rows) mapped
+#: RW's ``RetractionNature`` values (2026-08-10 snapshot, 71,641 rows) mapped
 #: onto this module's kind vocabulary. Keys are :func:`~bibaudit.normalize.fold`ed
 #: so case and punctuation drift in a future export do not silently stop
 #: matching. ``Reinstatement`` (160 rows) is deliberately absent: it is
@@ -197,19 +197,31 @@ _RW_KIND_MAP = {
 _KIND_PRIORITY = ("retraction", "withdrawal", "removal", "expression-of-concern", "correction")
 
 #: `M/D/Y H:MM` is all but one of the dated values' shape (71,399 of the 71,641
-#: rows in the 2026-08-09 export; 241 more carry no date at all, and the last
+#: rows in the 2026-08-10 export; 241 more carry no date at all, and the last
 #: one uses the 12-hour `H:MM:SS AM/PM` variant beside it) — confirmed
 #: month-first, not day-first: 41,709 rows have a day > 12, which is only valid
-#: under that ordering, and none contradict it — always at midnight. Both
-#: shapes are tried in :func:`_parse_rw_date` before a cell is given up on.
+#: under that ordering, and no row's first field exceeds 12 — always at
+#: midnight. Both shapes are tried in :func:`_parse_rw_date` before a cell is
+#: given up on.
+#:
+#: The second shape is a guard rather than a case met. Its one row (Record ID
+#: 18930, `6/24/1756 12:00:00 AM`) carries `unavailable` in `OriginalPaperDOI`,
+#: so :func:`_parse_rw_csv` drops it a step earlier and never reaches the date:
+#: all 65,454 rows the parser does reach are `M/D/Y H:MM`. Which is the reason
+#: to keep trying the second and not to drop it — the shape is in the file, and
+#: what stands between it and this parser is one row's DOI cell.
 _RW_DATE_FORMATS = ("%m/%d/%Y %H:%M", "%m/%d/%Y %I:%M:%S %p")
 
-#: Sort key for a row whose ``RetractionDate`` could not be read: blank (241
-#: rows in the 2026-08-09 export), or a shape :data:`_RW_DATE_FORMATS` was never
-#: run against. It sorts before every real date, so a row carrying a genuine
-#: timestamp always outranks it, and :func:`_parse_rw_csv` reads it as *no date*
-#: rather than as a very old one — an unreadable date is ignorance, and
-#: ignorance neither clears a retraction nor is cleared by one.
+#: Sort key for a row whose ``RetractionDate`` could not be read: blank, or a
+#: shape :data:`_RW_DATE_FORMATS` was never run against. It sorts before every
+#: real date, so a row carrying a genuine timestamp always outranks it, and
+#: :func:`_parse_rw_csv` reads it as *no date* rather than as a very old one —
+#: an unreadable date is ignorance, and ignorance neither clears a retraction
+#: nor is cleared by one.
+#:
+#: No row of the 2026-08-10 export reaches it. The 241 whose ``RetractionDate``
+#: is blank are the export's blank trailing lines, every cell of them empty,
+#: and the DOI check drops all 241 before the date is read.
 _UNDATED = datetime.min
 
 
@@ -400,7 +412,7 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int, Counter[
     Streamed row by row through :class:`csv.DictReader` rather than
     materialised as ``list(csv.DictReader(...))`` first: only the rows whose
     ``OriginalPaperDOI`` is both present and DOI-shaped are ever retained —
-    65,454 of the 71,641 rows in the 2026-08-09 export — so building the full
+    65,454 of the 71,641 rows in the 2026-08-10 export — so building the full
     row list before filtering would hold everything the streaming read avoids.
 
     A DOI can carry more than one row — RW logged both a 2004 ``Correction``
@@ -414,10 +426,13 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int, Counter[
     Notice(s)``, over a ``Retraction`` dated 2016-05-25 — so the newest-row rule
     indexed a retracted paper as corrected.
 
-    52 DOIs in the 2026-08-09 export are indexed differently by the two rules:
-    47 carry a correction dated strictly later than every retraction row, one
-    more (10.1080/03014460601011871) carries one of the same date, and four
-    carry a later expression of concern. What that changes on a *report* is a
+    93 DOIs in the 2026-08-09 export are indexed differently by the two rules,
+    and 52 of them are a *retraction* downgraded: 47 carry a correction dated
+    strictly later than every retraction row, one more
+    (10.1080/03014460601011871) carries one of the same date, and four carry a
+    later expression of concern. The other 41 are a concern downgraded to a
+    correction, which the same reversal fixes and which reads as milder rather
+    than as clean. What that changes on a *report* is a
     separate question, and on this export the answer is nothing: put through
     this tool's own clients, Crossref's ``updated-by`` independently flags 51 of
     the 52 and MEDLINE's ``PT`` flags 38, so those entries read ``RETRACTED``
@@ -434,7 +449,7 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int, Counter[
     A ``Reinstatement`` is the only row that *withdraws* rather than asserts
     (see :data:`_RW_KIND_MAP`), so it alone stays a question of date: it removes
     every notice for its DOI dated at or before it and leaves any later one
-    standing. RW recorded 160 reinstatements in the 2026-08-09 export, meaning a
+    standing. RW recorded 160 reinstatements in the 2026-08-10 export, meaning a
     retraction that was later reversed, and reporting the reversed retraction as
     a live finding would be the false alarm CLAUDE.md's third rule exists to
     prevent — while 10.1308/rcsann.2020.0038 carries an expression of concern
@@ -468,11 +483,15 @@ def _parse_rw_csv(text: str) -> tuple[dict[str, RetractionNotice], int, Counter[
         if nature == "reinstatement":
             kind: str | None = None
         elif not nature:
-            # Undocumented by RW itself but witnessed live (241 of the 71,641
-            # rows in the 2026-08-09 export): the whole database's subject is
-            # retractions, so an untagged row is read as one rather than
-            # silently dropped — a missed retraction costs more than a stray
-            # one whose specific nature could not be classified. A blank cell
+            # Undocumented by RW itself, and unwitnessed: the 241 rows of the
+            # 2026-08-10 export whose RetractionNature is blank are its blank
+            # trailing lines, and the DOI check above drops every one of them,
+            # so no live row reaches this branch. It is kept because the whole
+            # database's subject is retractions, so an untagged row is read as
+            # one rather than silently dropped — a missed retraction costs more
+            # than a stray one whose specific nature could not be
+            # classified — and because a tag RW simply failed to fill in is a
+            # likelier future row than most things guarded against. A blank cell
             # is not the same evidence as an unrecognised value below: it makes
             # no claim about the kind at all, and the database's subject
             # supplies the one it left out, while a value this module cannot
@@ -555,7 +574,7 @@ def _warn_unranked(unranked: Mapping[str, int]) -> None:
         f"Retraction Watch's export carries a RetractionNature this build "
         f"does not recognise: {named}. Those rows are not indexed, so a DOI "
         "whose only notice is one of them carries no signal from this "
-        "source in this run. Every value in the 2026-08-09 export was "
+        "source in this run. Every value in the 2026-08-10 export was "
         "recognised, so this is a new category rather than a parsing "
         "failure, and reading it needs an entry in this module's kind map.",
         RuntimeWarning,

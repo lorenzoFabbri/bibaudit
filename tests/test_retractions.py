@@ -80,7 +80,7 @@ CLEAN_DOI = "10.1038/s41370-023-00600-7"
 CLEAN_PMID = "37726507"
 
 #: The two sources disagree about this DOI, with Retraction Watch the milder of
-#: them. Its only row in the 2026-08-09 export is a ``Correction``, filed — as RW
+#: them. Its only row in the 2026-08-10 export is a ``Correction``, filed — as RW
 #: files a correction — under the correcting article's own DOI, and that
 #: article's MEDLINE citation carries ``PT - Retracted Publication``: the
 #: erratum was itself retracted. Recorded in
@@ -128,12 +128,14 @@ def _rw_rows(*rows: tuple[str, str, str, str]) -> str:
     """An export holding exactly *rows*, each ``(doi, date, nature, notice)``.
 
     Written out rather than extracted from the live file because the shapes
-    these exercise have no live instance: no DOI in the 2026-08-09 export
+    these exercise have no live instance: no DOI in the 2026-08-10 export
     carries an undated notice beside a dated reinstatement, two reinstatements,
-    or a reinstatement dated the same day as the notice it withdraws. 241 rows
-    of that export carry no date at all, so the first of those is one export
-    away, and a rule with no live instance is exactly the one nothing else
-    holds in place.
+    or a reinstatement dated the same day as the notice it withdraws — 0, 0 and
+    0 of the 65,454 rows the parser reaches. Not one of those rows is undated
+    either; the 241 rows of that export with no date are its blank trailing
+    lines, dropped by the DOI check before a date is read. So the first shape
+    needs a row RW has never filed, not merely a different export, and a rule
+    with no live instance is exactly the one nothing else holds in place.
     """
     body = "".join(
         f"1,T,,,J,P,,A,,,{date},{notice},0,1/1/2019 0:00,{doi},0,{nature},,No,,\n"
@@ -619,9 +621,11 @@ class TestRetractionWatchCsv:
         assert status.notices[WAKEFIELD_DOI.lower()].kind == "retraction"
 
     def test_a_vocabulary_this_build_knows_says_nothing(self, tmp_path: Path) -> None:
-        """The true-negative half. Every value in the 2026-08-09 export is one
-        this module ranks, so an ordinary run must be silent — a warning on
-        every run is one nobody reads on the run that matters.
+        """The true-negative half. Every value in the 2026-08-10 export is one
+        this module ranks -- ``Retraction``, ``Expression of concern``,
+        ``Correction`` and ``Reinstatement``, and nothing else -- so an ordinary
+        run must be silent. A warning on every run is one nobody reads on the
+        run that matters.
         """
         with warnings.catch_warnings():
             warnings.simplefilter("error")
@@ -631,9 +635,14 @@ class TestRetractionWatchCsv:
         assert status.notices[WAKEFIELD_DOI.lower()].kind == "retraction"
 
     def test_a_blank_nature_defaults_to_retraction(self, tmp_path: Path) -> None:
-        """241 of 71,641 live rows carry no ``RetractionNature`` tag at all; the
-        whole database's subject is retractions, so an untagged row is read
-        as one rather than silently dropped.
+        """A branch the live export does not reach, kept because the whole
+        database's subject is retractions and an untagged row is better read as
+        one than silently dropped.
+
+        The 241 rows of the 2026-08-10 export whose ``RetractionNature`` is
+        blank are its blank trailing lines, and the DOI check drops all 241
+        first, so row 90006 is written rather than copied and nothing in the
+        file could stand in for it.
         """
         doi = "10.9999/blank-nature-paper"
         stub = _client(rw_csv=_rw_sample())
@@ -647,7 +656,7 @@ class TestWhichRowOfManyIsRead:
 
     Both selections below are decided by a comparison rather than by the order
     the export happens to list the rows in, and both are observable: 104 DOIs
-    in the 2026-08-09 export carry two or more rows of one kind.
+    in the 2026-08-10 export carry two or more rows of one kind.
     """
 
     DOI = "10.1000/twice"

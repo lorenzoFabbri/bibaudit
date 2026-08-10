@@ -435,10 +435,12 @@ so `uv sync --all-extras` does not install it into the test environment.
   Retraction Watch records as retracted and Crossref does not linked read
   `OK` / `retraction-unverified` / exit 0 during any NCBI hiccup, with
   `consulted` reporting `retraction-watch: answered` and the note asserting
-  that no registry which answered records a retraction. 8 of 300 randomly
-  sampled Retraction Watch retraction DOIs carry no Crossref `updated-by`
-  linkage at all, which is ~1,600 DOIs across the export where that was the
-  whole of the evidence. The exception now carries a whole `RetractionStatus`,
+  that no registry which answered records a retraction. Two independent draws
+  of 300 Retraction Watch retraction DOIs, on 2026-08-09 and 2026-08-10, found
+  8 and 11 with no Crossref `updated-by` retraction linkage at all — on the
+  order of 1,600 to 2,200 of the 60,114 DOIs the index calls retracted, where
+  Retraction Watch was the whole of the evidence. A 300-draw is not precise
+  enough to say which. The exception now carries a whole `RetractionStatus`,
   built by the same merge the clean return uses, and both call sites read it
   through `audit._outage_status`.
 
@@ -484,7 +486,7 @@ so `uv sync --all-extras` does not install it into the test environment.
   identifier read `crossref, pubmed, retraction-watch take a DOI or a PMID this
   reference does not carry` — true of PubMed, and loose about the other two,
   which are never asked with a PMID. The note also no longer states a DOI as a
-  limit of Retraction Watch's: 33,403 rows of the 2026-08-09 export carry the
+  limit of Retraction Watch's: 33,403 rows of the 2026-08-10 export carry the
   original paper's PMID, and indexing the export by DOI alone is this tool's
   choice.
 
@@ -507,14 +509,16 @@ so `uv sync --all-extras` does not install it into the test environment.
   notices and said once per process from the one point both routes to an index
   pass through; the payload gained a shape, so an index written by an earlier
   build is refetched rather than read back as one that skipped nothing. Every
-  value in the 2026-08-09 export is recognised, so an ordinary run is silent.
+  value in the 2026-08-10 export is recognised, so an ordinary run is silent.
 
 - **A retraction whose date Retraction Watch left blank is no longer withdrawn
   by a reinstatement.** An unreadable date sorted as the earliest date there
   is, so a notice carrying one counted as "dated at or before" every
   reinstatement and was dropped — the inverse of the rule the same function
   keeps on the reinstatement's side, where an unreadable date withdraws
-  nothing. 241 rows of the 2026-08-09 export carry no date.
+  nothing. No row of the 2026-08-10 export exercises it: the 241 carrying no
+  date are the export's blank trailing lines, dropped before the date is read,
+  and all 65,454 rows the parser reaches are dated.
 
 - **Each retraction source is reported under the kind it recorded.** Two
   sources' notices about one DOI were merged to the more definitive kind and
@@ -551,7 +555,8 @@ so `uv sync --all-extras` does not install it into the test environment.
   Hepatogastroenterol` against `JT - Acta hepato-gastroenterologica` and
   `TA - Acta Hepatogastroenterol (Stuttg)` (NlmId 0340734) matched neither, and
   nothing else reaches the pairing. Measured through the real comparison over
-  NLM's own serial list, 1,075 of the 2,695 serials with a qualified
+  the 2026-08-09 fetch of NLM's own serial list, 1,075 of the 2,695 serials
+  with a qualified
   abbreviation reported `container/mismatch` against a bibliography storing the
   abbreviation as ISO 4, Web of Science and Scopus write it; 67 still do. The
   reduction now runs on every name the record carries, and where the match came
@@ -600,12 +605,14 @@ so `uv sync --all-extras` does not install it into the test environment.
   against `Pediatric blood & cancer` were each reported `REGISTRY-ARTIFACT`
   with `stored name abbreviates the registry name` beside them, and the run
   exited 0 on a bibliography naming a journal the paper did not appear in.
-  Over the 37,989 serials in NLM's own list the rule accepted 27,851 ordered
-  pairs of serials with different titles as abbreviations of one another. A
-  skipped word may now be three characters at most — every word ISO 4 deletes
-  is an article, a conjunction or a preposition, and 25,758 of the 26,500 words
-  skipped across NLM's 25,641 abbreviated titles are that short — which leaves
-  903 of those pairs.
+  Over the 37,989 serials in the 2026-08-09 fetch of NLM's own list the rule
+  accepted 27,851 ordered pairs of serials with different titles as
+  abbreviations of one another. A skipped word may now be three characters at
+  most — every word ISO 4 deletes is an article, a conjunction or a
+  preposition, and 25,758 of the 26,500 words skipped across NLM's 25,641
+  abbreviated titles are that short — which leaves 903 of those pairs. NLM
+  rebuilds that file daily, so every serial-list figure in this changelog is
+  that fetch and a recount will differ slightly.
 - **A journal name the registry files under a leading article is reachable
   from the masthead form.** The rule took the article off the stored side
   only, so an entry storing *Canadian Journal of Statistics* failed against
@@ -642,10 +649,12 @@ so `uv sync --all-extras` does not install it into the test environment.
   Retraction Watch logs a DOI as often as its status is restated, and the row
   with the latest date decided the finding — safe while every row meant
   "retracted", and a downgrade once a correction became an `info` finding of
-  its own. 52 DOIs in the 2026-08-09 export are indexed differently by the two
-  rules: 47 carry a correction dated strictly later than every retraction row,
-  one more of the same date, and four a later expression of concern. Crossref
-  independently flags 51 of the 52, so on that export no verdict moves; the
+  its own. 93 DOIs in the 2026-08-09 export are indexed differently by the two
+  rules, 52 of them a retraction downgraded: 47 carry a correction dated
+  strictly later than every retraction row, one more of the same date, and four
+  a later expression of concern; the other 41 are a concern downgraded to a
+  correction. Crossref independently flags 51 of the 52, so on that export no
+  verdict moves; the
   exception is `10.1002/ana.24658` (retracted 2016, corrected 2019), which
   carries no Crossref `updated-by` and today resolves in no registry at all.
   The strongest notice for a DOI now wins, not the
