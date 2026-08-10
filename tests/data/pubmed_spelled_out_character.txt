@@ -1,0 +1,71 @@
+
+PMID- 40778922
+OWN - NLM
+STAT- MEDLINE
+DCOM- 20250808
+LR  - 20250808
+IS  - 0040-3660 (Print)
+IS  - 0040-3660 (Linking)
+VI  - 97
+IP  - 7
+DP  - 2025 Jul 31
+TI  - [History of clinical lectures on faculty therapy from Botkin and Zakharyin to the 
+      present day].
+PG  - 600-604
+LID - 10.26442/00403660.2025.07.203267 [doi]
+AB  - For a long time, the clinical lecture occupied a central place in teaching the 
+      course of faculty therapy and shaping the clinical thinking of future doctors. 
+      Since the time of Zakharyin and Botkin, the form and content of clinical lectures 
+      have undergone significant changes. The focus has gradually shifted from the 
+      analysis of the patient to the disease, which partly contradicts the principles 
+      of teaching in faculty clinics, laid down at their creation. The article traces 
+      these trends based on materials published in various periods of medical science 
+      development.
+FAU - Panferov, capital A, Cyrillic S
+AU  - Panferov capital A, CyrillicS
+AUID- ORCID: 0000-0002-4324-7615
+AD  - Sechenov First Moscow State Medical University (Sechenov University).
+FAU - Morozova, N S
+AU  - Morozova NS
+AUID- ORCID: 0000-0002-4262-5020
+AD  - Sechenov First Moscow State Medical University (Sechenov University).
+FAU - Trushina, O I
+AU  - Trushina OI
+AUID- ORCID: 0000-0002-5820-1759
+AD  - Sechenov First Moscow State Medical University (Sechenov University).
+LA  - rus
+PT  - English Abstract
+PT  - Historical Article
+PT  - Journal Article
+DEP - 20250731
+PL  - Russia (Federation)
+TA  - Ter Arkh
+JT  - Terapevticheskii arkhiv
+JID - 2984818R
+SB  - IM
+MH  - Humans
+MH  - History, 20th Century
+MH  - *Education, Medical/history/methods
+MH  - *Faculty, Medical/history
+MH  - History, 19th Century
+MH  - History, 21st Century
+MH  - Russia
+OTO - NOTNLM
+OT  - clinical analysis
+OT  - clinical lecture
+OT  - faculty therapy
+OT  - lecture
+OT  - medical education
+OT  - teaching methodology
+OT  - traditional medical education
+EDAT- 2025/08/08 12:30
+MHDA- 2025/08/08 12:31
+CRDT- 2025/08/08 10:42
+PHST- 2025/02/15 00:00 [received]
+PHST- 2025/04/25 00:00 [accepted]
+PHST- 2025/08/08 12:31 [medline]
+PHST- 2025/08/08 12:30 [pubmed]
+PHST- 2025/08/08 10:42 [entrez]
+AID - 10.26442/00403660.2025.07.203267 [doi]
+PST - epublish
+SO  - Ter Arkh. 2025 Jul 31;97(7):600-604. doi: 10.26442/00403660.2025.07.203267.

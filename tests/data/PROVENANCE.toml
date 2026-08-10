@@ -375,6 +375,13 @@ url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=20
 fetched = 2026-08-10
 
 [[fixture]]
+file = "pubmed_spelled_out_character.txt"
+source = "pubmed"
+id = "40778922"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=40778922&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
 file = "pubmed_society_expansion.txt"
 source = "pubmed"
 id = "32430337"

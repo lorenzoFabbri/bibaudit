@@ -517,6 +517,104 @@ class TestAFullAuthorTagWithoutItsComma:
         assert (names[0].family, names[0].given) == ("Okano", "J")
 
 
+class TestACharacterNlmSpelledOut:
+    """``medline`` is an ASCII format, so a character it cannot emit is named.
+
+    NLM writes the character's own Unicode name with the script moved to the
+    end: U+0410 CYRILLIC CAPITAL LETTER A becomes ``capital A, Cyrillic``.
+    ``tests/data/pubmed_spelled_out_character.txt`` is NCBI's own bytes for
+    PMID 40778922, whose first creator is ``FAU - Panferov, capital A,
+    Cyrillic S``.
+
+    A rendering, not a value: the same citation's XML carries
+    ``<ForeName>&#x410; S</ForeName>``, and Crossref's deposit for its DOI
+    carries that same Cyrillic lookalike — the damage is the publisher's and
+    both registries inherit it. Read as text the rendering is worse than the
+    damage it renders, because the phrase has a comma in it: ``_parse_fau``
+    splits ``Surname, Initials`` at the first one, so the forename became
+    ``capital A, Cyrillic S`` and initialled on ``c``. That is both blocking
+    categories on one creator, and this class pins both.
+
+    Rare — 0 of the 134,196 ``FAU``/``FED`` lines in a 28,846-citation random
+    sample — and mechanical, which is the pair of facts that makes reading it
+    back better than declaring a limit.
+    """
+
+    def _record(self) -> Record:
+        return _resolve_one(
+            "spelled_out_character",
+            pmid="40778922",
+            doi="10.26442/00403660.2025.07.203267",
+        )
+
+    def test_the_byline_splits_where_medline_put_the_comma(self) -> None:
+        """The rendering's own comma is not the one that divides the name."""
+        record = self._record()
+
+        assert (record.authors[0].family, record.authors[0].given) == (
+            "Panferov",
+            "\u0410 S",
+        )
+
+    def test_a_correct_entry_is_not_accused_of_crediting_someone_else(self) -> None:
+        """``Panferov, A. S.`` is this paper's first author, spelled in Latin."""
+        record = self._record()
+
+        agreed, _ = names_agree(
+            Name(family="Panferov", given="A. S."), record.authors[0]
+        )
+
+        assert agreed
+
+    def test_a_substituted_forename_is_still_reported(self) -> None:
+        """The miss: every forename opening on ``c`` used to clear this creator."""
+        record = self._record()
+
+        agreed, _ = names_agree(
+            Name(family="Panferov", given="Carl S."), record.authors[0]
+        )
+
+        assert not agreed
+
+    def test_the_creators_beside_it_are_untouched(self) -> None:
+        """Two of the three carry no rendering and must read exactly as before."""
+        record = self._record()
+
+        assert [(a.family, a.given) for a in record.authors[1:]] == [
+            ("Morozova", "N S"),
+            ("Trushina", "O I"),
+        ]
+
+    def test_two_renderings_written_with_nothing_between_them_both_resolve(
+        self,
+    ) -> None:
+        """NLM runs them together, so the script name absorbs the next one.
+
+        The longest prefix Unicode knows is taken and the rest handed back as
+        text, which is then read on the following pass.
+        """
+        assert (
+            pubmed._read_character_names(
+                "capital PE, Cyrillicsmall a, Cyrillicsmall en, Cyrillic"
+            )
+            == "\u041f\u0430\u043d"
+        )
+
+    def test_a_name_unicode_does_not_know_is_left_exactly_as_found(self) -> None:
+        """:func:`unicodedata.lookup` is the whole of the guard.
+
+        Ordinary MEDLINE prose reaches this on every field of every record —
+        ``small`` alone appears in most abstracts — and nothing here may guess
+        what a phrase might have meant.
+        """
+        for text in (
+            "small cell lung cancer, Stage IV",
+            "capital Nonsense, Klingon",
+            "a small increase, Overall",
+        ):
+            assert pubmed._read_character_names(text) == text
+
+
 class TestAnInitialWrittenAheadOfTheSurname:
     """One citation in the same sample writes the name the other way round.
 

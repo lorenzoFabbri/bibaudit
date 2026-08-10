@@ -33,6 +33,7 @@ from __future__ import annotations
 import re
 import threading
 import time
+import unicodedata
 import urllib.parse
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field, replace
@@ -502,6 +503,67 @@ def _first(values: list[str] | None) -> str | None:
     return values[0] or None
 
 
+#: NLM's ``medline`` text format is ASCII, and a character it cannot emit is
+#: written out as that character's own Unicode name with the script moved to
+#: the end: U+0410 CYRILLIC CAPITAL LETTER A appears as ``capital A,
+#: Cyrillic``. PMID 40778922 is ``FAU - Panferov, capital A, Cyrillic S``.
+#:
+#: This is a rendering, not a value. NLM's XML for the same citation carries
+#: ``<ForeName>&#x410; S</ForeName>``, so the character the record holds is the
+#: same Cyrillic lookalike Crossref's deposit for its DOI holds — see
+#: :data:`~bibaudit.normalize._CONFUSABLE_MAP` for where that damage comes from
+#: and what is done with it. Read as text the rendering is worse than the
+#: damage: the phrase carries a comma, so ``_parse_fau`` splits the byline at
+#: the wrong one and the creator's forename becomes ``capital A, Cyrillic S``,
+#: which initials on ``c``. ``Panferov, A. S.`` was reported
+#: ``authors/forename`` and ``Panferov, Carl S.`` was cleared.
+#:
+#: Rare: 0 of the 134,196 ``FAU``/``FED`` lines in a 28,846-citation random
+#: sample carry one, and the three witnessed instances are all Russian-language
+#: articles in *Terapevticheskii arkhiv* (PMID 40778922, 39467244, 39106512).
+#: Rare and mechanical — every instance was checked against the same citation's
+#: XML — which is why it is read back rather than left as a stated limit.
+_MEDLINE_CHARACTER_RE = re.compile(r"(capital|small) ([A-Za-z][A-Za-z\- ]*), ([A-Za-z]+)")
+
+
+def _restore_character_name(match: re.Match[str]) -> str:
+    """One :data:`_MEDLINE_CHARACTER_RE` match, as the character it names.
+
+    The trailing script name is matched greedily because NLM writes two
+    renderings side by side with nothing between them — ``capital PE,
+    Cyrillicsmall a, Cyrillic`` — so the longest prefix of that group which
+    Unicode knows as a script is taken and the rest handed back as text. A
+    group Unicode knows under no prefix is left exactly as it was found:
+    :func:`unicodedata.lookup` is the whole of the guard, and nothing here
+    guesses what a name might have meant.
+    """
+    case, letter, tail = match.groups()
+    for cut in range(len(tail), 0, -1):
+        try:
+            return unicodedata.lookup(f"{tail[:cut]} {case} letter {letter}".upper()) + tail[cut:]
+        except KeyError:
+            continue
+    return match.group(0)
+
+
+def _read_character_names(value: str) -> str:
+    """Every character NLM spelled out in *value*, put back.
+
+    Repeated until nothing changes, because a rendering whose script name ran
+    into the next one gives its tail back as text and that tail is the next
+    rendering. Each pass that changes anything consumes at least one ``capital``
+    or ``small`` and the replacement introduces none, so the loop is bounded by
+    how many the value arrived with.
+    """
+    if "capital" not in value and "small" not in value:
+        return value
+    while True:
+        restored = _MEDLINE_CHARACTER_RE.sub(_restore_character_name, value)
+        if restored == value:
+            return restored
+        value = restored
+
+
 def _parse_medline_records(text: str) -> list[dict[str, list[str]]]:
     """Split MEDLINE plain text into records, tags into repeatable field lists.
 
@@ -521,7 +583,7 @@ def _parse_medline_records(text: str) -> list[dict[str, list[str]]]:
     def flush_field() -> None:
         nonlocal tag, buffer
         if tag is not None:
-            current.setdefault(tag, []).append(" ".join(buffer).strip())
+            current.setdefault(tag, []).append(_read_character_names(" ".join(buffer).strip()))
         tag, buffer = None, []
 
     def flush_record() -> None:
