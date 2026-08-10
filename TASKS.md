@@ -28,6 +28,43 @@ PMID-path bibliographies from 13.7% to zero on the last 1,177-entry sweep.
 
 ## Open
 
+- [ ] **URGENT, before anything else — audit `CLAUDE.md`, `CONTRIBUTING.md` and
+      `.claude/`.** These are what an agent reads before it touches the verdict path, so
+      a wrong or duplicated rule there produces wrong work everywhere else. They grew by
+      accretion across the PMID series and no longer hold together.
+
+      **One fact, two homes, already drifted.** `CONTRIBUTING.md`'s "The three rules, in
+      short" restates `CLAUDE.md`'s "The three rules that shape every decision", and its
+      "Adding a check" restates `CLAUDE.md`'s — with three requirements `CLAUDE.md` does
+      not carry. Compared verbatim, `CONTRIBUTING.md` alone demands the
+      `docs/registry-artifacts.md` write-up, a test proving the *true* positive still
+      fires, and `docs/verdicts.md` beside `README.md` for a new verdict. A contributor
+      following `CLAUDE.md` — the file the repository presents as the rules it is held
+      to — ships a rule with no write-up and one-directional tests, and
+      `tests/test_benign.py::TestRuleScoping` then fails for a reason neither list
+      explains. The write-up requirement is the one that matters most, because
+      `CLAUDE.md` elsewhere calls that file "the reader's only way to challenge a
+      `REGISTRY-ARTIFACT` line".
+
+      **Sections added one at a time without asking where they belong.** The fixture
+      provenance rules went into `CLAUDE.md`'s Tests section, the isolated-tree
+      procedure and the definition of done into `CONTRIBUTING.md`, the comment rule into
+      `CLAUDE.md` beside Git — each defensible alone, none placed against a stated split
+      between the two files. Decide what that split is: `CLAUDE.md` is loaded every turn
+      and should hold only what must hold every turn; `CONTRIBUTING.md` is read once by
+      somebody about to change something.
+
+      **`.claude/settings.json` allows five commands** — `uv run`, `uv sync`, `uv tool`,
+      `python3 -m pytest`, and three read-only `git` verbs. Everything else an agent does
+      here, including `git add`, `git commit`, `grep`, `find` and scratch work under
+      `/private/tmp`, falls through to a prompt each time. Widen it to what
+      `CONTRIBUTING.md` already prescribes, or say why not.
+
+      **What is asserted and what is checked.** `tests/test_fixture_provenance.py` and
+      `TestRuleScoping` gate two of these rules; the rest are prose that rotted
+      undetected until a human audit found it. Decide which of the remaining claims can
+      be pinned mechanically, and pin those.
+
 - [ ] **A comma-less MEDLINE `FAU` is read as the abbreviated form, and five real
       bylines fail a correct bibliography because of it.** `_parse_au_fallback` takes
       the last token as the initials block, so `<LastName>`-only values — which NLM
