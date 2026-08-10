@@ -232,6 +232,14 @@ confident Latin key instead of an empty one; without the second, a name a
 registry deposits in its own script would be rewritten letter by letter rather
 than reported as one this tool cannot express.
 
+23 of the 91,226 creators in a 32,000-work random Crossref sample carry a
+mixed-script name, and 19 of them are repaired. The four that are not are the
+guard working: two surnames spelled with a lower-case Greek letter, which has
+no twin here and cannot get one without taking `TNF-α` and `IFN-γ` with it; a
+Ukrainian surname using a letter no Latin one is drawn as; and a Russian name
+written in Cyrillic that happens to carry one stray Latin letter, where leaving
+it unreadable is the point.
+
 The residual limit is a value mixing Latin with a short word spelled *only* in
 letters that have Latin twins — 9 of Russian's 33 do — which is repaired as
 though it were damage. No instance has been seen in any sample taken here, and

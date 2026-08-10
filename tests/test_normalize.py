@@ -237,10 +237,11 @@ class TestALatinLookalikeFromAnotherScript:
     The instances are the publisher's own damage and both registries inherit
     it. Crossref's creator array for 10.26442/00403660.2024.07.202907 opens a
     forename on CYRILLIC CAPITAL LETTER TE, and NLM's XML for the same paper
-    (PMID 39106512) carries the same code point as ``&#x422;``. In a 6,000-work
-    random Crossref sample, 2 of 16,585 creators carried one: a surname with
-    CYRILLIC SMALL LETTER U for ``y``, and a forename opening on GREEK CAPITAL
-    LETTER KAPPA.
+    (PMID 39106512) carries the same code point as ``&#x422;``. 23 of the
+    91,226 creators in a 32,000-work random Crossref sample carry one, and so
+    do 5 of the 108 mixed-script tokens in 11,545 titles — the other 103 are
+    Greek symbols and CJK, which is why this is a name-shaped repair living
+    where every field folds.
     """
 
     @pytest.mark.parametrize(

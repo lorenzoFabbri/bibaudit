@@ -465,8 +465,8 @@ class TestABylineCarryingALatinLookalike:
     The publisher deposits it and both registries inherit it: Crossref's
     creator array for 10.26442/00403660.2024.07.202907 opens a forename on
     U+0422 CYRILLIC CAPITAL LETTER TE, and NLM's XML for the same paper
-    (PMID 39106512) carries that code point as ``&#x422;``. Two of the 16,585
-    creators in a 6,000-work random Crossref sample carry one.
+    (PMID 39106512) carries that code point as ``&#x422;``. 23 of the 91,226
+    creators in a 32,000-work random Crossref sample carry one.
 
     Written with explicit escapes rather than the glyphs, because which code
     point is in the string is the whole of what these tests are about — a

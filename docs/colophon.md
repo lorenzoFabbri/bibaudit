@@ -1,7 +1,7 @@
 # How this was built
 
 bibaudit was written with [Claude Code](https://claude.com/claude-code) — the
-implementation, the 1,722-test suite, and the adversarial review passes that
+implementation, the 1,848-test suite, and the adversarial review passes that
 found most of the defects it now guards against.
 
 That is worth stating precisely, because this tool's first rule is that **no
@@ -101,8 +101,14 @@ Two of those constraints are enforced by the test suite rather than by good
 intentions. Adding a rule that suppresses a difference as a known registry
 defect, without a section naming it in [registry defects](registry-artifacts.md),
 turns a test red, because a suppression a reader cannot look up is one nobody
-can challenge. And the default test run deselects anything networked: 1,721 of
-the 1,722 tests run and pass with no internet at all, and the one that does not
-run is the `network`-marked test that gives the deselection something to filter.
-A suite that needs the network gets skipped, and a skipped suite protects
-nobody.
+can challenge. And the default test run deselects anything networked: 1,799 of
+the 1,848 tests run and pass with no internet at all. A suite that needs the
+network gets skipped, and a skipped suite protects nobody.
+
+The 49 that are deselected are not ceremony. They re-fetch every URL in
+[`tests/data/PROVENANCE.toml`](https://github.com/lorenzoFabbri/bibaudit/blob/main/tests/data/PROVENANCE.toml)
+from Crossref, DataCite, PubMed and Retraction Watch and diff the answer
+against the bytes on disk, which is the only thing in this repository able to
+tell a recorded registry response from a written one — ten files had been
+written. `uv run pytest -m network` is the command, and it is nobody's
+default.

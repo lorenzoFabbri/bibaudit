@@ -174,8 +174,9 @@ _MODIFIER_LETTER = "Lm"
 #: both scripts: 10.33285/0132-2222-2019-9(554)-28-35 deposits the surname
 #: *Solovyev* with CYRILLIC SMALL LETTER U where the ``y`` belongs, and
 #: 10.1007/s13399-025-06952-4 the forename *Konstantinos* opening on GREEK
-#: CAPITAL LETTER KAPPA. Two in the 16,585 creators of a 6,000-work random
-#: Crossref sample.
+#: CAPITAL LETTER KAPPA. 23 of the 91,226 creators in a 32,000-work random
+#: Crossref sample carry one, and this map reads 19 of them; the four it
+#: leaves are the guard working, and :func:`_read_confusables` says how.
 #:
 #: :func:`fold` used to *delete* such a letter, there being no row for it in
 #: :data:`_ROMANISED_MAP`. Deletion is honest for a value written wholly in
@@ -288,6 +289,16 @@ def _read_confusables(text: str) -> str:
       rather than a slip, and the value is left alone entire. That is what
       keeps a Russian journal's own name intact where a container string
       carries it beside its romanisation.
+
+    Four of the 23 mixed-script creator values in a 32,000-work random Crossref
+    sample are left alone by one half of that guard or the other, and each is
+    the guard working rather than a miss: a surname carrying GREEK SMALL LETTER
+    OMEGA for ``o`` and one carrying GREEK SMALL LETTER BETA for ``ss``, which
+    have no row and cannot without taking every lower-case Greek letter with
+    them; a Ukrainian surname spelled with CYRILLIC SMALL LETTER UKRAINIAN IE,
+    which no Latin letter is drawn as; and a Russian name written in Cyrillic
+    that happens to carry one stray Latin letter, where the whole point is to
+    leave it unreadable rather than transliterate it here.
 
     The residual limit is a value mixing Latin with a short word spelled
     *only* in lookalikes, which is repaired as though it were damage. No
