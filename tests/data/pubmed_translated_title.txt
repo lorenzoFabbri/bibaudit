@@ -1,24 +1,47 @@
-PMID- 15455608
+
+PMID- 36448904
 OWN - NLM
 STAT- MEDLINE
-DP  - 2004 Sep
-VI  - 52
-IP  - 4
-TI  - [Occupational exposure to pesticides and risk of cancer among
-      agricultural workers].
-PG  - 623-30
-FAU - Baldi, Isabelle
-AU  - Baldi I
-AD  - Laboratoire Sante Travail Environnement, Universite Victor Segalen
-      Bordeaux 2, France.
+DCOM- 20221205
+LR  - 20221205
+IS  - 1958-5381 (Electronic)
+IS  - 0767-0974 (Linking)
+VI  - 38
+IP  - 11
+DP  - 2022 Nov
+TI  - [Dog breeds and behaviour].
+PG  - 947-950
+LID - 10.1051/medsci/2022140 [doi]
+AB  - It is commonly believed that a dog's breed predicts its behaviour. A 2019 paper 
+      seemed to confirm this, but had some serious limitations. An extensive new study 
+      shows that, in fact, breed is not a good predictor of behaviour at the individual 
+      level, and has only a weak influence on average characteristics.
+CI  - (c) 2022 medecine/sciences - Inserm.
+FAU - Jordan, Bertrand
+AU  - Jordan B
+AD  - Biologiste, geneticien et immunologiste, president d'Aprogene (Association pour 
+      la promotion de la genomique), 13007 Marseille, France.
 LA  - fre
 PT  - English Abstract
 PT  - Journal Article
-PT  - Review
-TT  - Exposition professionnelle aux pesticides et risque de cancer chez les
-      travailleurs agricoles.
+TT  - Races canines et comportement - Chroniques genomiques.
+DEP - 20221130
 PL  - France
-TA  - Rev Epidemiol Sante Publique
-JT  - Revue d'epidemiologie et de sante publique
-AID - 10.1016/s0398-7620(04)99012-3 [doi]
+TA  - Med Sci (Paris)
+JT  - Medecine sciences : M/S
+JID - 8710980
+SB  - IM
+MH  - Animals
+MH  - *Dogs
+MH  - *Behavior, Animal
+EDAT- 2022/12/01 06:00
+MHDA- 2022/12/03 06:00
+CRDT- 2022/11/30 09:53
+PHST- 2022/11/30 09:53 [entrez]
+PHST- 2022/12/01 06:00 [pubmed]
+PHST- 2022/12/03 06:00 [medline]
+AID - msc220208 [pii]
+AID - 10.1051/medsci/2022140 [doi]
 PST - ppublish
+SO  - Med Sci (Paris). 2022 Nov;38(11):947-950. doi: 10.1051/medsci/2022140. Epub 2022 
+      Nov 30.

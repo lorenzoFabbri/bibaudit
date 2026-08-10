@@ -82,9 +82,10 @@ _MIN_REQUEST_GAP = 1.0 / _MAX_REQUESTS_PER_SECOND
 #: one — is a continuation of the field just opened, not a new field.
 _TAG_LINE_RE = re.compile(r"^([A-Z]{2,4})\s*- (.*)$")
 
-#: PubMed wraps a machine-translated title in brackets with a trailing
-#: period, e.g. "[Effet du traitement sur la survie].": the article's own
-#: title is not English and TI carries NLM's English gloss instead of it.
+#: PubMed wraps its English gloss of a non-English title in brackets with a
+#: trailing period — PMID 36448904 is ``TI  - [Dog breeds and behaviour].``
+#: beside ``LA  - fre`` and the vernacular in ``TT``. The article's own title
+#: is not English and ``TI`` carries the gloss instead of it.
 _TRANSLATED_TITLE_RE = re.compile(r"^\[(.*)\]\.?$")
 
 #: A title whose last word is an abbreviation — PMID 24903303 is ``TI  -

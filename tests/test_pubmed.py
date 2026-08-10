@@ -359,21 +359,20 @@ class TestTitleCleanup:
         every French, German or Spanish citation.
         """
         record = _resolve_one(
-            "translated_title", pmid="15455608", doi="10.1016/s0398-7620(04)99012-3"
+            "translated_title", pmid="36448904", doi="10.1051/medsci/2022140"
         )
-        assert record.title == (
-            "Occupational exposure to pesticides and risk of cancer among agricultural workers"
-        )
+        assert record.title == "Dog breeds and behaviour"
 
     def test_a_translated_title_is_marked_as_such_in_raw(self) -> None:
         """The report needs to say the registry title is a translation.
 
-        The article's own title is French (``LA  - fre``, with the vernacular
-        text in ``TT``), so an entry whose title is the French one is not
-        wrong even though it matches nothing in ``TI``.
+        The article's own title is French — ``LA  - fre``, with the vernacular
+        ``TT  - Races canines et comportement - Chroniques genomiques.`` — so
+        an entry whose title is the French one is not wrong even though it
+        matches nothing in ``TI``.
         """
         record = _resolve_one(
-            "translated_title", pmid="15455608", doi="10.1016/s0398-7620(04)99012-3"
+            "translated_title", pmid="36448904", doi="10.1051/medsci/2022140"
         )
         assert record.raw["translated"] is True
 
