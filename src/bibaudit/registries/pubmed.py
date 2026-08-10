@@ -195,7 +195,7 @@ def _initials_ahead_of_the_surname(tokens: list[str]) -> bool:
 
 
 def _parse_au_fallback(raw: str) -> Name:
-    """Parse one MEDLINE ``AU`` (abbreviated author) entry, e.g. "van Eijck CHJ".
+    """Parse one creator written in MEDLINE's ``AU`` convention, "van Eijck CHJ".
 
     ``AU`` has no comma and orders surname before initials — the opposite of
     the "Given Family" order :func:`~bibaudit.names.parse_name` assumes for a
@@ -203,31 +203,37 @@ def _parse_au_fallback(raw: str) -> Name:
     "Smith JA" to it unmodified would swap surname and given name and fail
     the author comparison on the surname alone.
 
-    :func:`_parse_fau` sends the comma-less ``FAU`` values here for the same
-    reason.
+    Nothing reaches here from ``AU`` itself. What does is the comma-less
+    ``FAU``, sent by :func:`_parse_fau` for the same reason, and ``ED`` --
+    ``AU``'s convention on the editor side.
     """
     text = clean(raw).strip()
     if not text:
         return Name()
-    # A pre-2002 MEDLINE citation can carry a collective author's name
-    # directly in AU with no FAU ever backfilled and no CN tag either (e.g.
-    # "Multiple Risk Factor Intervention Trial Research Group"). parse_name's
-    # own collective check only fires on a comma-less string, so it has to
-    # see this text before the synthetic "surname, initials" comma is
-    # introduced below -- inserting that comma first defeats the check and
-    # turns the whole group name into a bogus family/given split (family=
-    # every word but the last, given=the last word).
+    # A comma-less FAU is a publisher's <LastName> with no <ForeName> beside
+    # it, and some publishers put an organisation in that slot: PMID 34064455
+    # deposits <Author><LastName>Study Group</LastName></Author> and NLM
+    # renders it `FAU - Study Group`. parse_name's own collective check only
+    # fires on a comma-less string, so it has to see this text before the
+    # synthetic "surname, initials" comma is introduced below -- inserting
+    # that comma first defeats the check and turns the whole group name into
+    # a bogus family/given split (family=every word but the last, given=the
+    # last word), so `Study Group` would be compared as a person surnamed
+    # Study. Rare and real: `"study group"[au]` answers 1 citation,
+    # `"working group"[au]` 3 and `"collaborators"[au]` 1, while `"research
+    # group"[au]`, `"consortium"[au]`, `"network"[au]`, `"committee"[au]` and
+    # `"collaboration"[au]` answer none -- an organisation NLM was given
+    # properly goes to CN, which `_corporate_creator` handles.
     #
-    # `et_al` is tested for the same reason and not because a case has been
-    # seen: NLM does write the marker -- 41 citations answer `"et al"[au]`,
-    # PMID 19420835 among them -- but every one of those carries `FAU` too, so
-    # this route has no witnessed instance. What the test changes is narrower
-    # than the collective case beside it: the marker is *recognised* either
-    # way, because `fold` deletes the synthetic comma again before
-    # `parse_name` looks for it. What it would not survive is the comma
-    # itself, which this function invented -- a report naming the creator the
-    # byline stopped at would print `Et, al`, and a value shown to a reader
-    # has to be the registry's own.
+    # `et_al` arrives by the same route: NLM writes the marker for a byline
+    # the publisher truncated -- 41 citations answer `"et al"[au]` -- and
+    # PMID 19420835 and 38010780 carry it as `FAU - Et Al`, comma-less, so it
+    # lands here. The marker is *recognised* either way, because `fold`
+    # deletes the synthetic comma again before `parse_name` looks for it.
+    # What it would not survive is the comma itself, which this function
+    # invented -- a report naming the creator the byline stopped at would
+    # print `Et, al`, and a value shown to a reader has to be the registry's
+    # own.
     whole = parse_name(text)
     if whole.collective or whole.et_al:
         return whole
@@ -288,13 +294,27 @@ def _corporate_creator(raw: str) -> Name:
 def _authors_from(fields: dict[str, list[str]]) -> tuple[list[Name], bool]:
     """The record's creators, and whether they came from the editor tags.
 
-    ``FAU`` when present, else ``AU`` — see :func:`_parse_fau` and
-    :func:`_parse_au_fallback`. Then
-    ``CN``, MEDLINE's corporate author, which for some citations is the whole
-    byline: PMID 42538063, a committee opinion in *Fertility and Sterility*,
-    credits ``CN - Practice Committee of the American Society for Reproductive
-    Medicine`` and carries no ``FAU`` or ``AU`` line at all, and 4 of 3,000
-    citations in the live sample above have that shape. Unread, those records
+    ``FAU`` — see :func:`_parse_fau`. Never ``AU``, which is not a fallback
+    but the same creator written twice: NLM's MEDLINE display renders both
+    tags from one ``<Author>`` element and emits them as a pair, down to
+    ``<Author><LastName>Courty</LastName></Author>`` on PMID 5323505, which
+    carries no forename and no initials and still comes back as ``FAU -
+    Courty`` *and* ``AU - Courty``. No XML input yields one without the other,
+    and none was found: 11,587 citations sampled over eighteen strata — random
+    across PMID 1-41,000,000, twelve publication years from 1946 to 2000, four
+    windows spanning 1946-2026, books, publisher-supplied, PubMed-not-MEDLINE,
+    in-process and systematic reviews — carry ``AU`` without ``FAU`` zero
+    times, and ``FAU`` without ``AU`` zero times. NLM's "full author name
+    [fau] began with or about 2002 date of publication" is about the
+    searchable index, not the tag: PMID 20989164, from 1946, is ``FAU - MACY,
+    R W``.
+
+    Then ``CN``, MEDLINE's corporate author, which for some citations is the
+    whole byline: PMID 42538063, a committee opinion in *Fertility and
+    Sterility*, credits ``CN - Practice Committee of the American Society for
+    Reproductive Medicine`` and carries no ``FAU`` or ``AU`` line at all, and
+    4 of 3,000 citations in a live sample have that shape. Unread, those
+    records
     reach ``compare._check_authors`` with an empty list, which returns before
     comparing anything: an entry whose byline was three invented people was
     reported ``OK`` against a record whose one creator is an organisation.
@@ -324,9 +344,6 @@ def _authors_from(fields: dict[str, list[str]]) -> tuple[list[Name], bool]:
     full = fields.get("FAU")
     if full:
         return [_parse_fau(value) for value in full if value], False
-    abbreviated = fields.get("AU")
-    if abbreviated:
-        return [_parse_au_fallback(value) for value in abbreviated if value], False
     corporate = fields.get("CN")
     if corporate:
         return [_corporate_creator(value) for value in corporate if value], False

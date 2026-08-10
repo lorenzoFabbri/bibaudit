@@ -406,12 +406,14 @@ class TestTitleCleanup:
 
 
 class TestAuthors:
-    def test_fau_is_preferred_over_au(self) -> None:
+    def test_the_byline_is_read_from_fau_and_never_from_au(self) -> None:
         """``FAU`` carries the full forename and an unambiguous comma order.
 
         ``AU`` for the same person is "Donat-Vargas C": initials only, and no
-        comma to say which half is the surname. Reading ``AU`` when ``FAU`` is
-        present throws away the forename the comparison could have used.
+        comma to say which half is the surname. Reading ``AU`` throws away the
+        forename the comparison could have used — and there is never a record
+        where it is all there is, because NLM emits the two tags as a pair
+        from one ``<Author>`` element.
         """
         record = _resolve_one("wrapped_title", pmid=WRAPPED_PMID, doi=WRAPPED_DOI)
         assert (record.authors[0].family, record.authors[0].given) == (
@@ -419,41 +421,37 @@ class TestAuthors:
             "Carolina",
         )
 
-    def test_au_only_record_keeps_medline_surname_first_order(self) -> None:
-        """Pre-2002 citations have no ``FAU`` at all, only "van Eijck CH".
+    def test_a_collective_in_a_comma_less_fau_is_not_split_into_a_person(self) -> None:
+        """"Study Group" is an organisation a publisher filed as a surname.
 
-        That is surname-then-initials, the opposite of the "Given Family"
-        order a comma-less string means in BibTeX. Parsing it as BibTeX would
-        make the surname "CH" and fail the author check on every author of
-        every older citation.
+        PMID 34064455 deposits ``<Author><LastName>Study
+        Group</LastName></Author>``, so NLM renders ``FAU - Study Group`` with
+        no comma and :func:`~bibaudit.registries.pubmed._parse_fau` hands it to
+        the abbreviated parser. The surname-first repair inserts a comma
+        before the last token, so applying it here first would yield family
+        "Study", given "Group" — a person who does not exist, compared against
+        a real surname.
         """
-        record = _resolve_one("au_only", pmid="7912306", doi="10.1016/s0140-6736(94)92543-x")
-        assert (record.authors[0].family, record.authors[0].given) == ("van Eijck", "CH")
+        record = _resolve_one(
+            "collective_fau_without_comma",
+            pmid="34064455",
+            doi="10.3390/vaccines9050455",
+        )
+        assert record.authors[5].collective
+        assert str(record.authors[5]) == "Study Group"
 
-    def test_a_collective_author_in_au_is_not_split_into_a_person(self) -> None:
-        """"Dutch Colorectal Cancer Group" is one organisation.
-
-        The surname-first repair inserts a comma before the last token, so
-        applying it here first would yield family "Dutch Colorectal Cancer",
-        given "Group" — a person who does not exist, compared against a real
-        surname.
-        """
-        record = _resolve_one("au_only", pmid="7912306", doi="10.1016/s0140-6736(94)92543-x")
-        assert record.authors[2].collective
-        assert str(record.authors[2]) == "Dutch Colorectal Cancer Group"
-
-
-    def test_an_et_al_marker_in_au_is_truncation_and_not_a_creator(self) -> None:
+    def test_an_et_al_marker_is_truncation_and_not_a_creator(self) -> None:
         """NLM writes the marker: 41 citations answer ``"et al"[au]``.
 
-        Every one of them carries ``FAU`` as well, so this route has no
-        witnessed instance. Being *recognised* is not what the guard buys —
-        the synthetic comma this function inserts is deleted again by ``fold``
-        before ``parse_name`` looks for the marker, so a marker reached
-        through the surname-first repair is still a marker. What the guard
-        keeps is the text: a report naming the creator a byline stopped at
-        prints ``Name.literal``, and every value shown to a reader has to be
-        the registry's own rather than one this module punctuated.
+        They reach this parser the way the collective above does — PMID
+        19420835 and 38010780 carry ``FAU - Et Al`` with no comma. Being
+        *recognised* is not what the guard buys: the synthetic comma this
+        function inserts is deleted again by ``fold`` before ``parse_name``
+        looks for the marker, so a marker reached through the surname-first
+        repair is still a marker. What the guard keeps is the text — a report
+        naming the creator a byline stopped at prints ``Name.literal``, and
+        every value shown to a reader has to be the registry's own rather than
+        one this module punctuated.
         """
         name = pubmed._parse_au_fallback("Et al")
 

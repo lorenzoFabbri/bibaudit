@@ -1,0 +1,118 @@
+
+PMID- 34064455
+OWN - NLM
+STAT- PubMed-not-MEDLINE
+LR  - 20210615
+IS  - 2076-393X (Print)
+IS  - 2076-393X (Electronic)
+IS  - 2076-393X (Linking)
+VI  - 9
+IP  - 5
+DP  - 2021 May 4
+TI  - Age-Specific Seasonal Influenza Vaccine Effectiveness against Different Influenza 
+      Subtypes in the Hospitalized Population in Lithuania during the 2015-2019 
+      Influenza Seasons.
+LID - 10.3390/vaccines9050455 [doi]
+LID - 455
+AB  - BACKGROUND: Continuous monitoring of seasonal influenza vaccine effectiveness 
+      (SIVE) is needed due to the changing nature of influenza viruses and it supports 
+      the decision on the annual update of vaccine composition. Age-specific SIVE was 
+      evaluated against different influenza subtypes in the hospitalized population in 
+      Lithuania during four influenza seasons. METHODS: A test-negative case-control 
+      study design was used. SIVE and its 95% confidence intervals (95% CI) were 
+      calculated as (1 - odds ratio (OR)) x 100%. RESULTS: Adjusted SIVE in 
+      18-64-year-old individuals against influenza A, A(H1N1)pdm09 and B/Yamagata were 
+      78.0% (95% CI: 1.7; 95.1%), 88.6% (95% CI: -47.4; 99.1%), and 76.8% (95% CI: 
+      -109.9; 97.4%), respectively. Adjusted SIVE in individuals aged 65 years and 
+      older against influenza A, influenza B, and B/Yamagata were 22.6% (95% CI: -36.5; 
+      56.1%), 75.3% (95% CI: 12.2; 93.1%) and 73.1% (95% CI: 3.2; 92.5%), respectively. 
+      Unadjusted SIVE against influenza A(H3N2) among 18-64-year-old patients was 44.8% 
+      (95% CI: -171.0; 88.8%) and among those aged 65 years and older was 5.0% (95% CI: 
+      -74.5; 48.3%). CONCLUSIONS: Point estimates suggest high SIVE against influenza A 
+      in 18-64-year-old participants, and against influenza B and B/Yamagata in those 
+      65 years old and older.
+FAU - Kuliese, Monika
+AU  - Kuliese M
+AUID- ORCID: 0000-0002-4601-4585
+AD  - Department of Infectious Diseases, Lithuanian University of Health Sciences, 
+      Baltijos Street 120, 47116 Kaunas, Lithuania.
+FAU - Mickiene, Aukse
+AU  - Mickiene A
+AD  - Department of Infectious Diseases, Lithuanian University of Health Sciences, 
+      Baltijos Street 120, 47116 Kaunas, Lithuania.
+FAU - Jancoriene, Ligita
+AU  - Jancoriene L
+AUID- ORCID: 0000-0001-6488-6312
+AD  - Clinic of Infectious Diseases and Dermatovenerology, Faculty of Medicine, 
+      Institute of Clinical Medicine, Vilnius University, Santariskiu Street 14, 08406 
+      Vilnius, Lithuania.
+AD  - Center of Infectious Diseases, Vilnius University Hospital Santaros Klinikos, 
+      Santariskiu Street 14, 08406 Vilnius, Lithuania.
+FAU - Zablockiene, Birute
+AU  - Zablockiene B
+AD  - Clinic of Infectious Diseases and Dermatovenerology, Faculty of Medicine, 
+      Institute of Clinical Medicine, Vilnius University, Santariskiu Street 14, 08406 
+      Vilnius, Lithuania.
+AD  - Center of Infectious Diseases, Vilnius University Hospital Santaros Klinikos, 
+      Santariskiu Street 14, 08406 Vilnius, Lithuania.
+FAU - Gefenaite, Giedre
+AU  - Gefenaite G
+AD  - Department of Infectious Diseases, Lithuanian University of Health Sciences, 
+      Baltijos Street 120, 47116 Kaunas, Lithuania.
+AD  - Department of Health Sciences, Faculty of Medicine, Lund University, Box 157, 
+      22100 Lund, Sweden.
+FAU - Study Group
+AU  - Study Group
+LA  - eng
+GR  - agreement No. SEN-03/2015/Research Council of Lithuania/
+GR  - 634446/European Commission Horizon 2020 program/
+GR  - Network/I-MOVE+ (Influenza Monitoring Vaccines Effectiveness in Europe in 
+      Elderly)/
+PT  - Journal Article
+DEP - 20210504
+PL  - Switzerland
+TA  - Vaccines (Basel)
+JT  - Vaccines
+JID - 101629355
+PMC - PMC8147944
+OTO - NOTNLM
+OT  - hospital surveillance
+OT  - influenza
+OT  - laboratory-confirmed
+OT  - older people
+OT  - risk groups
+OT  - severe outcomes
+OT  - underlying conditions
+COIS- Authors declare no conflict of interest. Ligita Jancoriene received consulting 
+      fees and honorarium for lectures and payment for conducting a clinical study from 
+      Merck Sharp & Dohme outside the submitted work; the registration fee of the 
+      virtual meeting "HIV Glazgow 2020"; consulting fees, honorarium for lectures and 
+      registration fee of "The Digital International Liver Congress 2020"-AbbVie; 
+      honorarium for lectures and registration fee of virtual meeting "ID week 
+      2020"-Pfizer; honorarium for lectures and registration fee of virtual meeting 
+      "7th ESWI Influenza conference" (ESWL 2020)-Sanofi. Aukse Mickiene received 
+      honorarium for lectures on meningococcal, pneumococcal infection, and tick-borne 
+      encephalitis at the local scientific conferences and educational workshops in 
+      Lithuania-Pfizer; consulting fees, honorarium for lectures on HIV treatment and 
+      prevention in Lithuania-GSK; grant for the Independent Investigator-Initiated 
+      Research (Project Code/PO/Tracking Number WI236259; Pfizer R&D 
+      Investigator-Initiated Research program 
+      (https://www.pfizer.com/science/collaboration/investigator-initiated-research, 
+      accessed on 3 May 2021) for the scientific project "A prospective study on the 
+      long-term outcome and pathogenesis of tick-borne encephalitis".
+EDAT- 2021/06/03 06:00
+MHDA- 2021/06/03 06:01
+PMCR- 2021/05/04
+CRDT- 2021/06/02 01:09
+PHST- 2021/03/28 00:00 [received]
+PHST- 2021/04/23 00:00 [revised]
+PHST- 2021/04/30 00:00 [accepted]
+PHST- 2021/06/02 01:09 [entrez]
+PHST- 2021/06/03 06:00 [pubmed]
+PHST- 2021/06/03 06:01 [medline]
+PHST- 2021/05/04 00:00 [pmc-release]
+AID - vaccines9050455 [pii]
+AID - vaccines-09-00455 [pii]
+AID - 10.3390/vaccines9050455 [doi]
+PST - epublish
+SO  - Vaccines (Basel). 2021 May 4;9(5):455. doi: 10.3390/vaccines9050455.
