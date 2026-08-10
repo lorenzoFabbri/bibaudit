@@ -1,5 +1,34 @@
 {
+  "indexed": {
+    "date-parts": [
+      [
+        2026,
+        6,
+        18
+      ]
+    ],
+    "date-time": "2026-06-18T17:23:14Z",
+    "timestamp": 1781803394996,
+    "version": "3.54.5"
+  },
+  "publisher-location": "Totowa, NJ",
+  "reference-count": 4,
   "publisher": "Humana Press",
+  "isbn-type": [
+    {
+      "value": "9781588299956",
+      "type": "print"
+    },
+    {
+      "value": "9781597454230",
+      "type": "electronic"
+    }
+  ],
+  "content-domain": {
+    "domain": [],
+    "crossmark-restriction": false
+  },
+  "short-container-title": [],
   "published-print": {
     "date-parts": [
       [
@@ -9,10 +38,24 @@
   },
   "DOI": "10.1007/978-1-59745-423-0_7",
   "type": "book-chapter",
+  "created": {
+    "date-parts": [
+      [
+        2010,
+        10,
+        14
+      ]
+    ],
+    "date-time": "2010-10-14T23:57:29Z",
+    "timestamp": 1287100649000
+  },
   "page": "179-191",
+  "source": "Crossref",
+  "is-referenced-by-count": 13,
   "title": [
     "The European Prospective Investigation into Cancer and Nutrition Biobank"
   ],
+  "prefix": "10.1007",
   "author": [
     {
       "given": "Pierre",
@@ -75,6 +118,7 @@
       ]
     }
   ],
+  "member": "297",
   "published-online": {
     "date-parts": [
       [
@@ -84,10 +128,84 @@
       ]
     ]
   },
+  "reference": [
+    {
+      "key": "7_CR1_7",
+      "doi-asserted-by": "publisher",
+      "first-page": "1113",
+      "DOI": "10.1079/PHN2002394",
+      "volume": "5",
+      "author": "E Riboli",
+      "year": "2002",
+      "unstructured": "Riboli, E., Hunt, K.J., Slimani, N., Ferrari, P., Norat, T., Fahey, M., Charrondiere, U.R., Hemon, B., Casagrande, C., Vignat, J., Overvad, K., Tjonneland, A., Clavel-Chapelon, F., Thiebaut, A., Wahrendorf, J., Boeing, H., Trichopoulos, D., Trichopoulou, A., Vineis, P., Palli, D., Bueno-De-Mesquita, H.B., Peeters, P.H., Lund, E., Engeset, D., Gonzalez, C.A., Barricarte, A., Berglund, G., Hallmans, G., Day, N.E., Key, T.J., Kaaks, R., and Saracci, R. (2002) European Prospective Investigation into Cancer and Nutrition (EPIC): study populations and data collection. Public Health Nutr. 5, 1113–1124.",
+      "journal-title": "Public Health Nutr."
+    },
+    {
+      "key": "7_CR2_7",
+      "doi-asserted-by": "publisher",
+      "first-page": "1125",
+      "DOI": "10.1079/PHN2002395",
+      "volume": "5",
+      "author": "N Slimani",
+      "year": "2002",
+      "unstructured": "Slimani, N., Kaaks, R., Ferrari, P., Casagrande, C., Clavel-Chapelon, F., Lotze, G., Kroke, A., Trichopoulos, D., Trichopoulou, A., Lauria, C., Bellegotti, M., Ocke, M.C., Peeters, P.H., Engeset, D., Lund, E., Agudo, A., Larranaga, N., Mattisson, I., Andren, C., Johansson, I., Davey, G., Welch, A.A., Overvad, K., Tjonneland, A., Van Staveren, W.A., Saracci, R., and Riboli, E. (2002) European Prospective Investigation into Cancer and Nutrition (EPIC) calibration study: rationale, design and population characteristics. Public Health Nutr.\n                5, 1125–1145.",
+      "journal-title": "Public Health Nutr."
+    },
+    {
+      "key": "7_CR3_7",
+      "doi-asserted-by": "publisher",
+      "first-page": "92",
+      "DOI": "10.1016/j.mrfmmm.2005.01.025",
+      "volume": "574",
+      "author": "M Peluso",
+      "year": "2005",
+      "unstructured": "Peluso, M., Hainaut, P., Airoldi, L., Autrup, H., Dunning, A., Garte, S., Gormally, E., Malaveille, C., Matullo, G., Munnia, A., Riboli, E., and Vineis, P. (2005) Methodology of laboratory measurements in prospective studies on gene-environment interactions: the experience of GenAir. Mutat Res. 574, 92–104.",
+      "journal-title": "Mutat. Res."
+    },
+    {
+      "key": "7_CR4_7",
+      "doi-asserted-by": "publisher",
+      "first-page": "746",
+      "DOI": "10.1002/ijc.20327",
+      "volume": "111",
+      "author": "E Gormally",
+      "year": "2004",
+      "unstructured": "Gormally, E., Hainaut, P., Caboux, E., Airoldi, L., Autrup, H., Malaveille, C., Dunning, A., Garte, S., Matullo, G., Overvad, K., Tjonneland, A., Clavel-Chapelon, F., Boffetta, P., Boeing, H., Trichopoulou, A., Palli, D., Krogh, V., Tumino, R., Panico, S., Bueno-De-Mesquita, H.B., Peeters, P.H., Lund, E., Gonzalez, C.A., Martinez, C., Dorronsoro, M., Barricarte, A., Tormo, M.J., Quiros, J.R., Berglund, G., Hallmans, G., Day, N.E., Key, T.J., Veglia, F., Peluso, M., Norat, T., Saracci, R., Kaaks, R., Riboli, E., and Vineis, P. (2004) Amount of DNA in plasma and cancer risk: a prospective study. Int J Cancer\n                111, 746–749.",
+      "journal-title": "Int. J. Cancer"
+    }
+  ],
   "container-title": [
     "Methods in Molecular Biology",
     "Methods in Biobanking"
   ],
+  "original-title": [],
+  "link": [
+    {
+      "URL": "http://link.springer.com/content/pdf/10.1007/978-1-59745-423-0_7",
+      "content-type": "unspecified",
+      "content-version": "vor",
+      "intended-application": "similarity-checking"
+    }
+  ],
+  "deposited": {
+    "date-parts": [
+      [
+        2019,
+        3,
+        21
+      ]
+    ],
+    "date-time": "2019-03-21T17:18:14Z",
+    "timestamp": 1553188694000
+  },
+  "score": 1,
+  "resource": {
+    "primary": {
+      "URL": "http://link.springer.com/10.1007/978-1-59745-423-0_7"
+    }
+  },
+  "subtitle": [],
+  "short-title": [],
   "issued": {
     "date-parts": [
       [
@@ -97,8 +215,35 @@
       ]
     ]
   },
+  "ISBN": [
+    "9781588299956",
+    "9781597454230"
+  ],
+  "references-count": 4,
+  "URL": "https://doi.org/10.1007/978-1-59745-423-0_7",
+  "relation": {},
   "ISSN": [
     "1064-3745",
     "1940-6029"
-  ]
+  ],
+  "issn-type": [
+    {
+      "value": "1064-3745",
+      "type": "print"
+    },
+    {
+      "value": "1940-6029",
+      "type": "electronic"
+    }
+  ],
+  "subject": [],
+  "published": {
+    "date-parts": [
+      [
+        2010,
+        9,
+        23
+      ]
+    ]
+  }
 }

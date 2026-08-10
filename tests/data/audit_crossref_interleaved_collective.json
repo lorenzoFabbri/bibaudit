@@ -1,6 +1,72 @@
 {
+  "indexed": {
+    "date-parts": [
+      [
+        2026,
+        7,
+        28
+      ]
+    ],
+    "date-time": "2026-07-28T09:08:14Z",
+    "timestamp": 1785229694902,
+    "version": "3.55.0"
+  },
+  "reference-count": 53,
   "publisher": "American Association for Cancer Research (AACR)",
   "issue": "9",
+  "funder": [
+    {
+      "DOI": "10.13039/100000002",
+      "name": "National Institutes of Health",
+      "doi-asserted-by": "crossref",
+      "award": [
+        "CA194393"
+      ],
+      "award-info": [
+        {
+          "award-number": [
+            "CA194393"
+          ]
+        }
+      ],
+      "id": [
+        {
+          "id": "10.13039/100000002",
+          "id-type": "DOI",
+          "asserted-by": "crossref"
+        }
+      ]
+    },
+    {
+      "DOI": "10.13039/100000002",
+      "name": "National Institutes of Health",
+      "doi-asserted-by": "crossref",
+      "award": [
+        "CA261339"
+      ],
+      "award-info": [
+        {
+          "award-number": [
+            "CA261339"
+          ]
+        }
+      ],
+      "id": [
+        {
+          "id": "10.13039/100000002",
+          "id-type": "DOI",
+          "asserted-by": "crossref"
+        }
+      ]
+    }
+  ],
+  "content-domain": {
+    "domain": [
+      "aacrjournals.org"
+    ],
+    "crossmark-restriction": true
+  },
+  "short-container-title": [],
   "published-print": {
     "date-parts": [
       [
@@ -10,12 +76,28 @@
       ]
     ]
   },
+  "abstract": "<jats:title>Abstract</jats:title>\n                  <jats:sec>\n                    <jats:title>Background:</jats:title>\n                    <jats:p>In Western populations, pancreatic ductal adenocarcinoma (PDAC) risk has been found to be greater among individuals with non-O blood types than those with O blood type. However, the association has not been fully evaluated with respect to FUT2 (determining secretor status) and FUT3 (determining Lewis antigens) status, two biologically important genes in the expression of ABO blood groups with PDAC.</jats:p>\n                  </jats:sec>\n                  <jats:sec>\n                    <jats:title>Methods:</jats:title>\n                    <jats:p>We examined interactions in data from 8,027 cases and 11,362 controls in large pancreatic cancer consortia (PanScan I-III and PanC4) by using genetic variants to predict ABO blood groups (rs505922 and rs8176746), secretor status (rs601338), and Lewis antigens (rs812936, rs28362459, and rs3894326). Multivariable logistic regression was used to estimate ORs and 95% confidence intervals (CI) of the risk of PDAC adjusted for age and sex. We examined multiplicative interactions of ABO with secretor status and Lewis antigens by considering each product term between ABO and secretor and between ABO and Lewis antigens individually.</jats:p>\n                  </jats:sec>\n                  <jats:sec>\n                    <jats:title>Results:</jats:title>\n                    <jats:p>We found that the increased risk associated with non-O blood groups was somewhat stronger among secretors than nonsecretors [ORs, 1.28 (95% CI, 1.15–1.42) and 1.17 (95% CI, 1.03–1.32) respectively; Pinteraction = 0.002]. We did not find any interactions between ABO and Lewis antigens.</jats:p>\n                  </jats:sec>\n                  <jats:sec>\n                    <jats:title>Conclusions:</jats:title>\n                    <jats:p>Our large consortia data provide evidence of effect modification in the association between non-O blood type and pancreatic cancer risk by secretor status.</jats:p>\n                  </jats:sec>\n                  <jats:sec>\n                    <jats:title>Impact:</jats:title>\n                    <jats:p>Our results indicate that the association between ABO blood type and PDAC risk may vary by secretor status, but not by Lewis antigens.</jats:p>\n                  </jats:sec>",
   "DOI": "10.1158/1055-9965.epi-23-0009",
   "type": "journal-article",
+  "created": {
+    "date-parts": [
+      [
+        2023,
+        6,
+        22
+      ]
+    ],
+    "date-time": "2023-06-22T04:09:01Z",
+    "timestamp": 1687406941000
+  },
   "page": "1242-1248",
+  "update-policy": "https://doi.org/10.1158/crossmark_policy",
+  "source": "Crossref",
+  "is-referenced-by-count": 17,
   "title": [
     "Relationship between\n                    <i>ABO</i>\n                    Blood Group Alleles and Pancreatic Cancer Is Modulated by Secretor (\n                    <i>FUT2</i>\n                    ) Genotype, but Not Lewis Antigen (\n                    <i>FUT3</i>\n                    ) Genotype"
   ],
+  "prefix": "10.1158",
   "volume": "32",
   "author": [
     {
@@ -173,6 +255,7 @@
       ]
     }
   ],
+  "member": "1086",
   "published-online": {
     "date-parts": [
       [
@@ -182,9 +265,629 @@
       ]
     ]
   },
+  "reference": [
+    {
+      "key": "2025112608142650600_bib1",
+      "first-page": "7",
+      "article-title": "Cancer statistics, 2021",
+      "volume": "71",
+      "author": "Siegel",
+      "year": "2021",
+      "journal-title": "CA Cancer J Clin"
+    },
+    {
+      "key": "2025112608142650600_bib2",
+      "doi-asserted-by": "crossref",
+      "first-page": "16022",
+      "DOI": "10.1038/nrdp.2016.22",
+      "article-title": "Pancreatic cancer",
+      "volume": "2",
+      "author": "Kleeff",
+      "year": "2016",
+      "journal-title": "Nat Rev Dis Primers"
+    },
+    {
+      "key": "2025112608142650600_bib3",
+      "doi-asserted-by": "crossref",
+      "first-page": "424",
+      "DOI": "10.1093/jnci/djp020",
+      "article-title": "ABO blood group and the risk of pancreatic cancer",
+      "volume": "101",
+      "author": "Wolpin",
+      "year": "2009",
+      "journal-title": "J Natl Cancer Inst"
+    },
+    {
+      "key": "2025112608142650600_bib4",
+      "doi-asserted-by": "crossref",
+      "first-page": "1015",
+      "DOI": "10.1158/0008-5472.CAN-09-2993",
+      "article-title": "Pancreatic cancer risk and ABO blood group alleles: results from the Pancreatic Cancer Cohort Consortium",
+      "volume": "70",
+      "author": "Wolpin",
+      "year": "2010",
+      "journal-title": "Cancer Res"
+    },
+    {
+      "key": "2025112608142650600_bib5",
+      "doi-asserted-by": "crossref",
+      "first-page": "1637",
+      "DOI": "10.3892/or.2013.2285",
+      "article-title": "ABO blood groups and pancreatic cancer risk and survival: results from the PANcreatic Disease ReseArch (PANDoRA) Consortium",
+      "volume": "29",
+      "author": "Rizzato",
+      "year": "2013",
+      "journal-title": "Oncol Rep"
+    },
+    {
+      "key": "2025112608142650600_bib6",
+      "doi-asserted-by": "crossref",
+      "first-page": "3345",
+      "DOI": "10.1016/j.ejca.2010.08.009",
+      "article-title": "ABO blood group and cancer",
+      "volume": "46",
+      "author": "Iodice",
+      "year": "2010",
+      "journal-title": "Eur J Cancer"
+    },
+    {
+      "key": "2025112608142650600_bib7",
+      "doi-asserted-by": "crossref",
+      "first-page": "118",
+      "DOI": "10.3389/fphys.2013.00118",
+      "article-title": "Blood group determinates incidence for pancreatic cancer in Germany",
+      "volume": "4",
+      "author": "Pelzer",
+      "year": "2013",
+      "journal-title": "Front Physiol"
+    },
+    {
+      "key": "2025112608142650600_bib8",
+      "doi-asserted-by": "crossref",
+      "first-page": "1326",
+      "DOI": "10.1093/aje/kws458",
+      "article-title": "ABO blood group and risk of pancreatic cancer: a study in Shanghai and meta-analysis",
+      "volume": "177",
+      "author": "Risch",
+      "year": "2013",
+      "journal-title": "Am J Epidemiol"
+    },
+    {
+      "key": "2025112608142650600_bib9",
+      "doi-asserted-by": "crossref",
+      "first-page": "986",
+      "DOI": "10.1038/ng.429",
+      "article-title": "Genome-wide association study identifies variants in the ABO locus associated with susceptibility to pancreatic cancer",
+      "volume": "41",
+      "author": "Amundadottir",
+      "year": "2009",
+      "journal-title": "Nat Genet"
+    },
+    {
+      "key": "2025112608142650600_bib10",
+      "doi-asserted-by": "crossref",
+      "first-page": "911",
+      "DOI": "10.1038/ng.3341",
+      "article-title": "Common variation at 2p13.3, 3q29, 7p13 and 17q25.1 associated with susceptibility to pancreatic cancer",
+      "volume": "47",
+      "author": "Childs",
+      "year": "2015",
+      "journal-title": "Nat Genet"
+    },
+    {
+      "key": "2025112608142650600_bib11",
+      "doi-asserted-by": "crossref",
+      "first-page": "556",
+      "DOI": "10.1038/s41467-018-02942-5",
+      "article-title": "Genome-wide meta-analysis identifies five new susceptibility loci for pancreatic cancer",
+      "volume": "9",
+      "author": "Klein",
+      "year": "2018",
+      "journal-title": "Nat Commun"
+    },
+    {
+      "key": "2025112608142650600_bib12",
+      "doi-asserted-by": "crossref",
+      "first-page": "190",
+      "DOI": "10.1016/j.sbi.2017.04.001",
+      "article-title": "Histo-blood group antigens as mediators of infections",
+      "volume": "44",
+      "author": "Heggelund",
+      "year": "2017",
+      "journal-title": "Curr Opin Struct Biol"
+    },
+    {
+      "key": "2025112608142650600_bib13",
+      "doi-asserted-by": "crossref",
+      "first-page": "261",
+      "DOI": "10.1002/gepi.20061",
+      "article-title": "Accounting for haplotype uncertainty in matched association studies: a comparison of simple and flexible techniques",
+      "volume": "28",
+      "author": "Kraft",
+      "year": "2005",
+      "journal-title": "Genet Epidemiol"
+    },
+    {
+      "key": "2025112608142650600_bib14",
+      "doi-asserted-by": "crossref",
+      "first-page": "62",
+      "DOI": "10.1111/j.1538-7836.2007.02818.x",
+      "article-title": "ABO(H) blood groups and vascular disease: a systematic review and meta-analysis",
+      "volume": "6",
+      "author": "Wu",
+      "year": "2008",
+      "journal-title": "J Thromb Haemost"
+    },
+    {
+      "key": "2025112608142650600_bib15",
+      "doi-asserted-by": "crossref",
+      "first-page": "646",
+      "DOI": "10.1136/gutjnl-2014-306930",
+      "article-title": "Fucosyltransferase 2 (FUT2) nonsecretor status and blood group B are associated with elevated serum lipase activity in asymptomatic subjects, and an increased risk for chronic pancreatitis: a genetic association study",
+      "volume": "64",
+      "author": "Weiss",
+      "year": "2015",
+      "journal-title": "Gut"
+    },
+    {
+      "key": "2025112608142650600_bib16",
+      "doi-asserted-by": "crossref",
+      "first-page": "558",
+      "DOI": "10.1007/s00277-002-0508-x",
+      "article-title": "Distribution of Lewis (FUT3)genotype and allele: frequencies in a biethnic United States population",
+      "volume": "81",
+      "author": "Cakir",
+      "year": "2002",
+      "journal-title": "Ann Hematol"
+    },
+    {
+      "key": "2025112608142650600_bib17",
+      "doi-asserted-by": "crossref",
+      "first-page": "2915",
+      "DOI": "10.1182/blood.V82.9.2915.2915",
+      "article-title": "Analysis of Lewis fucosyltransferase genes from the human gastric mucosa of Lewis-positive and -negative individuals",
+      "volume": "82",
+      "author": "Koda",
+      "year": "1993",
+      "journal-title": "Blood"
+    },
+    {
+      "key": "2025112608142650600_bib18",
+      "doi-asserted-by": "crossref",
+      "first-page": "97",
+      "DOI": "10.1111/j.1423-0410.1996.tb01300.x",
+      "article-title": "DNA sequencing and screening for point mutations in the human Lewis (FUT3) gene enables molecular genotyping of the human Lewis blood group system",
+      "volume": "70",
+      "author": "Elmgren",
+      "year": "1996",
+      "journal-title": "Vox Sang"
+    },
+    {
+      "key": "2025112608142650600_bib19",
+      "doi-asserted-by": "crossref",
+      "first-page": "689",
+      "DOI": "10.1046/j.1365-2796.2000.00682.x",
+      "article-title": "Genetic background of Lewis negative blood group phenotype and its association with atherosclerotic disease in the NHLBI Family Heart Study",
+      "volume": "247",
+      "author": "Salomaa",
+      "year": "2000",
+      "journal-title": "J Intern Med"
+    },
+    {
+      "key": "2025112608142650600_bib20",
+      "doi-asserted-by": "crossref",
+      "first-page": "3140",
+      "DOI": "10.1158/1055-9965.EPI-10-0751",
+      "article-title": "Variant ABO blood group alleles, secretor status, and risk of pancreatic cancer: results from the Pancreatic Cancer Cohort Consortium",
+      "volume": "19",
+      "author": "Wolpin",
+      "year": "2010",
+      "journal-title": "Cancer Epidemiol Biomarkers Prev"
+    },
+    {
+      "key": "2025112608142650600_bib21",
+      "doi-asserted-by": "crossref",
+      "first-page": "224",
+      "DOI": "10.1038/ng.522",
+      "article-title": "A genome-wide association study identifies pancreatic cancer susceptibility loci on chromosomes 13q22.1, 1q32.1, and 5p15.33",
+      "volume": "42",
+      "author": "Petersen",
+      "year": "2010",
+      "journal-title": "Nat Genet"
+    },
+    {
+      "key": "2025112608142650600_bib22",
+      "doi-asserted-by": "crossref",
+      "first-page": "994",
+      "DOI": "10.1038/ng.3052",
+      "article-title": "Genome-wide association study identifies multiple susceptibility loci for pancreatic cancer",
+      "volume": "46",
+      "author": "Wolpin",
+      "year": "2014",
+      "journal-title": "Nat Genet"
+    },
+    {
+      "key": "2025112608142650600_bib23",
+      "doi-asserted-by": "crossref",
+      "first-page": "66328",
+      "DOI": "10.18632/oncotarget.11041",
+      "article-title": "Three new pancreatic cancer susceptibility signals identified on chromosomes 1q32.1, 5p15.33, and 8q24.21",
+      "volume": "7",
+      "author": "Zhang",
+      "year": "2016",
+      "journal-title": "Oncotarget"
+    },
+    {
+      "key": "2025112608142650600_bib24",
+      "doi-asserted-by": "crossref",
+      "first-page": "1040",
+      "DOI": "10.1001/jamapediatrics.2015.2002",
+      "article-title": "Epidemiologic association between FUT2 secretor status and severe rotavirus gastroenteritis in children in the United States",
+      "volume": "169",
+      "author": "Payne",
+      "year": "2015",
+      "journal-title": "JAMA Pediatr"
+    },
+    {
+      "key": "2025112608142650600_bib25",
+      "doi-asserted-by": "crossref",
+      "first-page": "1163",
+      "DOI": "10.1136/bmj.1.5180.1163",
+      "article-title": "ABO blood groups and cancer of esophagus, cancer of pancreas, and pituitary adenoma",
+      "volume": "1",
+      "author": "Aird",
+      "year": "1960",
+      "journal-title": "Br Med J"
+    },
+    {
+      "key": "2025112608142650600_bib26",
+      "first-page": "464",
+      "article-title": "Controversy in human genetics. ABO blood groups and disease",
+      "volume": "22",
+      "author": "Vogel",
+      "year": "1970",
+      "journal-title": "Am J Hum Genet"
+    },
+    {
+      "key": "2025112608142650600_bib27",
+      "doi-asserted-by": "crossref",
+      "first-page": "1425",
+      "DOI": "10.1093/jnci/52.5.1425",
+      "article-title": "ABO blood groups and cancer",
+      "volume": "52",
+      "author": "Newell",
+      "year": "1974",
+      "journal-title": "J Natl Cancer Inst"
+    },
+    {
+      "key": "2025112608142650600_bib28",
+      "doi-asserted-by": "crossref",
+      "first-page": "1179",
+      "DOI": "10.1002/ijc.25426",
+      "article-title": "Pancreatic cancer incidence and outcome in relation to ABO blood groups among Han Chinese patients: a case–control study",
+      "volume": "128",
+      "author": "Ben",
+      "year": "2011",
+      "journal-title": "Int J Cancer"
+    },
+    {
+      "key": "2025112608142650600_bib29",
+      "doi-asserted-by": "crossref",
+      "first-page": "1076",
+      "DOI": "10.1111/j.1349-7006.2011.01907.x",
+      "article-title": "ABO blood group alleles and the risk of pancreatic cancer in a Japanese population",
+      "volume": "102",
+      "author": "Nakao",
+      "year": "2011",
+      "journal-title": "Cancer Sci"
+    },
+    {
+      "key": "2025112608142650600_bib30",
+      "doi-asserted-by": "crossref",
+      "first-page": "81",
+      "DOI": "10.1007/BF02933042",
+      "article-title": "ABO blood groups and cancer of the pancreas",
+      "volume": "6",
+      "author": "Annese",
+      "year": "1990",
+      "journal-title": "Int J Pancreatol"
+    },
+    {
+      "key": "2025112608142650600_bib31",
+      "doi-asserted-by": "crossref",
+      "first-page": "4640",
+      "DOI": "10.1074/jbc.270.9.4640",
+      "article-title": "Sequence and expression of a candidate for the human Secretor blood group alpha(1,2)fucosyltransferase gene (FUT2). Homozygosity for an enzyme-inactivating nonsense mutation commonly correlates with the nonsecretor phenotype",
+      "volume": "270",
+      "author": "Kelly",
+      "year": "1995",
+      "journal-title": "J Biol Chem"
+    },
+    {
+      "key": "2025112608142650600_bib32",
+      "doi-asserted-by": "crossref",
+      "first-page": "1993",
+      "DOI": "10.1093/molbev/msp108",
+      "article-title": "A natural history of FUT2 polymorphism in humans",
+      "volume": "26",
+      "author": "Ferrer-Admetlla",
+      "year": "2009",
+      "journal-title": "Mol Biol Evol"
+    },
+    {
+      "key": "2025112608142650600_bib33",
+      "doi-asserted-by": "crossref",
+      "first-page": "3067",
+      "DOI": "10.1111/trf.16130",
+      "article-title": "Association of ABO blood group and secretor phenotype with severe COVID-19",
+      "volume": "60",
+      "author": "Valenti",
+      "year": "2020",
+      "journal-title": "Transfusion"
+    },
+    {
+      "key": "2025112608142650600_bib34",
+      "doi-asserted-by": "crossref",
+      "first-page": "7",
+      "DOI": "10.1136/bmj.285.6334.7",
+      "article-title": "ABO blood group, secretor state, and susceptibility to recurrent urinary tract infection in women",
+      "volume": "285",
+      "author": "Kinane",
+      "year": "1982",
+      "journal-title": "Br Med J (Clin Res Ed)"
+    },
+    {
+      "key": "2025112608142650600_bib35",
+      "doi-asserted-by": "crossref",
+      "first-page": "100",
+      "DOI": "10.1111/j.1365-2141.2004.05249.x",
+      "article-title": "Relationship between ABO and secretor genotype with plasma levels of factor VIII and von Willebrand factor in thrombosis patients and control individuals",
+      "volume": "128",
+      "author": "Schleef",
+      "year": "2005",
+      "journal-title": "Br J Haematol"
+    },
+    {
+      "key": "2025112608142650600_bib36",
+      "doi-asserted-by": "crossref",
+      "first-page": "257",
+      "DOI": "10.1111/j.1574-695X.1998.tb01135.x",
+      "article-title": "Effect of host Lewis and ABO blood group antigen expression on Helicobacter pylori colonisation density and the consequent inflammatory response",
+      "volume": "20",
+      "author": "Heneghan",
+      "year": "1998",
+      "journal-title": "FEMS Immunol Med Microbiol"
+    },
+    {
+      "key": "2025112608142650600_bib37",
+      "doi-asserted-by": "crossref",
+      "first-page": "19",
+      "DOI": "10.1086/375742",
+      "article-title": "Noroviruses bind to human ABO, Lewis, and secretor histo-blood group antigens: identification of 4 distinct strain-specific patterns",
+      "volume": "188",
+      "author": "Huang",
+      "year": "2003",
+      "journal-title": "J Infect Dis"
+    },
+    {
+      "key": "2025112608142650600_bib38",
+      "doi-asserted-by": "crossref",
+      "first-page": "8",
+      "DOI": "10.1007/s101200300001",
+      "article-title": "ABO blood type, Lewis and Secretor genotypes, and chronic atrophic gastritis: a cross-sectional study in Japan",
+      "volume": "6",
+      "author": "Shibata",
+      "year": "2003",
+      "journal-title": "Gastric Cancer"
+    },
+    {
+      "key": "2025112608142650600_bib39",
+      "doi-asserted-by": "crossref",
+      "first-page": "671958",
+      "DOI": "10.3389/fcimb.2021.671958",
+      "article-title": "The potential contribution of ABO, Lewis and Secretor histo-blood group carbohydrates in infection by Toxoplasma gondii",
+      "volume": "11",
+      "author": "De Mattos",
+      "year": "2021",
+      "journal-title": "Front Cell Infect Microbiol"
+    },
+    {
+      "key": "2025112608142650600_bib40",
+      "first-page": "287",
+      "article-title": "Lewis, secretor, and ABO phenotypes, and sulfomucin expression in gastric intestinal metaplasia",
+      "volume": "6",
+      "author": "Torrado",
+      "year": "1997",
+      "journal-title": "Cancer Epidemiol Biomarkers Prev"
+    },
+    {
+      "key": "2025112608142650600_bib41",
+      "doi-asserted-by": "crossref",
+      "first-page": "773",
+      "DOI": "10.1016/j.bjoms.2014.05.015",
+      "article-title": "Clinical importance of duplicated internal jugular vein",
+      "volume": "52",
+      "author": "Das",
+      "year": "2014",
+      "journal-title": "Br J Oral Maxillofac Surg"
+    },
+    {
+      "key": "2025112608142650600_bib42",
+      "doi-asserted-by": "crossref",
+      "first-page": "340",
+      "DOI": "10.1159/000124298",
+      "article-title": "The prognostic impact of blood group-related antigen Lewis Y and the ABH blood groups in resected non-small cell lung cancer",
+      "volume": "28",
+      "author": "Kuemmel",
+      "year": "2007",
+      "journal-title": "Tumour Biol"
+    },
+    {
+      "key": "2025112608142650600_bib43",
+      "doi-asserted-by": "crossref",
+      "first-page": "1057",
+      "DOI": "10.1016/j.pan.2016.09.013",
+      "article-title": "Optimize CA19–9 in detecting pancreatic cancer by Lewis and secretor genotyping",
+      "volume": "16",
+      "author": "Luo",
+      "year": "2016",
+      "journal-title": "Pancreatology"
+    },
+    {
+      "key": "2025112608142650600_bib44",
+      "doi-asserted-by": "crossref",
+      "first-page": "800",
+      "DOI": "10.1097/SLA.0000000000001741",
+      "article-title": "Potential biomarkers in Lewis-negative patients with pancreatic cancer",
+      "volume": "265",
+      "author": "Luo",
+      "year": "2017",
+      "journal-title": "Ann Surg"
+    },
+    {
+      "key": "2025112608142650600_bib45",
+      "doi-asserted-by": "crossref",
+      "first-page": "971",
+      "DOI": "10.1016/j.pan.2018.08.003",
+      "article-title": "New observations on the utility of CA19–9 as a biomarker in Lewis negative patients with pancreatic cancer",
+      "volume": "18",
+      "author": "Luo",
+      "year": "2018",
+      "journal-title": "Pancreatology"
+    },
+    {
+      "key": "2025112608142650600_bib46",
+      "first-page": "900",
+      "article-title": "Lewis antigen-negative pancreatic cancer: an aggressive subgroup",
+      "volume": "56",
+      "author": "Liu",
+      "year": "2020",
+      "journal-title": "Int J Oncol"
+    },
+    {
+      "key": "2025112608142650600_bib47",
+      "first-page": "512",
+      "article-title": "Lewis and secretor gene dosages affect CA19–9 and DU-PAN-2 serum levels in normal individuals and colorectal cancer patients",
+      "volume": "58",
+      "author": "Narimatsu",
+      "year": "1998",
+      "journal-title": "Cancer Res"
+    },
+    {
+      "key": "2025112608142650600_bib48",
+      "doi-asserted-by": "crossref",
+      "first-page": "129",
+      "DOI": "10.1111/tme.12756",
+      "article-title": "Divergence in phenotyping and genotyping analysis of the Lewis histo-blood group system",
+      "volume": "31",
+      "author": "Donta",
+      "year": "2021",
+      "journal-title": "Transfus Med"
+    },
+    {
+      "key": "2025112608142650600_bib49",
+      "doi-asserted-by": "crossref",
+      "first-page": "475",
+      "DOI": "10.1111/j.1523-5378.2011.00897.x",
+      "article-title": "Genotypic and phenotypic variation of Lewis antigen expression in geographically diverse Helicobacter pylori isolates",
+      "volume": "16",
+      "author": "Pohl",
+      "year": "2011",
+      "journal-title": "Helicobacter"
+    },
+    {
+      "key": "2025112608142650600_bib50",
+      "doi-asserted-by": "crossref",
+      "first-page": "99",
+      "DOI": "10.1007/s10719-011-9327-4",
+      "article-title": "Regulation of glycosyltransferases and Lewis antigens expression by IL1beta and IL6 in human gastric cancer cells",
+      "volume": "28",
+      "author": "Padro",
+      "year": "2011",
+      "journal-title": "Glycoconj J"
+    },
+    {
+      "key": "2025112608142650600_bib51",
+      "doi-asserted-by": "crossref",
+      "first-page": "1852",
+      "DOI": "10.1182/blood.V88.5.1852.1852",
+      "article-title": "ABO glycosyltransferase genotyping by polymerase chain reaction using sequence-specific primers",
+      "volume": "88",
+      "author": "Gassner",
+      "year": "1996",
+      "journal-title": "Blood"
+    },
+    {
+      "key": "2025112608142650600_bib52",
+      "doi-asserted-by": "crossref",
+      "first-page": "8",
+      "DOI": "10.1002/humu.10296",
+      "article-title": "Allelic genes of blood group antigens: a source of human mutations and cSNPs documented in the blood group antigen gene mutation database",
+      "volume": "23",
+      "author": "Blumenfeld",
+      "year": "2004",
+      "journal-title": "Hum Mutat"
+    },
+    {
+      "key": "2025112608142650600_bib53",
+      "first-page": "357",
+      "article-title": "FUT2 genotype and secretory status are not associated with fecal microbial composition and inferred function in healthy subjects",
+      "volume": "9",
+      "author": "Turpin",
+      "year": "2018",
+      "journal-title": "Gut Microbes"
+    }
+  ],
   "container-title": [
     "Cancer Epidemiology, Biomarkers &amp; Prevention"
   ],
+  "original-title": [],
+  "language": "en",
+  "link": [
+    {
+      "URL": "https://aacrjournals.org/cebp/article-pdf/doi/10.1158/1055-9965.EPI-23-0009/3341455/epi-23-0009.pdf",
+      "content-type": "application/pdf",
+      "content-version": "am",
+      "intended-application": "syndication"
+    },
+    {
+      "URL": "https://aacrjournals.org/cebp/article-pdf/doi/10.1158/1055-9965.EPI-23-0009/3346969/epi-23-0009.pdf",
+      "content-type": "application/pdf",
+      "content-version": "vor",
+      "intended-application": "syndication"
+    },
+    {
+      "URL": "https://aacrjournals.org/cebp/article-pdf/32/9/1242/3359314/1242.pdf",
+      "content-type": "application/pdf",
+      "content-version": "vor",
+      "intended-application": "syndication"
+    },
+    {
+      "URL": "https://aacrjournals.org/cebp/article-pdf/32/9/1242/3359314/1242.pdf",
+      "content-type": "unspecified",
+      "content-version": "vor",
+      "intended-application": "similarity-checking"
+    }
+  ],
+  "deposited": {
+    "date-parts": [
+      [
+        2025,
+        11,
+        26
+      ]
+    ],
+    "date-time": "2025-11-26T13:14:38Z",
+    "timestamp": 1764162878000
+  },
+  "score": 1,
+  "resource": {
+    "primary": {
+      "URL": "https://aacrjournals.org/cebp/article/32/9/1242/728502/Relationship-between-ABO-Blood-Group-Alleles-and"
+    }
+  },
+  "subtitle": [],
+  "short-title": [],
   "issued": {
     "date-parts": [
       [
@@ -194,8 +897,347 @@
       ]
     ]
   },
+  "references-count": 53,
+  "journal-issue": {
+    "issue": "9",
+    "published-online": {
+      "date-parts": [
+        [
+          2023,
+          6,
+          21
+        ]
+      ]
+    },
+    "published-print": {
+      "date-parts": [
+        [
+          2023,
+          9,
+          1
+        ]
+      ]
+    }
+  },
+  "URL": "https://doi.org/10.1158/1055-9965.epi-23-0009",
+  "relation": {
+    "has-preprint": [
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668370.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668373.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668367",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.c.6738461.v2",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.c.6738461",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668370",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668358.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668358",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.c.6738461.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668373",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668361",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668367.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668364.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668361.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.c.6738461.v3",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668364",
+        "asserted-by": "object"
+      }
+    ],
+    "is-supplemented-by": [
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.27029740",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.27029752",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668373",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668367.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668361",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.30723441",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.27029752.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.24072012.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.24072012",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.24072000",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.27029749",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.27029758.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668358",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.27029743",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.24072003.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.24072000.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.27029749.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668364.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.27029746.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668358.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.30723438",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668370",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668361.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.24072003",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.27029740.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.27029743.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668373.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668367",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.30723447",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.30723435",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668370.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.24072009.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.24072006.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.24072006",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.24071997.v1",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.23668364",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.24072009",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.24071997",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.30723432",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.30723444",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.27029746",
+        "asserted-by": "object"
+      },
+      {
+        "id-type": "doi",
+        "id": "10.1158/1055-9965.27029758",
+        "asserted-by": "object"
+      }
+    ]
+  },
   "ISSN": [
     "1055-9965",
     "1538-7755"
-  ]
+  ],
+  "issn-type": [
+    {
+      "value": "1055-9965",
+      "type": "print"
+    },
+    {
+      "value": "1538-7755",
+      "type": "electronic"
+    }
+  ],
+  "subject": [],
+  "published": {
+    "date-parts": [
+      [
+        2023,
+        6,
+        21
+      ]
+    ]
+  }
 }
