@@ -1713,6 +1713,24 @@ class TestByPmids:
         }
 
 
+    def test_a_block_with_no_pmid_line_settles_nothing(self) -> None:
+        """A block ``efetch`` did not attribute to a number.
+
+        No witnessed instance: ``efetch`` answers a PMID it does not hold with
+        an empty body rather than an untagged block, and a request mixing a
+        real number with a fabricated one comes back holding only the real
+        one. The guard is a precaution, and what it declines to do is what
+        matters — reading such a block would file another paper's title,
+        byline and retraction status under whichever number happened to be
+        first in the request.
+        """
+        client = _StubClient(medline="\nOWN - NLM\nTI  - A block naming no citation.\n")
+        answers = PubMed(client).by_pmids([WAKEFIELD_PMID])
+
+        assert answers.records == {}
+        assert answers.inconclusive == {WAKEFIELD_PMID: ()}
+
+
 class TestEsearchBatching:
     """A bibliography is searched for in ``OR``-ed batches of twenty DOIs."""
 

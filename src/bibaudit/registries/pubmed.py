@@ -1005,6 +1005,7 @@ class PubMed:
                 inconclusive.update(dict.fromkeys(batch, ()))
                 continue
             others: list[str] = []
+            unattributed = False
             for fields in _parse_medline_records(text):
                 # Attributed by each record's *own* ``PMID`` line, exactly as
                 # in ``by_dois``: a record answering under a number nobody
@@ -1012,16 +1013,24 @@ class PubMed:
                 # adopting it would hand the entry another paper's metadata
                 # and another paper's retraction status. NO WITNESSED INSTANCE
                 # of ``efetch`` doing so — the two deleted PMIDs above come
-                # back empty rather than redirected — so the guard is a
-                # precaution, and what it declines is reported as such.
+                # back empty rather than redirected, and a request mixing a
+                # real number with a fabricated one comes back holding only
+                # the real one — so both guards below are precautions.
                 record_pmid = _first(fields.get("PMID"))
                 if record_pmid is None:
+                    # A block ``efetch`` attributed to nothing. Not silence:
+                    # something came back and could not be read, and reading
+                    # an unreadable answer as "PubMed holds no citation under
+                    # these numbers" is the collapse of ignorance into fact
+                    # this module exists to refuse. Every number in the batch
+                    # the block arrived in stays unsettled.
+                    unattributed = True
                     continue
                 if record_pmid not in requested:
                     others.append(record_pmid)
                     continue
                 out[record_pmid] = _record_from_medline(fields)
-            if others:
+            if others or unattributed:
                 strays = tuple(dict.fromkeys(others))
                 inconclusive.update({p: strays for p in batch if p not in out})
         return PmidAnswers(records=out, inconclusive=inconclusive)
