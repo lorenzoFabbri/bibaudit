@@ -1062,6 +1062,96 @@ class TestSourcesThatDisagree:
         )
 
 
+class TestACacheFileNobodyCanRead:
+    """``_index_from_payload`` reads back a file its docstring calls hand-edited.
+
+    That is the contract :class:`~bibaudit.registries.http.Cache` itself keeps:
+    anything that does not parse back is *dropped* and asked for again, never
+    raised over. A cache file is on disk for the whole seven-day TTL, is not a
+    registry response, and is the one input to this module a person can edit —
+    so a `KeyError` or an `AttributeError` out of it would abort a run over a
+    file the tool wrote itself, on the source whose whole job is to keep
+    answering when the others cannot.
+
+    Every shape here is a cache file, not an invented registry answer, and each
+    is written by the real cache first and then damaged, so a change to the
+    envelope's layout fails these tests rather than leaving them editing
+    something nothing reads.
+    """
+
+    def _damage(self, cache_dir: Path, mutate: object) -> dict[str, object]:
+        first = Retractions(_client(rw_csv=_rw_sample()), cache_dir=cache_dir)
+        first.status_for([WAKEFIELD_DOI])
+        [path] = list(cache_dir.rglob("*.json"))
+        envelope = json.loads(path.read_text(encoding="utf-8"))
+        mutate(envelope["payload"])  # type: ignore[operator]
+        path.write_text(json.dumps(envelope), encoding="utf-8")
+        payload: dict[str, object] = envelope["payload"]
+        return payload
+
+    def test_a_notices_table_that_is_not_a_table_yields_no_notices(
+        self, tmp_path: Path
+    ) -> None:
+        """The outer half: ``notices`` holding a list, a string or nothing."""
+        self._damage(tmp_path, lambda payload: payload.update(notices=["not", "a", "table"]))
+
+        status = Retractions(_client(), cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+
+        assert status.notices == {}
+        assert not status.unreachable
+
+    def test_one_unreadable_entry_does_not_take_the_others_with_it(
+        self, tmp_path: Path
+    ) -> None:
+        """A row that is not a table at all is dropped and the rest kept."""
+
+        def mutate(payload: dict[str, object]) -> None:
+            notices = payload["notices"]
+            assert isinstance(notices, dict)
+            notices["10.1234/not-a-table"] = "a string where a record belongs"
+
+        self._damage(tmp_path, mutate)
+
+        status = Retractions(_client(), cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+
+        assert "10.1234/not-a-table" not in status.notices
+        assert status.notices[WAKEFIELD_DOI.lower()].kind == "retraction"
+
+    def test_an_entry_missing_a_field_the_record_requires_is_dropped(
+        self, tmp_path: Path
+    ) -> None:
+        """``kind`` gone: the field the merge ranks on, so half a record is none."""
+
+        def mutate(payload: dict[str, object]) -> None:
+            notices = payload["notices"]
+            assert isinstance(notices, dict)
+            for notice in notices.values():
+                notice.pop("kind")
+
+        self._damage(tmp_path, mutate)
+
+        status = Retractions(_client(), cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+
+        assert status.notices == {}
+
+    def test_the_unranked_counts_are_read_back_with_the_same_tolerance(
+        self, tmp_path: Path
+    ) -> None:
+        """They outlive the process that made them, so they are read back too.
+
+        A count that is not a count is dropped rather than warned about: the
+        warning names how many rows an export withheld, and a number nobody can
+        read is not one.
+        """
+        self._damage(tmp_path, lambda payload: payload.update(unranked="not a table"))
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            status = Retractions(_client(), cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+
+        assert status.notices[WAKEFIELD_DOI.lower()].kind == "retraction"
+
+
 class TestOutageHandling:
     """Per the brief: raise Transient for that source only and let the others answer."""
 

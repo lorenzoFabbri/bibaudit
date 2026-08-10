@@ -2981,6 +2981,90 @@ class TestAPageLocatorNeitherSideCanRead:
         assert different.verdict == "FIELD-MISMATCH"
 
 
+class TestAnEntryWithNoTitleAtAll:
+    """A title the registry has and the entry does not name is an error.
+
+    Not the ``INCOMPLETE`` warning every other absent field gets. Title is what
+    ``confirm_without_id`` matches on and what ``_check_title`` scores
+    ``wrong-work`` from, so an entry with none has nothing for either to work
+    with, and reporting it as a gap in the entry would understate that.
+    """
+
+    def test_the_registrys_title_is_named_in_the_finding(self) -> None:
+        """A finding that does not print the title is one nobody can act on."""
+        result = compare(make_ref(title=None), {"crossref": make_record()})
+
+        missing = [i for i in result.issues if i.field == "title" and i.kind == "missing"]
+        assert [i.severity for i in missing] == ["error"]
+        assert missing[0].registry.startswith("Risk of pancreatic cancer")
+        assert missing[0].source == "crossref"
+
+    def test_it_fails(self) -> None:
+        result = compare(make_ref(title=None), {"crossref": make_record()})
+
+        assert result.verdict == "FIELD-MISMATCH"
+        assert result.fails
+
+    def test_a_registry_with_no_title_either_reports_nothing_about_titles(self) -> None:
+        """Both sides silent is ignorance, and ignorance is not a finding."""
+        result = compare(
+            make_ref(title=None), {"crossref": make_record(title=None)}
+        )
+
+        assert not [i for i in result.issues if i.field == "title"]
+
+
+class TestAPageTheCorroboratingRegistryAgreesWith:
+    """Two registries disagree about the pages and the entry matches one of them.
+
+    That is a disagreement between the registries, not a defect in the
+    bibliography, so it is reported at ``info`` against both values rather than
+    as a ``pages/mismatch`` error against the primary's — the same rule
+    ``year/alternate-date`` follows. Reported at all, because which registry a
+    reader should believe is theirs to decide.
+    """
+
+    def _result(self) -> Result:
+        return compare(
+            make_ref(pages="473-483"),
+            {
+                "crossref": make_record(pages="470-483"),
+                "pubmed": make_record(source="pubmed", pages="473-83"),
+            },
+        )
+
+    def test_it_does_not_fail_the_entry(self) -> None:
+        result = self._result()
+
+        assert result.verdict != "FIELD-MISMATCH"
+        assert not result.fails
+
+    def test_both_registries_values_are_printed(self) -> None:
+        """A line naming one of them leaves the reader unable to check it."""
+        disputed = [i for i in self._result().issues if i.field == "pages"]
+
+        assert [i.kind for i in disputed] == ["disputed"]
+        assert disputed[0].severity == "info"
+        assert disputed[0].source == "both"
+        assert "crossref='470-483'" in disputed[0].registry
+        assert "pubmed='473-83'" in disputed[0].registry
+
+    def test_a_page_neither_registry_carries_is_still_an_error(self) -> None:
+        """The escape needs the corroborator to actually agree with the entry."""
+        result = compare(
+            make_ref(pages="999-1000"),
+            {
+                "crossref": make_record(pages="470-483"),
+                "pubmed": make_record(source="pubmed", pages="473-83"),
+            },
+        )
+
+        assert any(
+            i.field == "pages" and i.kind == "mismatch" and i.severity == "error"
+            for i in result.issues
+        )
+
+
 class TestIncompleteness:
     def test_a_field_the_registry_has_and_the_entry_lacks_is_a_warning(self) -> None:
         """Incompleteness is worth surfacing but is not evidence of fabrication."""

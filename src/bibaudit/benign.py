@@ -891,9 +891,9 @@ def _container_acronym_prefix(field: str, stored: str, registry: str, ref: Refer
     acronym, rest = match.group(1), match.group(2)
     if not rest.strip() or not _is_initialism_of(acronym, rest):
         return None
+    # Non-empty by construction: :func:`_is_initialism_of` reads its initials
+    # off this same fold and returns False when there are none to read.
     folded_rest = fold(rest)
-    if not folded_rest:
-        return None
     for name, cost in _container_names(registry, rec):
         if folded_rest == name:
             return "stored name prefixes the journal's own acronym" + cost

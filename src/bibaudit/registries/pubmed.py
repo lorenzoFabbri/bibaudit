@@ -742,7 +742,7 @@ def _record_from_medline(fields: dict[str, list[str]]) -> Record:
 _MEDLINE_CONCERN_IN = "ECI"
 
 
-def _merged_citation(records: Sequence[Record]) -> Record | None:
+def _merged_citation(records: Sequence[Record]) -> Record:
     """One record for a DOI PubMed answered for under several PMIDs.
 
     Two citations of one work agree on title, byline and year, so the first of
@@ -763,10 +763,12 @@ def _merged_citation(records: Sequence[Record]) -> Record | None:
     byline, container and year, chosen *because* it carries the accusation, in
     a swap no later check recovers from. The status crosses over; the
     description of the work does not.
-    """
-    if not records:
-        return None
 
+    *records* is never empty: its one caller builds each list by appending to
+    it. An empty one is a bug in that caller, and raising on ``records[0]``
+    says so where returning ``None`` would silently drop the DOI it was
+    collected under.
+    """
     merged = records[0]
     retracted = next((record for record in records if record.retracted), None)
     if retracted is not None and retracted is not merged:
@@ -955,12 +957,12 @@ class PubMed:
         # A fresh copy per DOI: Record is mutable, and two DOIs sharing one
         # instance would make the second assignment's `.doi` override the
         # first's.
+        merged = {doi: _merged_citation(records) for doi, records in found.items()}
         return {
             doi: replace(
-                chosen, doi=doi, pmid=None if doi in ambiguous else chosen.pmid
+                record, doi=doi, pmid=None if doi in ambiguous else record.pmid
             )
-            for doi, records in found.items()
-            if (chosen := _merged_citation(records)) is not None
+            for doi, record in merged.items()
         }
 
     def by_pmids(self, pmids: Sequence[str]) -> PmidAnswers:
