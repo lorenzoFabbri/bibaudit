@@ -22,10 +22,14 @@ The fixtures under ``tests/data/pubmed_*.txt`` are MEDLINE plain text in
 value, and every continuation of a long value on a following line indented six
 spaces with **no tag**. That wrapping is the thing under test. Re-flowing a
 fixture onto single long lines, or "tidying" the indentation, deletes the point
-of half this file while leaving it green. Field values are the real citations
-where the case depends on them (the Wakefield 1998 Lancet paper and the 2010
-notice that retracted it; PMID 37726507, recorded verbatim, in
-``pubmed_wrapped_title.txt``); PMIDs and dates elsewhere are join keys.
+of half this file while leaving it green.
+
+**Every one of them is a whole ``efetch`` response, recorded byte for byte
+under the PMID each test names.** Not the fields a case needs with the rest
+left as filler: a fixture written to fit its test proves only that the test
+matches the fixture, and a value nobody can look up is a value nobody can
+challenge. Anything a test asserts here is assertable against NCBI by asking
+for that PMID.
 """
 
 from __future__ import annotations
@@ -705,12 +709,18 @@ class TestRetractionSignals:
     def test_every_publication_type_is_kept_in_raw(self) -> None:
         """``PT`` is repeatable; keeping only the first loses the signal.
 
-        On the Wakefield record "Journal Article" comes before "Retracted
-        Publication", so a parser that stores one value per tag reports it as
-        an ordinary article.
+        NLM sends three types for the Wakefield record and "Retracted
+        Publication" is the last of them, behind two ordinary ones, so a
+        parser that stores one value per tag — or any fixed number short of
+        three — reports it as an ordinary article. The list is asserted whole,
+        in order, because that is the shape a truncation changes.
         """
         record = _resolve_one("retracted", pmid=WAKEFIELD_PMID, doi=WAKEFIELD_DOI)
-        assert record.raw["PT"] == ["Journal Article", "Retracted Publication"]
+        assert record.raw["PT"] == [
+            "Journal Article",
+            "Research Support, Non-U.S. Gov't",
+            "Retracted Publication",
+        ]
 
 
 class TestDoiAttribution:
