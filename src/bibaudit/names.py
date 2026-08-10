@@ -397,6 +397,14 @@ def _forename_initials(name: Name) -> frozenset[str]:
     — *Ángel*, *Émile*, *Øystein*, *Ólafur*, *Åsa* — are ordinary in the
     bylines this tool reads.
 
+    A forename carrying *one* letter from another script is not read here at
+    all. It is a different damage — a lookalike substituted for a Latin letter,
+    which both registries inherit from the publisher's deposit — and
+    ``normalize._read_confusables`` repairs it inside :func:`fold`, before
+    :func:`_initials_of` ever sees it. It *replaces* the damaged reading rather
+    than offering a second one, because there the raw reading is the forename's
+    second letter and no reading of anything.
+
     Empty when the creator carries no forename at all, and empty when the
     forename is written in a script :func:`fold` discards — ``健太``,
     ``Владимир``, ``الحسن``. Both are ignorance, not disagreement, and the

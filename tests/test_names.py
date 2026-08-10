@@ -459,6 +459,123 @@ class TestARomanisedByline:
         assert not agreed
 
 
+class TestABylineCarryingALatinLookalike:
+    """A creator with one letter drawn from Cyrillic or Greek.
+
+    The publisher deposits it and both registries inherit it: Crossref's
+    creator array for 10.26442/00403660.2024.07.202907 opens a forename on
+    U+0422 CYRILLIC CAPITAL LETTER TE, and NLM's XML for the same paper
+    (PMID 39106512) carries that code point as ``&#x422;``. Two of the 16,585
+    creators in a 6,000-work random Crossref sample carry one.
+
+    Written with explicit escapes rather than the glyphs, because which code
+    point is in the string is the whole of what these tests are about — a
+    reader cannot tell the two ``T``\\s apart, which is why the damage survives
+    proofreading in the first place.
+
+    ``fold`` deleted the letter, leaving a key one letter short instead of
+    empty, and both halves of the comparison then read the short key as
+    knowledge. This class pins both directions: the correct entry that stopped
+    being accused, and the substituted creator that stopped being cleared.
+    """
+
+    # U+0422 CYRILLIC CAPITAL LETTER TE, U+0410 CYRILLIC CAPITAL LETTER A and
+    # U+0443 CYRILLIC SMALL LETTER U, each in the deposit named beside it.
+    TATIANA = "\u0422atiana A."
+    INITIAL = "\u0410. S."
+    SOLOVYEV = "Solov\u0443ev"
+
+    def test_a_correct_entry_is_not_accused_of_crediting_someone_else(self) -> None:
+        """10.26442/00403660.2024.07.202907, creator four.
+
+        A bibliography spelling the forename in Latin initials on ``t``; the
+        deposit folded to ``atiana a`` and initialled on ``a``, so the entry
+        was reported ``authors/forename`` — a correct citation, told it credits
+        a different person.
+        """
+        agreed, reason = names_agree(
+            Name(family="Rassovskaya", given="Tatiana A."),
+            Name(family="Rassovskaya", given=self.TATIANA),
+        )
+
+        assert agreed
+        assert reason is None
+
+    def test_a_substituted_forename_under_that_creator_is_still_reported(self) -> None:
+        """The other half, and the reason the repair replaces the reading.
+
+        Deletion moved the forename's second letter into first place, so every
+        substituted forename opening on that letter was cleared. *Anna* is not
+        Tatiana, and offering the damaged reading *as well* would keep clearing
+        her.
+        """
+        agreed, _ = names_agree(
+            Name(family="Rassovskaya", given="Anna A."),
+            Name(family="Rassovskaya", given=self.TATIANA),
+        )
+
+        assert not agreed
+
+    def test_a_forename_that_is_only_an_initial_is_read_as_that_initial(self) -> None:
+        """10.26442/00403660.2025.07.203267, creator one.
+
+        Nothing survives deletion here but the *middle* initial, so the
+        comparison read ``S`` as the first: ``Panferov, A. S.`` was accused and
+        ``Panferov, Carl S.`` was cleared.
+        """
+        assert names_agree(
+            Name(family="Panferov", given="A. S."),
+            Name(family="Panferov", given=self.INITIAL),
+        ) == (True, None)
+        agreed, _ = names_agree(
+            Name(family="Panferov", given="Carl S."),
+            Name(family="Panferov", given=self.INITIAL),
+        )
+        assert not agreed
+
+    def test_a_surname_carrying_one_is_not_a_phantom_mismatch(self) -> None:
+        """10.33285/0132-2222-2019-9(554)-28-35, the surname rather than the forename.
+
+        ``family_key`` compares the whole surname, so a deleted letter is
+        CLAUDE.md's banned shape reached by a second route: the key is a
+        fragment of the surname and the entry fails ``authors/mismatch``.
+        """
+        agreed, reason = names_agree(
+            Name(family="Solovyev", given="A"), Name(family=self.SOLOVYEV, given="A")
+        )
+
+        assert agreed
+        assert reason is None
+
+    def test_a_different_surname_is_still_reported(self) -> None:
+        """Repairing must not make one surname stand for another.
+
+        Not *Solovyov*, which the repaired key is one substitution from and
+        which `Reason.SPELLING_VARIANT` accepts as the same name transliterated
+        twice — that escape is not what this test is about.
+        """
+        agreed, _ = names_agree(
+            Name(family="Kuznetsov", given="A"), Name(family=self.SOLOVYEV, given="A")
+        )
+
+        assert not agreed
+
+    def test_a_surname_written_in_cyrillic_is_still_unreadable_rather_than_repaired(
+        self,
+    ) -> None:
+        """The guard, from the byline's side.
+
+        A surname a registry deposits in its own script has no comparison key
+        and is accepted out loud, under a documented reason. Repairing letter
+        by letter would replace that honest gap with an invented Latin key —
+        and every test in `TestSurnamesOutsideTheComparisonAlphabet` rests on
+        the key being empty.
+        """
+        # U+0421 U+043e U+0440: a Russian word whose every letter has a Latin
+        # twin, and therefore the worst case for the guard.
+        assert family_key(Name(family="\u0421\u043e\u0440")) == ""
+
+
 class TestMojibake:
     @pytest.mark.parametrize(
         ("broken", "expected"),

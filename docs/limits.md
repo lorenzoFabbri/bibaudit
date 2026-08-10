@@ -216,6 +216,27 @@ the other side used; picking one silently reintroduces the failure on the other
 spelling. A run that hits it prints both surnames in full, which is what the
 report is for.
 
+## A letter drawn from another script, inside a Latin word
+
+A publisher sometimes deposits a name with one letter taken from Cyrillic or
+Greek where the Latin lookalike belongs — the forename of creator four in
+`10.26442/00403660.2024.07.202907` opens on CYRILLIC CAPITAL LETTER TE, not on
+`T`, and NLM's own XML for the same paper (PMID 39106512) carries the same code
+point. `fold` reads such a letter as the Latin letter it is drawn as, using
+Unicode's own confusables table, so the name compares as the name.
+
+It does that only where the value carries a Latin letter of its own **and**
+every non-Latin letter in it is one the table has a Latin twin for. Both halves
+matter: without the first, a word written in Cyrillic would come back as a
+confident Latin key instead of an empty one; without the second, a name a
+registry deposits in its own script would be rewritten letter by letter rather
+than reported as one this tool cannot express.
+
+The residual limit is a value mixing Latin with a short word spelled *only* in
+letters that have Latin twins — 9 of Russian's 33 do — which is repaired as
+though it were damage. No instance has been seen in any sample taken here, and
+a run that hits one prints both values in full.
+
 ## Registries are sometimes wrong
 
 The registry is a witness, not an authority, and bibaudit has no standing to

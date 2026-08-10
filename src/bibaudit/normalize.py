@@ -21,6 +21,7 @@ import html
 import re
 import unicodedata
 from difflib import SequenceMatcher
+from functools import lru_cache
 
 __all__ = [
     "DOI_PATTERN",
@@ -156,6 +157,152 @@ _ROMANISED_TABLE = str.maketrans(_ROMANISED_MAP)
 #: carry a sound.
 _MODIFIER_LETTER = "Lm"
 
+#: Letters from another script that are drawn as a Latin letter, mapped to the
+#: Latin letter they are drawn as. Every row is Unicode's own, taken from UTS
+#: #39's ``confusables.txt``
+#: (https://www.unicode.org/Public/security/latest/confusables.txt, version
+#: 17.0.0) restricted to a Cyrillic or Greek source and a single ASCII Latin
+#: target; not one of the pairings is this project's reading of what a glyph
+#: looks like.
+#:
+#: They arrive as a *substitution*, not as an orthography. Crossref's deposit
+#: for 10.26442/00403660.2024.07.202907 gives a creator whose ``given`` reads
+#: *Tatiana A.* with CYRILLIC CAPITAL LETTER TE in place of the ``T``, and
+#: NLM's own XML for the same paper (PMID 39106512) carries
+#: ``<ForeName>&#x422; A</ForeName>`` — the damage is the publisher's and both
+#: registries inherited it. The witnessed instances span both name fields and
+#: both scripts: 10.33285/0132-2222-2019-9(554)-28-35 deposits the surname
+#: *Solovyev* with CYRILLIC SMALL LETTER U where the ``y`` belongs, and
+#: 10.1007/s13399-025-06952-4 the forename *Konstantinos* opening on GREEK
+#: CAPITAL LETTER KAPPA. Two in the 16,585 creators of a 6,000-work random
+#: Crossref sample.
+#:
+#: :func:`fold` used to *delete* such a letter, there being no row for it in
+#: :data:`_ROMANISED_MAP`. Deletion is honest for a value written wholly in
+#: that script — the key comes out empty and every caller reads an empty key as
+#: ignorance — and dishonest for one letter's worth of damage inside a Latin
+#: word, where the key survives one letter shorter and every caller reads
+#: *that* as knowledge. That forename folded to ``atiana a``, so
+#: ``names._initials_of`` read its second letter as its first: an entry
+#: spelling it *Tatiana* was reported ``authors/forename``, and one spelling it
+#: *Anna* was cleared, on the same creator.
+#:
+#: Two exclusions, both because the source table answers a neighbouring
+#: question — UTS #39 maps a glyph to a *representative* of its confusable
+#: class, for spoof detection, not to the letter a writer meant:
+#:
+#: * anything whose representative is ``l``, that being the class holding
+#:   ``I``, ``l`` and ``1`` at once: U+0406, U+04C0, U+04CF and U+0399.
+#:   Nothing in the pair being compared says which of the three was typed, and
+#:   guessing would make this an invention rather than a repair;
+#: * **every lower-case Greek letter**, which in this literature is a symbol
+#:   rather than a substitution: alpha in *TNF-alpha*, gamma in *IFN-gamma*,
+#:   kappa in Cohen's coefficient, chi in a chi-squared. Reading those as
+#:   ``a``, ``y``, ``k`` and ``x`` would rewrite a title's meaning instead of
+#:   repairing it. The Greek capitals kept below are the converse case: no
+#:   author writes a symbol ALPHA, BETA, EPSILON, KAPPA or TAU, precisely
+#:   because a reader could not tell them from Latin.
+_CONFUSABLE_MAP = {
+    "\u0405": "S",  # CYRILLIC CAPITAL LETTER DZE
+    "\u0408": "J",  # CYRILLIC CAPITAL LETTER JE
+    "\u0410": "A",  # CYRILLIC CAPITAL LETTER A
+    "\u0412": "B",  # CYRILLIC CAPITAL LETTER VE
+    "\u0415": "E",  # CYRILLIC CAPITAL LETTER IE
+    "\u041a": "K",  # CYRILLIC CAPITAL LETTER KA
+    "\u041c": "M",  # CYRILLIC CAPITAL LETTER EM
+    "\u041d": "H",  # CYRILLIC CAPITAL LETTER EN
+    "\u041e": "O",  # CYRILLIC CAPITAL LETTER O
+    "\u0420": "P",  # CYRILLIC CAPITAL LETTER ER
+    "\u0421": "C",  # CYRILLIC CAPITAL LETTER ES
+    "\u0422": "T",  # CYRILLIC CAPITAL LETTER TE
+    "\u0423": "Y",  # CYRILLIC CAPITAL LETTER U
+    "\u0425": "X",  # CYRILLIC CAPITAL LETTER HA
+    "\u042c": "b",  # CYRILLIC CAPITAL LETTER SOFT SIGN
+    "\u0430": "a",  # CYRILLIC SMALL LETTER A
+    "\u0433": "r",  # CYRILLIC SMALL LETTER GHE
+    "\u0435": "e",  # CYRILLIC SMALL LETTER IE
+    "\u043e": "o",  # CYRILLIC SMALL LETTER O
+    "\u0440": "p",  # CYRILLIC SMALL LETTER ER
+    "\u0441": "c",  # CYRILLIC SMALL LETTER ES
+    "\u0443": "y",  # CYRILLIC SMALL LETTER U
+    "\u0445": "x",  # CYRILLIC SMALL LETTER HA
+    "\u0448": "w",  # CYRILLIC SMALL LETTER SHA
+    "\u0455": "s",  # CYRILLIC SMALL LETTER DZE
+    "\u0456": "i",  # CYRILLIC SMALL LETTER BYELORUSSIAN-UKRAINIAN I
+    "\u0458": "j",  # CYRILLIC SMALL LETTER JE
+    "\u0461": "w",  # CYRILLIC SMALL LETTER OMEGA
+    "\u0474": "V",  # CYRILLIC CAPITAL LETTER IZHITSA
+    "\u0475": "v",  # CYRILLIC SMALL LETTER IZHITSA
+    "\u04ae": "Y",  # CYRILLIC CAPITAL LETTER STRAIGHT U
+    "\u04af": "y",  # CYRILLIC SMALL LETTER STRAIGHT U
+    "\u04bb": "h",  # CYRILLIC SMALL LETTER SHHA
+    "\u04bd": "e",  # CYRILLIC SMALL LETTER ABKHASIAN CHE
+    "\u0501": "d",  # CYRILLIC SMALL LETTER KOMI DE
+    "\u050c": "G",  # CYRILLIC CAPITAL LETTER KOMI SJE
+    "\u051b": "q",  # CYRILLIC SMALL LETTER QA
+    "\u051c": "W",  # CYRILLIC CAPITAL LETTER WE
+    "\u051d": "w",  # CYRILLIC SMALL LETTER WE
+    "\ua647": "i",  # CYRILLIC SMALL LETTER IOTA
+    "\u037f": "J",  # GREEK CAPITAL LETTER YOT
+    "\u0391": "A",  # GREEK CAPITAL LETTER ALPHA
+    "\u0392": "B",  # GREEK CAPITAL LETTER BETA
+    "\u0395": "E",  # GREEK CAPITAL LETTER EPSILON
+    "\u0396": "Z",  # GREEK CAPITAL LETTER ZETA
+    "\u0397": "H",  # GREEK CAPITAL LETTER ETA
+    "\u039a": "K",  # GREEK CAPITAL LETTER KAPPA
+    "\u039c": "M",  # GREEK CAPITAL LETTER MU
+    "\u039d": "N",  # GREEK CAPITAL LETTER NU
+    "\u039f": "O",  # GREEK CAPITAL LETTER OMICRON
+    "\u03a1": "P",  # GREEK CAPITAL LETTER RHO
+    "\u03a4": "T",  # GREEK CAPITAL LETTER TAU
+    "\u03a5": "Y",  # GREEK CAPITAL LETTER UPSILON
+    "\u03a7": "X",  # GREEK CAPITAL LETTER CHI
+    "\u03d2": "Y",  # GREEK UPSILON WITH HOOK SYMBOL
+    "\u03dc": "F",  # GREEK LETTER DIGAMMA
+    "\u03f9": "C",  # GREEK CAPITAL LUNATE SIGMA SYMBOL
+    "\u03fa": "M",  # GREEK CAPITAL LETTER SAN
+}
+_CONFUSABLE_TABLE = str.maketrans(_CONFUSABLE_MAP)
+
+
+@lru_cache(maxsize=4096)
+def _is_latin_letter(ch: str) -> bool:
+    """True if *ch* is a letter of the Latin script, accented or not."""
+    return unicodedata.name(ch, "").startswith("LATIN ")
+
+
+def _read_confusables(text: str) -> str:
+    """Read a Latin-lookalike letter as the Latin letter it stands in for.
+
+    Applies :data:`_CONFUSABLE_MAP`, under both halves of a guard that keeps
+    the repair to values where a lookalike is *damage*:
+
+    * the value has to carry a Latin letter of its own. Without that, a short
+      Russian word spelled entirely in lookalikes would come out as a Latin
+      one, where an empty key — this tool cannot express this — is the truthful
+      answer. Everything written wholly in Cyrillic or Greek keeps folding to
+      nothing, exactly as it did;
+    * every non-Latin letter in it has to have a row. Real Cyrillic and Greek
+      text reaches for letters no Latin alphabet draws — 24 of Russian's 33
+      have no row here — so one of those says the script is the writer's choice
+      rather than a slip, and the value is left alone entire. That is what
+      keeps a Russian journal's own name intact where a container string
+      carries it beside its romanisation.
+
+    The residual limit is a value mixing Latin with a short word spelled
+    *only* in lookalikes, which is repaired as though it were damage. No
+    instance has been seen; ``docs/limits.md`` states it.
+    """
+    if text.isascii():
+        return text
+    letters = [ch for ch in text if ch.isalpha()]
+    foreign = [ch for ch in letters if not _is_latin_letter(ch)]
+    if not foreign or len(foreign) == len(letters):
+        return text
+    if any(ch not in _CONFUSABLE_MAP for ch in foreign):
+        return text
+    return text.translate(_CONFUSABLE_TABLE)
+
 
 def clean(value: object) -> str:
     """Return *value* as display text: no markup, no entities, no brace armour.
@@ -189,16 +336,23 @@ def fold(value: object) -> str:
     a letter stood is an invented token boundary, which is how a surname comes
     to be compared on a fragment of itself. So a letter is romanised where
     :data:`_ROMANISED_MAP` has a spelling for it, and otherwise removed
-    outright: a Cyrillic or Greek title still folds to nothing, as it always
-    did, but ``Kjær`` folds to ``kjaer`` rather than to two tokens ``kj`` and
-    ``r``.
+    outright: a Cyrillic or Greek title folds to nothing, as it always did, but
+    ``Kjær`` folds to ``kjaer`` rather than to two tokens ``kj`` and ``r``.
+
+    Removal is what :func:`_read_confusables` runs ahead of, in the one case it
+    cannot survive: a Latin word carrying a single letter drawn from another
+    script. There the key is not emptied but *shortened*, and a shortened key
+    reads as knowledge where an empty one reads as ignorance — it is a surname
+    missing a letter and a forename whose second letter is read as its first.
+    The guard in that function is what keeps the sentence above true of
+    everything else.
 
     A :data:`modifier letter <_MODIFIER_LETTER>` is punctuation wearing a
     letter's category, and keeps the punctuation rule, so a surname spelled
     with U+02B9 and the same surname spelled with an apostrophe stay one key
     rather than becoming two.
     """
-    text = clean(value).lower().replace("&", " and ")
+    text = _read_confusables(clean(value)).lower().replace("&", " and ")
     # NFKD splits a letter from its diacritic so the combining marks can go.
     text = unicodedata.normalize("NFKD", text)
     text = "".join(ch for ch in text if not unicodedata.combining(ch))

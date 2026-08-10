@@ -225,6 +225,94 @@ class TestALetterNfkdLeavesWhole:
         assert fold("TNF-α levels") == "tnf levels"
 
 
+class TestALatinLookalikeFromAnotherScript:
+    """One letter of a Latin word, drawn from Cyrillic or Greek.
+
+    Deleting it — which is what a letter with no romanisation gets — leaves a
+    key one letter *shorter* rather than empty, and short is not the same as
+    absent: every caller reads a non-empty key as knowledge. The surname is
+    then compared missing a letter, and ``names._initials_of`` reads the
+    forename's second letter as its first.
+
+    The instances are the publisher's own damage and both registries inherit
+    it. Crossref's creator array for 10.26442/00403660.2024.07.202907 opens a
+    forename on CYRILLIC CAPITAL LETTER TE, and NLM's XML for the same paper
+    (PMID 39106512) carries the same code point as ``&#x422;``. In a 6,000-work
+    random Crossref sample, 2 of 16,585 creators carried one: a surname with
+    CYRILLIC SMALL LETTER U for ``y``, and a forename opening on GREEK CAPITAL
+    LETTER KAPPA.
+    """
+
+    @pytest.mark.parametrize(
+        ("damaged", "intended"),
+        [
+            # Crossref, 10.26442/00403660.2024.07.202907: CYRILLIC CAPITAL
+            # LETTER TE opens the forename of creator four.
+            ("Тatiana A.", "Tatiana A."),
+            # Crossref, 10.26442/00403660.2025.07.203267: the whole forename is
+            # CYRILLIC CAPITAL LETTER A and a Latin initial.
+            ("А. S.", "A. S."),
+            # Crossref, 10.33285/0132-2222-2019-9(554)-28-35: CYRILLIC SMALL
+            # LETTER U stands where the surname's y belongs.
+            ("Solovуev", "Solovyev"),
+            # Crossref, 10.1007/s13399-025-06952-4: GREEK CAPITAL LETTER KAPPA.
+            ("Κonstantinos", "Konstantinos"),
+            # Crossref, 10.28995/2686-7249-2021-9-240-251: a title, not a name —
+            # CYRILLIC CAPITAL LETTER ES opens the first word.
+            ("СONTEMPORARY PROBLEMS", "CONTEMPORARY PROBLEMS"),
+        ],
+    )
+    def test_it_folds_to_the_letter_it_is_drawn_as(
+        self, damaged: str, intended: str
+    ) -> None:
+        assert fold(damaged) == fold(intended)
+
+    def test_the_first_letter_is_the_one_the_word_opens_on(self) -> None:
+        """The half a shortened key gets wrong that an empty one cannot.
+
+        ``names._initials_of`` reads position zero of this key, and deletion
+        silently reassigns it.
+        """
+        assert fold("Тatiana A.").startswith("t")
+        assert fold("А. S.").startswith("a")
+
+    def test_a_value_written_wholly_in_another_script_still_folds_to_nothing(
+        self,
+    ) -> None:
+        """The guard's first half, and the invariant the repair must not cost.
+
+        Every letter here has a Latin lookalike, so without the "some Latin
+        letter of its own" test each of these would come back as a confident
+        Latin key for a word no Latin alphabet writes — worse than the empty
+        key, which says only that this tool cannot express the value.
+        """
+        assert fold("Сор") == ""
+        assert fold("Роса") == ""
+        assert fold("Александр") == ""
+
+    def test_a_letter_with_no_lookalike_leaves_the_whole_value_alone(self) -> None:
+        """The guard's second half, stated as the limit it is.
+
+        24 of Russian's 33 letters have no row in the map, so one of them says
+        the script is the writer's choice. The repair then declines the value
+        entire — including any lookalike beside it — because a name that really
+        is Cyrillic is not a Latin name with a slip in it.
+        """
+        # The forename opens on CYRILLIC CAPITAL LETTER A; the surname beside
+        # it is ordinary Russian, and four of its letters have no Latin twin.
+        assert fold("Аlexander Иванов") == "lexander"
+
+    def test_a_symbol_a_title_carries_is_not_read_as_a_letter(self) -> None:
+        """Lower-case Greek is this literature's notation, not damage.
+
+        Reading it would rewrite the title rather than repair it, so the map
+        holds no lower-case Greek row at all and these fold exactly as before.
+        """
+        assert fold("TNF-α levels") == "tnf levels"
+        assert fold("IFN-γ release") == "ifn release"
+        assert fold("NF-κB signalling") == "nf b signalling"
+
+
 class TestSimilarity:
     def test_identical_after_folding_is_one(self) -> None:
         assert similarity("A Study of X", "a study of x!") == 1.0
