@@ -17,6 +17,37 @@ Not yet published to PyPI. Install with
 The documentation toolchain is a PEP 735 dependency-group rather than an extra,
 so `uv sync --all-extras` does not install it into the test environment.
 
+**What re-running an audit can change**, which is what this file is for. Five
+things move verdicts, and each is an entry below.
+
+1. **A PMID is an identifier.** An entry carrying one and no DOI is resolved
+   through `efetch` instead of searched for by title and author, and compared
+   field by field against the MEDLINE citation. An entry a similarity search
+   used to stand in for now gets the registry's own answer, in either
+   direction.
+2. **Retraction is checked from four sources rather than as a side effect of
+   one.** Retraction Watch's export is read directly, NLM's `ECI` concerns are
+   read, the strongest notice for a DOI wins over the newest, and a source that
+   could not be reached or was never asked is named instead of passing for
+   silence.
+3. **Bylines are compared on more of the alphabet.** Mis-decoded surnames are
+   repaired whatever script they were written in, a letter from another script
+   inside a Latin name no longer breaks the surname into tokens, collectives
+   are matched as one author, and a forename substituted for another person's
+   is reported rather than passed over.
+4. **A serial is compared on the names its registry actually files it under** —
+   NLM's article-dropped, place-qualified, subtitled forms, and a journal's
+   parallel title. Correct bibliographies that failed `container/mismatch` for
+   those now pass, and the suppression says which name was reduced.
+5. **The default report prints more.** An entry whose verdict is quiet but
+   whose finding is not now appears, `--fail-on` decides which groups print,
+   and a correction is its own `info` finding rather than a retraction's
+   wording.
+
+Nothing here relaxes a check to make a report quieter: every suppression added
+is written up in [registry defects](docs/registry-artifacts.md) with the case
+that motivated it, and the true-positive half of each is tested beside it.
+
 ### Added
 
 - **A PMID is read as an identifier in its own right, and resolved.** BibTeX's
@@ -190,6 +221,12 @@ so `uv sync --all-extras` does not install it into the test environment.
   response from a written one; it now reaches Crossref, DataCite, PubMed and
   Retraction Watch, where before this it reached none. The procedure for adding
   a fixture is in `CONTRIBUTING.md` and its third step is not automated.
+
+  One demand is made of a `source = "none"` entry's prose, the entries for
+  files nothing re-fetches: where the file is a JSON list of objects, the note
+  must name every `id` or `key` in it. Nothing else in this project reads a
+  note, and both Zotero notes described "two items" over a file of four from
+  the commit that introduced the manifest until the one that noticed.
 
 ### Changed
 
