@@ -25,8 +25,10 @@ Two groups of fixtures matter more than the rest:
   their own ``Title`` column. Each stands for a shape the export holds
   thousands of but never beside a DOI these tests already use: a
   reinstatement withdrawing an earlier retraction of the same DOI
-  (90001/90002), a blank ``OriginalPaperDOI`` (2,765 rows in the 2026-08-10
-  export), RW's ``Unavailable`` sentinel in that column (2,235 rows), and a
+  (90001/90002), a blank ``OriginalPaperDOI``, RW's ``Unavailable`` sentinel
+  in that column -- for both of those,
+  :func:`~bibaudit.registries.retractions._looks_like_doi`'s docstring holds
+  the live counts and is the only place that states them -- and a
   blank ``RetractionNature`` (241 rows). Copying a real row for each would
   have pulled in a second DOI per case with its own notice history, which is
   what the DOIs above are for; these carry ``10.9999/`` identifiers precisely
@@ -450,25 +452,37 @@ class TestRetractionWatchCsv:
         result = Retractions(stub, cache_dir=tmp_path).status_for([doi]).notices
         assert result[doi].kind == "expression-of-concern"
 
-    def test_a_blank_original_paper_doi_is_skipped(self, tmp_path: Path) -> None:
-        """The row exists (RetractionDOI 10.9999/blank-orig-notice) but names no
-        original paper; there is no DOI to index it under.
-        """
-        stub = _client(rw_csv=_rw_sample())
-        result = Retractions(stub, cache_dir=tmp_path).status_for(
-            ["10.9999/blank-orig-notice"]
-        ).notices
-        assert result == {}
+    @pytest.mark.parametrize("cell", ["", "Unavailable", "unavailable"])
+    def test_a_row_with_no_original_paper_doi_is_read_as_no_row(
+        self, cell: str, tmp_path: Path
+    ) -> None:
+        """The three values :func:`~bibaudit.registries.retractions._looks_like_doi`
+        rejects, each as the only row of an export.
 
-    def test_the_unavailable_sentinel_is_not_treated_as_a_doi(self, tmp_path: Path) -> None:
-        """RW records ``Unavailable`` literally in ``OriginalPaperDOI`` for rows
-        with no known original-paper DOI (3,422 of 71,641 rows in the live
-        2026-08-09 export) -- it must never be indexed as though it were one.
+        Probed through the "no usable rows" outage rather than through a
+        lookup, because that is the one place a skipped row is observable:
+        ``status_for`` short-circuits an empty request, so a blank cell cannot
+        be asked about at all, and asking by the row's *RetractionDOI* -- which
+        is what these two tests did -- answers ``{}`` whatever the function
+        returns, since the index keys on ``OriginalPaperDOI``. Accept any of
+        the three and the export stops being empty and the outage disappears.
+
+        Both spellings of the sentinel are here because both are live, and
+        because the rejection is what makes the count in ``_looks_like_doi``'s
+        own docstring the case-folded one.
+        """
+        csv = _rw_rows((cell, "1/1/2020 0:00", "Retraction", "10.9999/notice"))
+        stub = _client(rw_csv=csv)
+        with pytest.warns(RuntimeWarning, match="Retraction Watch"):
+            status = Retractions(stub, cache_dir=tmp_path).status_for([WAKEFIELD_DOI])
+        assert status.unreachable == frozenset({"retraction-watch"})
+
+    def test_the_unavailable_sentinel_is_not_indexed_as_a_doi(self, tmp_path: Path) -> None:
+        """The same rejection seen from the index side, on the whole extract:
+        asking for the sentinel itself must not return row 90004's notice.
         """
         stub = _client(rw_csv=_rw_sample())
-        index_probe = Retractions(stub, cache_dir=tmp_path).status_for(
-            ["10.9999/unavailable-orig-notice"]
-        ).notices
+        index_probe = Retractions(stub, cache_dir=tmp_path).status_for(["Unavailable"]).notices
         assert index_probe == {}
 
     def test_an_unrecognised_retraction_nature_is_skipped_not_guessed(

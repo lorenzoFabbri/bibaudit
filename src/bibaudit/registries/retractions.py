@@ -359,12 +359,20 @@ def _looks_like_doi(value: str) -> bool:
     """Cheap shape check, not a validity one — good enough to reject blanks and
     RW's own "no DOI available" sentinel without writing a second DOI regex.
 
-    Of the 71,641 rows of the export this project last read whole, 6,187 carry
-    an ``OriginalPaperDOI`` that is not a DOI, and 2,235 of those are the
+    Of the 71,641 rows of the 2026-08-10 export, 6,187 carry an
+    ``OriginalPaperDOI`` that is not a DOI: 2,765 are blank and 3,422 are the
     sentinel ``Unavailable``. Both numbers are the point: naming the sentinel
-    alone understates by two thirds what this rejects, and neither is a reason
-    to widen the test, because a row with no DOI to index by is one this module
+    alone understates by 45% what this rejects, and neither is a reason to
+    widen the test, because a row with no DOI to index by is one this module
     cannot key on however it is spelled.
+
+    "However it is spelled" is also why the sentinel count has to be taken on
+    the value *this function is passed* rather than on the column.
+    :func:`_parse_rw_csv` hands it :func:`~bibaudit.normalize.normalize_doi`'s
+    output, which lower-cases, so the 2,235 rows RW spells ``Unavailable`` and
+    the 1,187 it spells ``unavailable`` arrive as one value; counted on the
+    column, the commonest spelling alone reports 2,235 and misses a third of
+    what is rejected.
 
     ``normalize.DOI_PATTERN`` is not reused here because these are already
     isolated CSV cells, not free text a pattern needs to be found *within* —
