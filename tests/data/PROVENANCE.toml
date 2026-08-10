@@ -1,0 +1,449 @@
+# Where every file in this directory came from.
+#
+# One [[fixture]] table per file. The build fails if the two sets differ in
+# either direction — a file nobody wrote an entry for, or an entry naming a
+# file that is not here — because omission is the failure this file exists to
+# catch, and a check you can satisfy by leaving something out is not one.
+#
+#
+# WHAT AN ENTRY ESTABLISHES, AND WHAT IT DOES NOT
+#
+# An entry is a claim by whoever added it. The offline suite checks only that
+# the claim is coherent: that the file is the kind of response `source` names,
+# that the identifier written here is the identifier inside the file, and that
+# `url` is the request bibaudit's own registry client would issue for it. A
+# fabricated file satisfies all three. A MEDLINE record invented around a real
+# PMID passes every offline check there is.
+#
+# What settles it is `uv run pytest -m network`, which re-fetches every `url`
+# and compares the answer with the file on disk. That is the only thing in
+# this repository able to tell a recorded registry response from a written
+# one. It is opt-in and it is nobody's default, so a fixture you did not fetch
+# yourself is unverified until you run it.
+#
+# A `source = "none"` entry establishes less still: that somebody looked at
+# the file and said what it is. Nothing checks the identifiers inside one.
+# Those files are bibliographies the tool *reads*, and some of what they carry
+# is wrong on purpose.
+#
+#
+# FIELDS
+#
+# file       basename in this directory.
+# source     "pubmed", "crossref", "datacite", "retraction-watch" — or "none"
+#            for a bibliography the tool reads rather than a registry answer.
+#            A "none" entry carries `note` in place of the fetch fields, and
+#            its file must not look like a registry response.
+# id         the PMID or DOI the response was requested under.
+# url        the exact GET that returns it, in the form built by the client in
+#            src/bibaudit/registries/. Checked against that code, so a URL
+#            pointing anywhere else fails.
+# fetched    the date these bytes were last confirmed to be what `url`
+#            answers: the fetch that produced them, or a later re-check that
+#            found them unchanged.
+# holds      "response" (the default) — the file is the whole response body.
+#            "work" — the file is the `message` object out of it, which is
+#            what Crossref's batch route yields per item and what `by_dois`
+#            hands on.
+# synthetic  Retraction Watch only: the `Record ID`s this project wrote. Every
+#            other row must be in the live export verbatim, and these must not
+#            appear in it at all.
+# note       prose, required wherever there is no `url` to settle the matter,
+#            so a file nothing re-fetches is still accounted for in writing.
+#
+# Any other key is a typo, and a typo in a manifest reads as a requirement
+# met rather than as an error, so an unknown key fails the build.
+#
+# There is no field for "part of a response". A fixture is the whole of what
+# the registry sent or it is not a fixture, and a value dropped quietly is
+# indistinguishable from a value invented. The Retraction Watch export is the
+# one exception the format admits, because it is 71,641 rows, and it pays for
+# the exception by naming every row it did not copy.
+
+
+[[fixture]]
+file = "audit_crossref_interleaved_collective.json"
+source = "crossref"
+id = "10.1158/1055-9965.epi-23-0009"
+url = "https://api.crossref.org/works/10.1158%2F1055-9965.epi-23-0009"
+fetched = 2026-08-10
+holds = "work"
+
+[[fixture]]
+file = "audit_crossref_series_and_book_container.json"
+source = "crossref"
+id = "10.1007/978-1-59745-423-0_7"
+url = "https://api.crossref.org/works/10.1007%2F978-1-59745-423-0_7"
+fetched = 2026-08-10
+holds = "work"
+
+[[fixture]]
+file = "compare_crossref_expression_of_concern.json"
+source = "crossref"
+id = "10.1371/journal.pone.0064723"
+url = "https://api.crossref.org/works/10.1371%2Fjournal.pone.0064723"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "compare_crossref_partial_retraction.json"
+source = "crossref"
+id = "10.29328/journal.jcmhs.1001023"
+url = "https://api.crossref.org/works/10.29328%2Fjournal.jcmhs.1001023"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "compare_crossref_wakefield_notice.json"
+source = "crossref"
+id = "10.1016/s0140-6736(10)60175-4"
+url = "https://api.crossref.org/works/10.1016%2Fs0140-6736%2810%2960175-4"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "compare_crossref_wakefield_retracted.json"
+source = "crossref"
+id = "10.1016/s0140-6736(97)11096-0"
+url = "https://api.crossref.org/works/10.1016%2Fs0140-6736%2897%2911096-0"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "compare_pubmed_wakefield_notice.txt"
+source = "pubmed"
+id = "20137807"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=20137807&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "compare_pubmed_wakefield_retracted.txt"
+source = "pubmed"
+id = "9500320"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=9500320&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "crossref_reciprocal_retracted_paper.json"
+source = "crossref"
+id = "10.1016/s0140-6736(20)31180-6"
+url = "https://api.crossref.org/works/10.1016%2Fs0140-6736%2820%2931180-6"
+fetched = 2026-08-10
+holds = "work"
+
+[[fixture]]
+file = "crossref_reciprocal_retraction_notice.json"
+source = "crossref"
+id = "10.1016/s0140-6736(20)31324-6"
+url = "https://api.crossref.org/works/10.1016%2Fs0140-6736%2820%2931324-6"
+fetched = 2026-08-10
+holds = "work"
+
+[[fixture]]
+file = "datacite_alternative_title_first.json"
+source = "datacite"
+id = "10.26268/heal.uoi.19814"
+url = "https://api.datacite.org/dois/10.26268/heal.uoi.19814"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "datacite_arxiv_preprint.json"
+source = "datacite"
+id = "10.48550/arxiv.1706.03762"
+url = "https://api.datacite.org/dois/10.48550/arxiv.1706.03762"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "datacite_creator_given_name_only.json"
+source = "datacite"
+id = "10.34760/6a69ef00bbbef"
+url = "https://api.datacite.org/dois/10.34760/6a69ef00bbbef"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "datacite_creator_name_only.json"
+source = "datacite"
+id = "10.25431/11380_1192850"
+url = "https://api.datacite.org/dois/10.25431/11380_1192850"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "datacite_journal_article.json"
+source = "datacite"
+id = "10.24377/dteij.article3641"
+url = "https://api.datacite.org/dois/10.24377/dteij.article3641"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "datacite_organizational_creator.json"
+source = "datacite"
+id = "10.15468/dl.pqqnhb"
+url = "https://api.datacite.org/dois/10.15468/dl.pqqnhb"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "markdown_epic_read_delim.qmd"
+source = "none"
+note = """
+A Quarto page from a catalog of epidemiological data sources, carrying its \
+DOIs inside a read.delim() pipe table in an R chunk. Audited side."""
+
+[[fixture]]
+file = "markdown_mws_read_delim.qmd"
+source = "none"
+note = """
+The same shape over a different column set, which is why the adapter \
+parses the header rather than indexing columns. Audited side."""
+
+[[fixture]]
+file = "markdown_obsidian_note.md"
+source = "none"
+note = """
+An Obsidian note's structure - front matter, [@key] citations, wikilinks, \
+an embed, a mermaid fence - with the prose paraphrased, the vault being \
+private."""
+
+[[fixture]]
+file = "markdown_pangeneu_data_frame.qmd"
+source = "none"
+note = """
+A Quarto page carrying its DOIs in a data.frame(DOI = c(...)) vector, the \
+second of the two shapes that catalog uses. Audited side."""
+
+[[fixture]]
+file = "names_crossref_first_author_omitted.json"
+source = "crossref"
+id = "10.1097/00008469-199710000-00007"
+url = "https://api.crossref.org/works/10.1097%2F00008469-199710000-00007"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "names_crossref_mojibake_author_list.json"
+source = "crossref"
+id = "10.5271/sjweh.3626"
+url = "https://api.crossref.org/works/10.5271%2Fsjweh.3626"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_abbreviated_title.txt"
+source = "pubmed"
+id = "24903303"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=24903303&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_acronym_prefix.txt"
+source = "pubmed"
+id = "42550479"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42550479&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_acronym_prefix_subtitle.txt"
+source = "pubmed"
+id = "42522049"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42522049&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_book.txt"
+source = "pubmed"
+id = "20301295"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=20301295&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_book_chapter.txt"
+source = "pubmed"
+id = "20301425"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=20301425&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_collective_creator.txt"
+source = "pubmed"
+id = "42552006"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42552006&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_collective_fau_without_comma.txt"
+source = "pubmed"
+id = "34064455"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=34064455&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_concern_only.txt"
+source = "pubmed"
+id = "10475862"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=10475862&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_corporate_author.txt"
+source = "pubmed"
+id = "42538063"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42538063&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_data_descriptor.txt"
+source = "pubmed"
+id = "42557261"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42557261&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_eci_concern.txt"
+source = "pubmed"
+id = "23741377"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=23741377&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_eci_concern_notice.txt"
+source = "pubmed"
+id = "34710116"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=34710116&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_epub_ahead_of_issue.txt"
+source = "pubmed"
+id = "41474069"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=41474069&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_fau_without_comma.txt"
+source = "pubmed"
+id = "11278851"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=11278851&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_parallel_title.txt"
+source = "pubmed"
+id = "42526877"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42526877&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_parallel_title_article.txt"
+source = "pubmed"
+id = "42559441"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42559441&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_qualifier_inner_colon.txt"
+source = "pubmed"
+id = "42552576"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42552576&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_qualifier_leading_article.txt"
+source = "pubmed"
+id = "30151503"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=30151503&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_qualifier_year.txt"
+source = "pubmed"
+id = "42555391"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42555391&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_retracted.txt"
+source = "pubmed"
+id = "9500320"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=9500320&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_retracted_erratum.txt"
+source = "pubmed"
+id = "36736314"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=36736314&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_retraction_notice.txt"
+source = "pubmed"
+id = "20137807"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=20137807&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_society_expansion.txt"
+source = "pubmed"
+id = "32430337"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=32430337&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_title_holding_the_placeholder_words.txt"
+source = "pubmed"
+id = "42560649"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42560649&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_title_unavailable.txt"
+source = "pubmed"
+id = "42536854"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42536854&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_translated_title.txt"
+source = "pubmed"
+id = "36448904"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=36448904&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_wrapped_creator.txt"
+source = "pubmed"
+id = "40953983"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=40953983&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "pubmed_wrapped_title.txt"
+source = "pubmed"
+id = "37726507"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=37726507&rettype=medline&retmode=text"
+fetched = 2026-08-10
+
+[[fixture]]
+file = "retraction_watch_sample.csv"
+source = "retraction-watch"
+url = "https://api.labs.crossref.org/data/retractionwatch"
+fetched = 2026-08-10
+synthetic = ["90001", "90002", "90003", "90004", "90006"]
+note = """
+The one file here that is not a whole response: the export is 71,641 rows. \
+Fourteen rows are copied from it and five were written for shapes it holds \
+thousands of but never beside a DOI these tests already use."""
+
+[[fixture]]
+file = "sample.bib"
+source = "none"
+note = """
+A deliberately irregular BibTeX bibliography: two entries on one physical \
+line, a citekey reused across blocks, a block whose closing brace was \
+never typed. Audited side."""
+
+[[fixture]]
+file = "zotero_csl_export.json"
+source = "none"
+note = """
+Zotero's CSL-JSON export of two items. Audited side, despite the \
+extension."""
+
+[[fixture]]
+file = "zotero_native_items.json"
+source = "none"
+note = """
+Zotero's own item JSON for the same two items. Audited side."""

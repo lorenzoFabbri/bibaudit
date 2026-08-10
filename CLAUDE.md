@@ -142,6 +142,17 @@ The fixtures in `tests/data/` are real registry responses, including the
 defective ones. Do not "clean them up" — the mojibake and the doubled MathML are
 the point.
 
+That was asserted here and enforced nowhere, and ten files broke it.
+`tests/data/PROVENANCE.toml` now records, per file, the registry, the
+identifier and the request URL, and `tests/test_fixture_provenance.py` fails
+the build for a file with no entry — so a fixture can no longer arrive without
+somebody saying where it came from. Saying is not verifying: the offline checks
+only establish that the claim is coherent, and a MEDLINE citation written
+around a real PMID passes all of them. `uv run pytest -m network` re-fetches
+every URL and diffs it, and nothing else in this repository can tell a recorded
+response from a written one. Adding a fixture is a procedure with three steps
+and the third is not automated; it is in `CONTRIBUTING.md`.
+
 ## Git
 
 - No attribution trailers in commit messages, and no mention of the assistant
