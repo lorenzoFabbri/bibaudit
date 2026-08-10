@@ -7,15 +7,30 @@ own socket fails here instead of quietly working on a maintainer's laptop and
 failing in CI.
 
 Unlike ``tests/test_datacite.py`` and ``tests/test_crossref.py``, the JSON
-payloads below are **not** recordings of a live response — this environment
-has no network access, so nothing could be fetched to record. They are
-hand-built to match the shape Open Library's own developer documentation
-publishes for the Books API (``openlibrary.org/dev/docs/api/books``) and for
-``search.json``, trimmed to the fields ``registries/openlibrary.py`` actually
-reads. Anyone who can reach the network can confirm the shape directly:
+payloads below are **not** recordings of a live response. They are built to
+exercise the parser, so most of them are shapes chosen rather than found — a
+record whose ``number_of_pages`` is ``0``, a corporate body as the sole
+author, a search document carrying a title and nothing else — and a recording
+would be one catalogue record each.
 
-    curl 'https://openlibrary.org/api/books?bibkeys=ISBN:0201633612&format=json&jscmd=data'
-    curl 'https://openlibrary.org/search.json?title=Design+Patterns&limit=1'
+The excuse this docstring used to give for that was untrue and worth naming,
+because it also excused two entries in ``docs/registry-artifacts.md`` from
+citing an instance: it said the environment had no network access, in a
+repository whose own ``pytest -m network`` suite fetches NCBI, Crossref,
+DataCite and a 66 MB export.
+
+So the shapes are checked, and here is the check. Open Library's answer for
+ISBN 9780201633610, fetched 2026-08-10, carries every key ``_FULL_BOOK`` does
+and in the same shapes: ``authors`` a list of ``{"url", "name"}``,
+``publishers`` a list of ``{"name"}``, ``number_of_pages`` an int, ``key`` a
+``/books/OL…M`` path, ``title`` and ``subtitle`` strings. The *values* here
+are not that record's — it is ``/books/OL7408317M``, published
+"January 15, 1995", with five author entries of which two are Ralph Johnson
+under different spellings — and nothing below claims to be a specific record.
+Repeat either fetch:
+
+    curl 'https://openlibrary.org/api/books?bibkeys=ISBN:9780201633610&format=json&jscmd=data'
+    curl 'https://openlibrary.org/search.json?title=Design+Patterns&author=Gamma&limit=5'
 
 The ISBN arithmetic is not open to that same doubt: ISBN-10/13 check digits
 and the ISBN-10-to-13 conversion are ISO 2108, not a registry's own choice,
@@ -123,9 +138,11 @@ def _client(payload: dict[str, Any] | Exception | None) -> _StubClient:
     return _StubClient(responder)
 
 
-#: A full ``jscmd=data`` book object, shaped after Open Library's own
-#: published example for ISBN 0201558025 ("Design Patterns"), trimmed to the
-#: fields this client reads and re-keyed to the ISBN-13 this test suite uses.
+#: A full ``jscmd=data`` book object, keyed on the ISBN-13 this suite uses and
+#: carrying the fields this client reads, in the shapes the live answer for
+#: that ISBN gives them — see the module docstring, which is where the shape
+#: is settled, Open Library's own ``/dev/docs/api/books`` page being a 404
+#: (2026-08-10) that its API index still links to.
 _FULL_BOOK: dict[str, Any] = {
     "title": "Design Patterns",
     "subtitle": "Elements of Reusable Object-Oriented Software",

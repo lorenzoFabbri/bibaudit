@@ -106,6 +106,12 @@ Nothing re-fetches those, and nothing checks the identifiers inside them:
 their DOIs are the thing under audit and some are wrong deliberately. The note
 is the only account such a file will ever have.
 
+Which is why one thing is demanded of the prose, and only for a file that
+parses as a JSON list of objects: the note must name every `id` or `key` in
+it. Both Zotero notes described "two items" over a file of four, from the
+commit that introduced the manifest to the one that noticed, because a note
+nothing reads is a note nothing corrects.
+
 ## Adding a registry
 
 Registries are consulted for *independent* evidence. OpenAlex, Semantic Scholar

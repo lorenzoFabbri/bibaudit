@@ -313,6 +313,17 @@ def _record_from_search_doc(doc: Mapping[str, Any]) -> Record:
     handled here rather than coerced into one shared parser, because
     pretending the two endpoints agree on field names would be the kind of
     silent guess this tool exists to avoid making.
+
+    Two of those fields never arrive on this client's requests, which is worth
+    saying because a reader would otherwise look for them in a report.
+    ``search.json`` answers a default document set, and ``publisher`` and
+    ``number_of_pages_median`` are outside it: 0 of 1,000 documents over ten
+    title queries carried either (2026-08-10), while a request naming them in
+    ``fields=`` returns both. :meth:`OpenLibrary.search` sends no ``fields=``,
+    so a search-path :class:`~bibaudit.model.Record` carries no publisher and
+    no pages. They are read anyway because the schema has them, which makes a
+    ``fields=`` parameter a change to the request rather than to this parser,
+    and because reading an absent key costs nothing.
     """
     title = clean(doc.get("title"))
     subtitle = clean(doc.get("subtitle"))

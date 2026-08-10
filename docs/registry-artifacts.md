@@ -1780,22 +1780,31 @@ otherwise would be the same overreach as rewriting the bibliography.
 Two entries below, and both are **not artifacts**, in the same sense as
 *Online-first versus print year* and *Container titles* above: nothing here is
 a case of the registry holding a wrong value. Open Library is instead simply
-*thinner* than Crossref — crowd-sourced, and a great many records carry a
-title and nothing else — and two design decisions in `compare.py` and
+*thinner* than Crossref — crowd-sourced, and some records carry a title and
+nothing else — and two design decisions in `compare.py` and
 `registries/openlibrary.py` exist specifically to keep that thinness from
-reading as a defect in the bibliography. Neither is a `benign.py` suppression:
-CLAUDE.md and this file's own introduction require a suppression to name a
-witnessed instance — a specific ISBN, fetched and checked — and this project
-has no network access to Open Library to record one. What follows is
-documentation of the design, not a claim that a specific record was seen to be
-wrong.
+reading as a defect in the bibliography. Neither is a `benign.py` suppression,
+so neither owes the witnessed instance CLAUDE.md and this file's own
+introduction require of one. What follows is documentation of the design, not
+a claim that a specific record was seen to be wrong.
+
+Both are witnessed anyway, because the thinness is the premise the design
+rests on and an unmeasured premise is what this file exists to stop. Measured
+2026-08-10 over 2,000 `search.json` documents — 100 each for twenty title
+queries: **29 (1.45%) carry neither `author_name` nor `first_publish_year`**,
+`/works/OL17582766M` ("Annual report") among them, whose whole document is a
+title, a key and three availability flags; 210 (10.5%) carry no
+`author_name`. Not most of the catalogue, then: about one document in seventy
+arrives with nothing at all to corroborate its title against.
 
 **`number_of_pages` is a book's total length, not a citation locator.** Every
 other registry's `pages` means "the opening page of a citation inside a larger
 work" (see *Zero-padded article numbers* and *Article number recorded against
 a page range*, above). Open Library's Books API has no such field for a book —
 there is no larger work — and the closest it offers is `number_of_pages`, the
-book's own extent. `registries/openlibrary.py` maps it into
+book's own extent — ISBN 9780201633610, *Design Patterns*, answers
+`"number_of_pages": 395`, which is how long the book is and not where anything
+in it starts. `registries/openlibrary.py` maps it into
 `Record.pages` anyway, because `Record` has no separate "extent" slot and the
 alternative is to drop a value Open Library actually supplies. The
 compensating fix lives in `compare.py`: `_check_scalar`'s `optional_for_kinds`
@@ -1819,8 +1828,9 @@ candidate the tool ever considered there came from Crossref, Europe PMC or
 OpenAlex, and all three reliably carry an author list, a year, or both — so
 the corroboration checks, each written as "skip if the candidate has nothing
 to compare", were never actually exercised on a candidate with *nothing at
-all*. Open Library's `search.json` routinely returns exactly that: a title,
-and no `author_name`, no `first_publish_year`. Without an explicit guard, such
+all*. Open Library's `search.json` returns exactly that on 1.45% of documents
+— the 29 in 2,000 counted above, a title and no `author_name` and no
+`first_publish_year`. Without an explicit guard, such
 a record would confirm on the title match alone, both corroboration checks
 having silently done nothing — which is precisely the failure mode
 `confirm_without_id` exists to prevent, arriving through a source the

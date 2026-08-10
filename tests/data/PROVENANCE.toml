@@ -50,6 +50,10 @@
 #            appear in it at all.
 # note       prose, required wherever there is no `url` to settle the matter,
 #            so a file nothing re-fetches is still accounted for in writing.
+#            One demand is made of the prose: where the file is a JSON list of
+#            objects, the note must name every `id` or `key` in it. Nothing
+#            else reads a note, and both Zotero notes said "two items" over a
+#            file of four for as long as they had existed.
 #
 # Any other key is a typo, and a typo in a manifest reads as a requirement
 # met rather than as an error, so an unknown key fails the build.
@@ -445,8 +449,21 @@ fetched = 2026-08-10
 synthetic = ["90001", "90002", "90003", "90004", "90006"]
 note = """
 The one file here that is not a whole response: the export is 71,641 rows. \
-Fourteen rows are copied from it and five were written for shapes it holds \
-thousands of but never beside a DOI these tests already use."""
+Fourteen are copied from it verbatim; five were written, because copying a \
+row for each of these shapes would have pulled in a second DOI with its own \
+notice history. How common each shape is in the live export, counted \
+2026-08-10, because "we wrote this one" needs the frequency it rests on: a \
+blank OriginalPaperDOI (90003) and the Unavailable sentinel (90004) are the \
+two the export holds thousands of, and the counts live in \
+registries/retractions._looks_like_doi rather than being repeated here. The \
+other three are rare, not common. A reinstatement withdrawing an earlier \
+retraction of the same DOI (90001/90002) happens on exactly one DOI, \
+10.1159/000443123 — 155 DOIs carry a reinstatement and 11 of those carry any \
+notice beside it, but only that one carries a retraction. And a blank \
+RetractionNature (90006) happens on no notice row at all: the 241 rows whose \
+RetractionNature is blank are the export's blank trailing lines, which the \
+DOI check drops a step earlier, so that row stands for a branch no live row \
+reaches."""
 
 [[fixture]]
 file = "sample.bib"
@@ -460,11 +477,16 @@ never typed. Audited side."""
 file = "zotero_csl_export.json"
 source = "none"
 note = """
-Zotero's CSL-JSON export of two items. Audited side, despite the \
-extension."""
+Zotero's CSL-JSON export of four items: three article-journal entries \
+(papantoniou2017, ehbccg2002, molinamontes2018) and one book (hidalgo2015). \
+Audited side, despite the extension."""
 
 [[fixture]]
 file = "zotero_native_items.json"
 source = "none"
 note = """
-Zotero's own item JSON for the same two items. Audited side."""
+Zotero's own item JSON: four objects, being two parent journalArticles \
+(ABCD1234, EFGH5678) and an attachment (PDF00001) and a note (NOTE0001), \
+both children of ABCD1234. Not the same items as the CSL export beside it — \
+EFGH5678 is ehbccg2002 under its other schema, and ABCD1234 \
+(10.1093/aje/kwx137) appears in no CSL entry. Audited side."""

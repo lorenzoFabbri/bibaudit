@@ -454,6 +454,45 @@ def check_declared_synthetic_rows_are_in_the_file(
     return complaints
 
 
+def check_each_note_names_the_items_in_its_file(
+    entries: Sequence[dict[str, Any]],
+) -> list[str]:
+    """A ``source = "none"`` list of items is described item by item.
+
+    Nothing re-fetches these files and nothing else reads a note, so a note
+    that describes fewer items than its file holds is wrong for as long as it
+    exists. Both Zotero entries were: each said "two items" over a file of
+    four, from the commit that introduced this manifest.
+
+    The rule implemented is narrow and worth stating exactly, because it is
+    weaker than the sentence above. It applies to a ``source = "none"`` file
+    that parses as a JSON *list of objects*, and it requires the note to
+    contain, as a substring, the ``id`` or ``key`` of every one of them. A
+    file of any other shape — a ``.bib``, a Quarto page, an Obsidian note, a
+    JSON object rather than a list — is not checked at all, and no wording
+    beyond those identifiers is required of any note. What it catches is the
+    failure that happened: items in the file that the note never mentions.
+    """
+    complaints: list[str] = []
+    for entry in entries:
+        if entry.get("source") != "none":
+            continue
+        path = DATA / str(entry.get("file"))
+        if path.suffix != ".json" or not path.exists():
+            continue
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(payload, list):
+            continue
+        note = str(entry.get("note") or "")
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            identifier = item.get("id") or item.get("key")
+            if isinstance(identifier, str) and identifier not in note:
+                complaints.append(f"{path.name}: the note does not name {identifier!r}")
+    return complaints
+
+
 #: Every offline check, so that adding one to this list is what runs it. Named
 #: rather than collected by prefix: a check that stops being run because it was
 #: renamed out of a pattern is the failure mode the whole module is about.
@@ -466,6 +505,7 @@ CHECKS: tuple[Callable[[Sequence[dict[str, Any]]], list[str]], ...] = (
     check_each_url_is_the_request_the_client_makes,
     check_each_fetch_date_is_a_past_date,
     check_declared_synthetic_rows_are_in_the_file,
+    check_each_note_names_the_items_in_its_file,
 )
 
 
@@ -692,6 +732,32 @@ class TestEachCheckBites:
 
         assert check_declared_synthetic_rows_are_in_the_file(stale) == [
             "retraction_watch_sample.csv: Record ID '90099' is declared synthetic and is not a row"
+        ]
+
+    def test_a_note_that_describes_fewer_items_than_the_file_holds_is_named(self) -> None:
+        """The wording both Zotero entries shipped with, over four items."""
+        undercounting = _doctored(
+            "zotero_csl_export.json", note="Zotero's CSL-JSON export of two items."
+        )
+
+        assert check_each_note_names_the_items_in_its_file(undercounting) == [
+            "zotero_csl_export.json: the note does not name 'papantoniou2017'",
+            "zotero_csl_export.json: the note does not name 'ehbccg2002'",
+            "zotero_csl_export.json: the note does not name 'molinamontes2018'",
+            "zotero_csl_export.json: the note does not name 'hidalgo2015'",
+        ]
+
+    def test_a_child_item_left_out_of_a_note_is_named(self) -> None:
+        """Zotero's own schema keys on ``key``, not ``id``, and an attachment
+        and a note are items of the file like any other.
+        """
+        parents_only = _doctored(
+            "zotero_native_items.json", note="Zotero's own item JSON for ABCD1234 and EFGH5678."
+        )
+
+        assert check_each_note_names_the_items_in_its_file(parents_only) == [
+            "zotero_native_items.json: the note does not name 'PDF00001'",
+            "zotero_native_items.json: the note does not name 'NOTE0001'",
         ]
 
 
