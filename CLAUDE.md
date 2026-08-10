@@ -153,12 +153,32 @@ every URL and diffs it, and nothing else in this repository can tell a recorded
 response from a written one. Adding a fixture is a procedure with three steps
 and the third is not automated; it is in `CONTRIBUTING.md`.
 
+## Comments state the rule, never the incident
+
+A comment or docstring that reads like a changelog entry — "this used to return
+X", "an earlier version reported Y", "without this the bug would come back" — makes
+the reader reconstruct a story to learn a rule, and goes stale the moment the code
+moves again. Git already records what changed and when.
+
+The subtler form is the one that slips through: **arguing against the design you
+just replaced.** "A plain dict let a caller write any string it liked" describes a
+removed alternative rather than the rule that now holds. It reads as justification
+to the author and as archaeology to the reader.
+
+State the invariant in the present tense and give the reason that makes it
+non-obvious — "BAD-ID requires a registry that answered; with nothing consulted the
+claim is vacuous", not "this used to report BAD-ID and that was wrong". Naming a
+concrete motivating *case* is different and is required in `benign.py`; what to
+avoid is narrating the fix. This holds for the docs too, where "an earlier version
+did X" is worse still.
+
 ## Git
 
 - No attribution trailers in commit messages, and no mention of the assistant
   that helped write a change. A commit message is about the change, not about
   who typed it.
-- Commit messages state what changed and why, in the imperative.
+- Commit messages state what changed and why, in the imperative. The history a
+  comment must not carry belongs here.
 
 The rule above is about commit messages only. The README and the documentation
 site *do* acknowledge that this was built with Claude Code, deliberately and at

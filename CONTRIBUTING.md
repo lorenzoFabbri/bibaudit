@@ -21,6 +21,41 @@ or `uv run --group docs mkdocs serve` for a live preview. The `docs` group is
 a dependency-group, not an extra, so `uv sync --all-extras` above does not
 install it.
 
+### Testing a change in a throwaway copy
+
+**Do not `cp -R` the repo.** The copied `.venv` holds an editable install pointing
+at the *original* absolute path, so `import bibaudit` inside the copy loads the
+original source: the edit appears to do nothing, the tests "pass", and any
+conclusion drawn from them is worthless. Build the tree from git instead:
+
+```bash
+rm -rf /tmp/iso && mkdir -p /tmp/iso
+git archive HEAD | tar -x -C /tmp/iso
+cd /tmp/iso && uv sync --all-extras -q
+uv run python -c "import bibaudit.compare as m; print(m.__file__)"   # must be /tmp/iso
+```
+
+In a copy, run `uv run python -m pytest` rather than `uv run pytest` — the latter
+executes the venv's console script, whose shebang points back at the original.
+Checks that read files by *path* are unaffected; anything that imports the package
+is not, and the tell is a modification that changes no behaviour at all.
+
+## When a change is finished
+
+Green tests are not the bar. A change is done when:
+
+1. **The docs are updated in the same change** — `README.md`, `CLAUDE.md`, and
+   `docs/registry-artifacts.md` whenever a registry defect is involved. They are
+   part of the change, not a follow-up.
+2. **Every figure it states is re-derived**, not copied from a previous run, and
+   says what it was measured against and when.
+3. **Scratch is deleted** — repro scripts, resume notes, plan fragments. Work that
+   is genuinely outstanding goes in `TASKS.md`, which stays; a stale scratch file
+   read later as current is worse than none.
+4. **Every behaviour added has a test that bites.** Revert each line and confirm
+   something goes red. This project has repeatedly shipped correct code whose test
+   stayed green when the code was removed.
+
 ## The three rules, in short
 
 1. **No model in the verdict path.** A verdict must be reproducible from the
