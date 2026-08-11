@@ -305,12 +305,10 @@ reference whatever happened to them, so a source nobody asked reads as
 carries a retraction signal the reference also gets a `status/not-asked`
 finding, and the run states it beside the banner.
 
-It used to be a bool computed as "not known to be unreachable", so a run with
-`--no-corroborate` reported `"pubmed": true` on every reference in the file.
-`unreachable` is still run-wide rather than per-reference: a registry that fell
-over while a *different* entry was being resolved is reported `unreachable` here
-too. That is pessimistic on purpose — it is the same set the `UNCHECKED` verdict
-is derived from, so the map always explains the verdict beside it.
+`unreachable` is run-wide rather than per-reference: a registry that fell over
+while a *different* entry was being resolved is reported `unreachable` here too.
+That is pessimistic on purpose — it is the same set the `UNCHECKED` verdict is
+derived from, so the map always explains the verdict beside it.
 
 ## Suppressing an adjudicated difference
 
@@ -373,6 +371,13 @@ verify-refs:
 	bibaudit check references.bib sources/
 ```
 
+## Reporting a wrong verdict
+
+Open an issue with the entry as stored, the DOI or ISBN, and what the tool said.
+Because every verdict is derived from a cached registry response, the cache file
+is usually enough to settle it: `bibaudit cache info` will tell you where it
+lives.
+
 ## What this does not do
 
 **bibaudit cannot tell you whether a cited work supports the claim it is
@@ -394,7 +399,7 @@ confirm a book that has no identifier at all — see
 ## How this was built
 
 bibaudit was written with [Claude Code](https://claude.com/claude-code) — the
-implementation, the 1,884-test suite, and the adversarial review passes that
+implementation, the 1,888-test suite, and the adversarial review passes that
 found most of the defects it now guards against, including the ones described
 above.
 

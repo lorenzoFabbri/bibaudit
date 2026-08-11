@@ -43,5 +43,5 @@ file or registry response execute code, escape the cache directory, or write
 outside the paths documented above.
 
 Out of scope: a wrong verdict. That is a correctness bug and belongs in a public
-issue — see [`CONTRIBUTING.md`](CONTRIBUTING.md), which explains why the cached
-response is usually enough to settle one.
+issue — see [Reporting a wrong verdict](README.md#reporting-a-wrong-verdict),
+which explains why the cached response is usually enough to settle one.

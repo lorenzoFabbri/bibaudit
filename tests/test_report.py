@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import io
 import json
+import pathlib
+import re
 from dataclasses import fields as dataclass_fields
 
 import pytest
@@ -1108,3 +1110,40 @@ class TestCitekeyProblems:
         assert "paper.qmd:1" in output
         assert "paper.qmd:7" not in output
         assert "2 more" in output
+
+
+#: The two files that publish the verdict table. ``README.md`` is what a
+#: GitHub visitor reads and ``docs/verdicts.md`` is the site's page for it;
+#: both are named in ``CLAUDE.md``'s "Adding a check".
+_VERDICT_TABLES = ("README.md", "docs/verdicts.md")
+
+#: One row of a verdict table: the verdict, its gloss, and whether it fails CI.
+#: The gloss is deliberately not compared — the two files address different
+#: readers and are meant to word it differently.
+_ROW = re.compile(r"^\| `([A-Z-]+)` \| .*? \| (yes|no) \|$", re.MULTILINE)
+
+
+def _published_table(name: str) -> dict[str, bool]:
+    """The verdict table in *name*, as verdict -> fails CI."""
+    text = (pathlib.Path(__file__).resolve().parents[1] / name).read_text(encoding="utf-8")
+    return {verdict: fails == "yes" for verdict, fails in _ROW.findall(text)}
+
+
+class TestThePublishedVerdictTables:
+    """What the documentation promises about verdicts is what the code does.
+
+    A verdict is the whole of what this tool says about an entry, so a table
+    that has fallen behind ``model.VERDICTS`` either hides one or advertises
+    one nobody can get. The gate is the same one ``benign.CHECKS`` has with
+    ``docs/registry-artifacts.md``, applied to the other thing a reader is
+    entitled to look up.
+    """
+
+    @pytest.mark.parametrize("name", _VERDICT_TABLES)
+    def test_the_table_lists_every_verdict_and_no_others(self, name: str) -> None:
+        assert set(_published_table(name)) == set(VERDICTS)
+
+    @pytest.mark.parametrize("name", _VERDICT_TABLES)
+    def test_the_fails_ci_column_is_the_failing_set(self, name: str) -> None:
+        published = _published_table(name)
+        assert {v for v, fails in published.items() if fails} == set(FAILING_VERDICTS)

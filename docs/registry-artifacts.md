@@ -766,6 +766,22 @@ sample open with a single letter, so both are load-bearing:
   order already. A length test cannot separate those from `Sikorska`; the
   capitals can.
 
+**Where the fallback is wrong, and why nothing here narrows it.** NLM writes a
+`<LastName>`-only `FAU` when the publisher deposited no forename and no
+initials. The abbreviated parser takes the last token as the initials block, so
+such a surname loses its last word to an invented forename. Over 36,568 `FAU`
+values, 23 carry no comma and five are that shape — `de LAVERGNE`, `Xiaodong
+Lv`, `Hung Nguyen`, `Editorial Board Of Radiology` and `The Lancet Child
+Adolescent Health` — and each becomes an `authors/mismatch` at error severity
+against a bibliography that spells it right, reproducing on
+`10.1016/j.rxeng.2025.101663`, `10.1016/s2352-4642(23)00169-4` and
+`10.1016/j.plaphy.2024.109034`. No shape rule separates the two readings:
+`Ho Yi` needs given-last and `Xiaodong Lv` needs given-first, and both are two
+characters and title-case. The discriminator is whether NLM's XML carried a
+`<ForeName>`, which `efetch rettype=medline` does not expose — so separating
+them is a decision about what `registries/pubmed` requests, not a rule this
+parser can carry.
+
 ---
 
 ## Zero-padded article numbers

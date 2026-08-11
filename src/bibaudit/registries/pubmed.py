@@ -279,6 +279,27 @@ def _parse_fau(raw: str) -> Name:
     ``Chung H``, ``Watanabe Yi``, ``Liu Cj``, ``van der Schaaf A``,
     ``Meijer Drees R``, ``van Veenendaal MA``, ``Van Siclen CD``,
     ``K Sikorska`` and the single-token ``Desriani``.
+
+    A wider sample is where that stops holding. NLM writes a ``<LastName>``-only
+    ``FAU`` when the publisher deposited no forename and no initials, and the
+    abbreviated parser takes the last token as the initials block, so such a
+    surname loses its last word to an invented forename. Over 36,568 ``FAU``
+    values 23 carry no comma, and five of those are this shape: ``de LAVERGNE``,
+    ``Xiaodong Lv``, ``Hung Nguyen``, ``Editorial Board Of Radiology`` and ``The
+    Lancet Child Adolescent Health``, which become ``authors/mismatch`` at error
+    severity against bibliographies that spell them right — reproducing on
+    ``10.1016/j.rxeng.2025.101663``, ``10.1016/s2352-4642(23)00169-4`` and
+    ``10.1016/j.plaphy.2024.109034``.
+
+    No shape rule separates the two readings, so nothing here narrows the
+    fallback. Both are real: ``Ho Yi`` is Ho, Y.I. — ``"Ho Yi"[au]`` answers 14
+    citations — while ``Xiaodong Lv`` is given-then-surname, and both are two
+    characters and title-case, so a bound on length or capitalisation refuses one
+    in order to accept the other. The discriminator is whether NLM's XML carried
+    a ``<ForeName>``, which ``efetch rettype=medline`` does not expose. Choosing
+    between fetching ``rettype=xml`` for comma-less values and declining to
+    report an author mismatch on them is a decision about what this client
+    requests, not one this parser can make.
     """
     if "," in clean(raw):
         return parse_name(raw)

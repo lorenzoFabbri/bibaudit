@@ -27,8 +27,8 @@ record carrying nothing is not evidence that there is nothing to carry.
 | **Retraction Watch** | its own bulk export, read directly — not the subset Crossref surfaced | the database having logged the retraction | a DOI (this tool's key, not the export's only one — see below) |
 | **PubMed `ECI`** | the "Expression of Concern In:" cross-reference, which MEDLINE records on the concerned paper's own entry | NLM having recorded the concern | nothing: a field of the record already in hand |
 
-The last two were added because each closed a gap found by running the tool
-against real DOIs. Crossref's `updated-by` does carry Retraction Watch's
+The last two are there because each closes a gap the first two leave over real
+DOIs. Crossref's `updated-by` does carry Retraction Watch's
 linkage — each entry arrives stamped with the source that contributed it,
 `publisher` or `retraction-watch` — but a Retraction Watch record only reaches
 it where a publisher's deposit and Retraction Watch's record agreed well enough

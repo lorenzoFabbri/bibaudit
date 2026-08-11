@@ -199,11 +199,11 @@ that motivated it, and the true-positive half of each is tested beside it.
   gain a finding on 3 of 3,876 (0.077%) — one of them a false alarm, the other
   two the registries genuinely disagreeing about who is credited. Everything
   registries disagree about legitimately is excused and written up in
-  [registry defects](registry-artifacts.md): an initial against the name, a
+  [registry defects](docs/registry-artifacts.md): an initial against the name, a
   middle initial one side omits, initials run together against initials
   separated, hyphenation and accents, mojibake, a forename in a script `fold`
   discards, and a compound surname the two sides divide differently.
-- `CONTRIBUTING.md`, `SECURITY.md`, a Dependabot configuration, a coverage floor
+- `SECURITY.md`, a Dependabot configuration, a coverage floor
   (`fail_under = 92`, with branch coverage on), and a tag-triggered release
   workflow using PyPI Trusted Publishing.
 
@@ -220,7 +220,7 @@ that motivated it, and the true-positive half of each is tested beside it.
   bytes on disk, which is the only thing here able to tell a recorded registry
   response from a written one; it now reaches Crossref, DataCite, PubMed and
   Retraction Watch, where before this it reached none. The procedure for adding
-  a fixture is in `CONTRIBUTING.md` and its third step is not automated.
+  a fixture is in `CLAUDE.md` and its third step is not automated.
 
   One demand is made of a `source = "none"` entry's prose, the entries for
   files nothing re-fetches: where the file is a JSON list of objects, the note
@@ -437,7 +437,8 @@ that motivated it, and the true-positive half of each is tested beside it.
   implement it. Both bylines must now hold the **same creators counted**, which
   makes a length difference impossible. Of 3,040 live pairs, 9 carry a
   `reordered` position; the 3 that lose it are the 3 whose lengths differ. A
-  reordering compounded with a spelling difference is now reported.
+  reordering compounded with a spelling difference is now reported. Over a
+  further 824 live entries stripped of their first author, all 824 fail.
 
 - **Two page locators neither side can read no longer agree with each other.**
   `first_page` read an optional letter, any zero padding and the digits, and
