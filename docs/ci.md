@@ -69,7 +69,7 @@ see it.
 
 ## GitHub Actions
 
-bibaudit is not on PyPI yet, so it installs from the repository.
+`--prerelease=allow` is for bibtexparser v2, which has published only betas; nothing else bibaudit depends on is a pre-release.
 
 ```yaml
 name: references
@@ -81,7 +81,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - run: uv tool install git+https://github.com/lorenzoFabbri/bibaudit
+      - run: uv tool install --prerelease=allow bibaudit
       - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Restore the registry cache

@@ -90,17 +90,22 @@ see [in CI](ci.md).
 ## Install
 
 ```bash
-uv tool install git+https://github.com/lorenzoFabbri/bibaudit
+uv tool install --prerelease=allow bibaudit
 ```
+
+Or with pip, which needs no flag:
+
+```bash
+pip install bibaudit
+```
+
+The flag is for the parser: bibaudit needs bibtexparser v2, which has published only betas so far. pip applies PEP 440's rule that a requirement no final release can satisfy may take a pre-release; uv asks to be told. Nothing else here is a pre-release.
 
 From a checkout:
 
 ```bash
 uv sync && uv run bibaudit --help
 ```
-
-bibaudit is not on PyPI yet, so `uv tool install bibaudit` and
-`pipx install bibaudit` will work once 0.1.0 is released and not before.
 
 Then point it at something:
 

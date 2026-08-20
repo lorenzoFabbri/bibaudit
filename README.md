@@ -6,12 +6,9 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 
-<!-- Add on the first PyPI release; until then each renders "not found" or, for
-     downloads, "rate limited by upstream service":
 [![PyPI](https://img.shields.io/pypi/v/bibaudit)](https://pypi.org/project/bibaudit/)
 [![Python versions](https://img.shields.io/pypi/pyversions/bibaudit)](https://pypi.org/project/bibaudit/)
 [![Downloads](https://img.shields.io/pypi/dm/bibaudit)](https://pypi.org/project/bibaudit/)
--->
 
 **Documentation: <https://lorenzofabbri.github.io/bibaudit/>**
 
@@ -94,17 +91,22 @@ one, and leaves the decision to you. `--suggest` can write a corrected copy
 ## Install
 
 ```bash
-uv tool install git+https://github.com/lorenzoFabbri/bibaudit
+uv tool install --prerelease=allow bibaudit
 ```
+
+Or with pip, which needs no flag:
+
+```bash
+pip install bibaudit
+```
+
+The flag is for the parser: bibaudit needs bibtexparser v2, which reads a one-line and a multi-entry-per-line `.bib` correctly where v1 does not, and v2 has published only betas so far. pip applies PEP 440's rule that a requirement no final release can satisfy may take a pre-release; uv asks to be told. Nothing else here is a pre-release.
 
 From a checkout:
 
 ```bash
 uv sync && uv run bibaudit --help
 ```
-
-Not on PyPI yet, so `uv tool install bibaudit` and `pipx install bibaudit` will
-work once 0.1.0 is released and not before.
 
 ## Use
 
@@ -360,7 +362,7 @@ yourself.
 ## In CI
 
 ```yaml
-- run: uv tool install git+https://github.com/lorenzoFabbri/bibaudit
+- run: uv tool install --prerelease=allow bibaudit
 - run: bibaudit check references.bib --mailto ${{ secrets.CONTACT_EMAIL }}
 ```
 
