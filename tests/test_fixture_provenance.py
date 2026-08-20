@@ -1,7 +1,7 @@
 """Where each file in ``tests/data`` came from, and what says so.
 
-Every fixture in this project is described, in ``CLAUDE.md``, as a real
-registry response. Ten were not. They were
+Every fixture in this project is described, in the ``registry-fixtures``
+skill, as a real registry response. Ten were not. They were
 found one at a time, always by somebody opening a file for an unrelated
 reason, because a claim made in prose is enforced by nobody: no test
 re-fetched a fixture, none enumerated the directory, and the one test
@@ -58,7 +58,9 @@ from bibaudit.registries.http import Client
 
 DATA = Path(__file__).parent / "data"
 MANIFEST = DATA / "PROVENANCE.toml"
-RULES = Path(__file__).resolve().parents[1] / "CLAUDE.md"
+RULES = (
+    Path(__file__).resolve().parents[1] / ".claude" / "skills" / "registry-fixtures" / "SKILL.md"
+)
 
 #: Everything a ``[[fixture]]`` table may carry. Anything else is a typo, and
 #: a typo here reads as a requirement met rather than as an error — the same
@@ -81,8 +83,8 @@ _RW_HEADER = "Record ID,Title,Subject,"
 # ---------------------------------------------------------------------------
 # Fields the networked comparison ignores, and why each one is here.
 #
-# This is a suppression list. CLAUDE.md names every entry, and
-# ``test_every_ignored_field_is_written_up_for_a_contributor`` fails the build
+# This is a suppression list. The ``registry-fixtures`` skill names every entry
+# and ``test_every_ignored_field_is_written_up_for_a_contributor`` fails the build
 # for one it does not: a difference the gate declines to report is exactly the
 # kind of thing a reader has to be able to look up and argue with.
 #
@@ -556,8 +558,9 @@ def test_every_ignored_field_is_written_up_for_a_contributor() -> None:
 
     The same contract ``benign.CHECKS`` has with ``docs/registry-artifacts.md``
     and for the same reason: a suppression a reader cannot find is one nobody
-    can challenge. Matched as the backticked field name, so a mention in
-    passing does not satisfy it.
+    can challenge. The list lives in the ``registry-fixtures`` skill beside the
+    procedure it belongs to. Matched as the backticked field name, so a mention
+    in passing does not satisfy it.
     """
     prose = RULES.read_text(encoding="utf-8")
     missing = sorted(
@@ -571,9 +574,9 @@ def test_a_contributor_is_told_where_the_manifest_is_and_how_to_verify_it() -> N
     """The instructions are the half of this that a person executes.
 
     Nothing here can make somebody run the networked check. What it can do is
-    fail the build if the one document that tells a contributor how to add a
-    fixture stops naming the file they must add an entry to, or the command
-    that turns the entry into evidence.
+    fail the build if the ``registry-fixtures`` skill -- the one document that
+    tells a contributor how to add a fixture -- stops naming the file they must
+    add an entry to, or the command that turns the entry into evidence.
     """
     prose = RULES.read_text(encoding="utf-8")
 
