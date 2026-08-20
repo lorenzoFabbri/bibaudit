@@ -9,10 +9,9 @@ signature moved, so verdict and wording changes are listed here alongside API
 ones. That is the point of the file: somebody deciding whether to re-run an
 audit needs to know whether the answer could differ.
 
-## [Unreleased]
+## [0.1.0] - 2026-08-20
 
-Not yet published to PyPI. Install with
-`uv tool install git+https://github.com/lorenzoFabbri/bibaudit`.
+The first release.
 
 The documentation toolchain is a PEP 735 dependency-group rather than an extra,
 so `uv sync --all-extras` does not install it into the test environment.
@@ -876,4 +875,4 @@ that motivated it, and the true-positive half of each is tested beside it.
   also covers `bibaudit check notes/ notes/references.bib` and a `--bibliography`
   repeating a file already named.
 
-[Unreleased]: https://github.com/lorenzoFabbri/bibaudit/commits/main
+[0.1.0]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.0
