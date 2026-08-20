@@ -1,6 +1,6 @@
 [project]
 name = "bibaudit"
-version = "0.1.0"
+version = "0.1.1"
 description = "Deterministic, field-level verification of bibliographies against Crossref, DataCite and PubMed"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -42,6 +42,15 @@ dependencies = [
     # later pre-release too, and `bibtex.py` calls `parse_file`, which v2 does
     # not list in its public exports. A lockfile constrains this repo and CI,
     # not somebody installing the published package.
+    #
+    # v2 has published only betas, so this is a range no final release can
+    # satisfy. pip installs it anyway, under PEP 440's rule for that case; uv
+    # refuses until told `--prerelease=allow`, and no way of writing the
+    # constraint avoids it -- `==2.0.0b9` and a bare `>=2.0.0b9` are refused
+    # in the same breath when the depending package comes from an index rather
+    # than a path. So the range stays and the flag is documented, because
+    # pinning one beta would give up patch upgrades and buy nothing. The whole
+    # question ends when bibtexparser 2.0.0 ships.
     "bibtexparser>=2.0.0b7,<3",
 
     "rapidfuzz>=3.0",        # fuzzy matching that stays fast on thousands of entries

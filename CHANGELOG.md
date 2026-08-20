@@ -9,6 +9,12 @@ signature moved, so verdict and wording changes are listed here alongside API
 ones. That is the point of the file: somebody deciding whether to re-run an
 audit needs to know whether the answer could differ.
 
+## [0.1.1] - 2026-08-20
+
+Documentation only; the package is unchanged.
+
+`uv tool install bibaudit` does not work and 0.1.0's own page said it would. bibaudit's one pinned dependency is `bibtexparser>=2.0.0b7,<3`, and bibtexparser v2 has published only betas — a range no final release satisfies. pip installs it under PEP 440's rule for that case; uv refuses until told `--prerelease=allow`. No way of writing the constraint avoids this, so every install route now names the flag and says why it is there.
+
 ## [0.1.0] - 2026-08-20
 
 The first release.
@@ -875,4 +881,5 @@ that motivated it, and the true-positive half of each is tested beside it.
   also covers `bibaudit check notes/ notes/references.bib` and a `--bibliography`
   repeating a file already named.
 
+[0.1.1]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.1
 [0.1.0]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.0
