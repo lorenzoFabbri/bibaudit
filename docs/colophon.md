@@ -1,8 +1,6 @@
 # How this was built
 
-bibaudit was written with [Claude Code](https://claude.com/claude-code) — the
-implementation, the 1,888-test suite, and the adversarial review passes that
-found most of the defects it now guards against.
+bibaudit was written with [Claude Code](https://claude.com/claude-code) — the implementation, the 1,894-test suite, and the adversarial review passes that found most of the defects it now guards against.
 
 That is worth stating precisely, because this tool's first rule is that **no
 language model is in the verdict path**. Those are two different claims:
@@ -10,9 +8,9 @@ language model is in the verdict path**. Those are two different claims:
 - a model helped write the comparison rules;
 - no model evaluates one.
 
-The first is a fact about who wrote this repository, and you have only the
-author's word for it. The second is a property of every run, and unlike the
-first it is something you can check for yourself.
+The first is a fact about who wrote this repository, and you have only the author's word for it. The second is a property of every run, and unlike the first it is something you can check for yourself.
+
+Nothing of the first survives into what you install. The package declares two runtime dependencies, `bibtexparser` and `rapidfuzz`; the wheel ships `src/bibaudit` and nothing else; and no module under it names an Anthropic, OpenAI or other model client, in an import or anywhere else. What Claude Code left behind is in the repository rather than in the tool: 13 comments across 9 modules cite `CLAUDE.md` as the authority for a rule they implement, and 10 test modules mention it, two of them reading a file as a build gate. Counted 2026-08-20.
 
 ## What the second claim rests on
 
@@ -97,20 +95,6 @@ exist because getting them wrong was possible — a 404 is a fact and a timeout
 is ignorance, `updated-by` means this work was retracted while `update-to`
 means this work is the notice, never reduce a surname to its last token.
 
-Two of those constraints are enforced by the test suite rather than by good
-intentions. Adding a rule that suppresses a difference as a known registry
-defect, without a section naming it in [registry defects](registry-artifacts.md),
-turns a test red, because a suppression a reader cannot look up is one nobody
-can challenge. And the default test run deselects anything networked: 1,837 of
-the 1,888 tests run and pass with no internet at all. A suite that needs the
-network gets skipped, and a skipped suite protects nobody.
+Two of those constraints are enforced by the test suite rather than by good intentions. Adding a rule that suppresses a difference as a known registry defect, without a section naming it in [registry defects](registry-artifacts.md), turns a test red, because a suppression a reader cannot look up is one nobody can challenge. And the default test run deselects anything networked: 1,842 of the 1,894 tests run and pass with no internet at all. A suite that needs the network gets skipped, and a skipped suite protects nobody.
 
-Fifty of the 51 that are deselected are not ceremony. They re-fetch every URL
-in [`tests/data/PROVENANCE.toml`](https://github.com/lorenzoFabbri/bibaudit/blob/main/tests/data/PROVENANCE.toml)
-from Crossref, DataCite, PubMed and Retraction Watch and diff the answer
-against the bytes on disk, which is the only thing in this repository able to
-tell a recorded registry response from a written one — ten files had been
-written. The fifty-first is ceremony on purpose: it asserts only that it ran,
-because one marked test has to exist or `-m "not network"` filters an empty set
-and the promise above is untested as well as unenforced. `uv run pytest -m network` is the command, and it is nobody's
-default.
+Fifty-one of the 52 that are deselected are not ceremony. They re-fetch every URL in [`tests/data/PROVENANCE.toml`](https://github.com/lorenzoFabbri/bibaudit/blob/main/tests/data/PROVENANCE.toml) from Crossref, DataCite, PubMed and Retraction Watch and diff the answer against the bytes on disk, which is the only thing in this repository able to tell a recorded registry response from a written one — ten files had been written. The fifty-first is ceremony on purpose: it asserts only that it ran, because one marked test has to exist or `-m "not network"` filters an empty set and the promise above is untested as well as unenforced. `uv run pytest -m network` is the command, and it is nobody's default.
