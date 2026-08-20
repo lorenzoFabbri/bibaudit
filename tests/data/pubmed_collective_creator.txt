@@ -3,7 +3,7 @@ PMID- 42552006
 OWN - NLM
 STAT- MEDLINE
 DCOM- 20260804
-LR  - 20260804
+LR  - 20260819
 IS  - 2044-6055 (Electronic)
 IS  - 2044-6055 (Linking)
 VI  - 16
@@ -15,6 +15,7 @@ TI  - Changes in knowledge of the major harms of tobacco smoking and secondhand 
       Tobacco Survey (GATS) (2008-2020).
 PG  - e107667
 LID - 10.1136/bmjopen-2025-107667 [doi]
+LID - e107667
 AB  - OBJECTIVES: To assess levels of and trends in knowledge that smoking and 
       secondhand smoke (SHS) cause lung cancer and cardiovascular disease (CVD) in 46 
       countries over two decades. DESIGN: Longitudinal cohort and repeat 
@@ -85,17 +86,23 @@ AUID- ORCID: 0000-0001-5985-3356
 AD  - National Center for Chronic Disease Prevention and Health Promotion, Office on 
       Smoking and Health, Atlanta, Georgia, USA.
 LA  - eng
-GR  - R01-CA125116/CA/NCI NIH HHS/United States
-GR  - R01-CA100362/US NCI National Cancer Institute/
-GR  - R01-CA090955/US NCI National Cancer Institute/
-GR  - P50-CA111236/US NCI National Cancer Institute/
-GR  - P01-CA200512/US NCI National Cancer Institute/
-GR  - C312/A3726/CRUK_/Cancer Research UK/United Kingdom
 GR  - C312/A6465/CRUK_/Cancer Research UK/United Kingdom
-GR  - C321/A11039/CRUK_/Cancer Research UK/United Kingdom
+GR  - R01-CA090955/US NCI National Cancer Institute/
+GR  - C312/A3726/CRUK_/Cancer Research UK/United Kingdom
 GR  - C25586/A19540/CRUK_/Cancer Research UK/United Kingdom
-GR  - R01-CA125116/US National Cancer Institute at the National Institutes of Health/
+GR  - P01 CA138389/CA/NCI NIH HHS/United States
+GR  - R01-CA100362/US NCI National Cancer Institute/
+GR  - C321/A11039/CRUK_/Cancer Research UK/United Kingdom
+GR  - P01-CA200512/US NCI National Cancer Institute/
+GR  - P50-CA111236/US NCI National Cancer Institute/
+GR  - R01 CA125116/CA/NCI NIH HHS/United States
+GR  - P50 CA111236/CA/NCI NIH HHS/United States
+GR  - R01 CA100362/CA/NCI NIH HHS/United States
+GR  - P01 CA200512/CA/NCI NIH HHS/United States
 GR  - P50-CA111236/CA/NCI NIH HHS/United States
+GR  - R01-CA125116/US National Cancer Institute at the National Institutes of Health/
+GR  - R01 CA090955/CA/NCI NIH HHS/United States
+GR  - R01-CA125116/CA/NCI NIH HHS/United States
 PT  - Journal Article
 DEP - 20260804
 PL  - England
@@ -119,6 +126,7 @@ MH  - *Cardiovascular Diseases/etiology
 MH  - Young Adult
 MH  - Global Health
 MH  - Adolescent
+PMC - PMC13479502
 OTO - NOTNLM
 OT  - Health
 OT  - PUBLIC HEALTH
@@ -205,10 +213,12 @@ FIR - Zatonski, Witold A
 IR  - Zatonski WA
 EDAT- 2026/08/05 18:38
 MHDA- 2026/08/05 18:39
+PMCR- 2026/08/04
 CRDT- 2026/08/04 20:53
 PHST- 2026/08/05 18:39 [medline]
 PHST- 2026/08/05 18:38 [pubmed]
 PHST- 2026/08/04 20:53 [entrez]
+PHST- 2026/08/04 00:00 [pmc-release]
 AID - bmjopen-2025-107667 [pii]
 AID - 10.1136/bmjopen-2025-107667 [doi]
 PST - epublish

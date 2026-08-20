@@ -1,18 +1,23 @@
 
 PMID- 42526877
 OWN - NLM
-STAT- Publisher
-LR  - 20260729
+STAT- MEDLINE
+DCOM- 20260813
+LR  - 20260815
 IS  - 2233-4521 (Electronic)
+IS  - 1975-8375 (Print)
 IS  - 1975-8375 (Linking)
-DP  - 2026 Jul 21
+VI  - 59
+IP  - 4
+DP  - 2026 Jul
 TI  - The Humidifier Disinfectant Disaster in Korea: Implications for Preventive 
       Medicine and Public Health.
+PG  - 337-342
 LID - 10.3961/jpmph.26.248 [doi]
-AB  - The humidifier disinfectant disaster in the Republic of Korea was one of the most 
-      severe environmental health disasters of recent decades. It showed that indoor 
-      household chemical products used in daily life can cause fatal health effects at 
-      the population level when inhalation risks are not adequately assessed before 
+AB  - The humidifier disinfectant disaster in Korea was one of the most severe 
+      environmental health disasters of recent decades. It showed that indoor household 
+      chemical products used in daily life can cause fatal health effects at the 
+      population level when inhalation risks are not adequately assessed before 
       marketing. The disaster also reaffirmed the central role of epidemiology in 
       detecting emerging environmental health threats and guiding public health 
       responses. Fifteen years after the disaster was recognized, major challenges 
@@ -35,6 +40,10 @@ AD  - Department of Preventive Medicine, Seoul National University College of Me
       Seoul, Korea. suepark@snu.ac.kr.
 AD  - Cancer Research Institute, Seoul National University, Seoul, Korea. 
       suepark@snu.ac.kr.
+AD  - Integrated Major in Innovative Medical Science, Seoul National University College 
+      of Medicine, Seoul, Korea. suepark@snu.ac.kr.
+AD  - Genomic Medicine Institute, Seoul National University Medical Research Center, 
+      Seoul, Korea. suepark@snu.ac.kr.
 FAU - Lim, Woojin
 AU  - Lim W
 AD  - Department of Preventive Medicine, Seoul National University College of Medicine, 
@@ -53,6 +62,10 @@ AU  - Lee CH
 AD  - Department of Radiology, Seoul National University Hospital, Seoul, Korea.
 AD  - Department of Radiology, Seoul National University College of Medicine, Seoul, 
       Korea.
+AD  - Institute of Radiation Medicine, Seoul National University Medical Research 
+      Center, Seoul, Korea.
+AD  - Department of Medical Device Development, Seoul National University College of 
+      Medicine, Seoul, Korea.
 FAU - Cheong, Hae-Kwan
 AU  - Cheong HK
 AD  - Department of Social and Preventive Medicine, Sungkyunkwan University School of 
@@ -64,23 +77,37 @@ PL  - Korea (South)
 TA  - J Prev Med Public Health
 JT  - Journal of preventive medicine and public health = Yebang Uihakhoe chi
 JID - 101242972
+RN  - 0 (Disinfectants)
 SB  - IM
+MH  - Humans
+MH  - *Disinfectants/adverse effects
+MH  - *Public Health
+MH  - Republic of Korea
+MH  - *Humidifiers
+MH  - *Disasters
+PMC - PMC13470086
 OTO - NOTNLM
-OT  - Environmental Health
-OT  - Epidemiological causal inference
+OT  - Causality
+OT  - Environmental health
 OT  - Epidemiology
-OT  - Household Chemical Products
-OT  - Humidifier Disinfectant Disaster
-OT  - Public Remedy
+OT  - Household products
+OT  - Humidifier disinfectant disaster
+OT  - Precautionary regulation
+COIS- Conflict of Interest The authors have no conflicts of interest associated with 
+      the material presented in this paper.
 EDAT- 2026/07/30 00:38
-MHDA- 2026/07/30 00:38
+MHDA- 2026/08/13 05:35
+PMCR- 2026/07/01
 CRDT- 2026/07/29 19:38
 PHST- 2026/03/19 00:00 [received]
 PHST- 2026/07/14 00:00 [accepted]
-PHST- 2026/07/30 00:38 [medline]
+PHST- 2026/08/13 05:35 [medline]
 PHST- 2026/07/30 00:38 [pubmed]
 PHST- 2026/07/29 19:38 [entrez]
+PHST- 2026/07/01 00:00 [pmc-release]
 AID - jpmph.26.248 [pii]
+AID - jpmph-26-248 [pii]
 AID - 10.3961/jpmph.26.248 [doi]
-PST - aheadofprint
-SO  - J Prev Med Public Health. 2026 Jul 21. doi: 10.3961/jpmph.26.248.
+PST - ppublish
+SO  - J Prev Med Public Health. 2026 Jul;59(4):337-342. doi: 10.3961/jpmph.26.248. Epub 
+      2026 Jul 21.

@@ -278,7 +278,7 @@ file = "pubmed_collective_creator.txt"
 source = "pubmed"
 id = "42552006"
 url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42552006&rettype=medline&retmode=text"
-fetched = 2026-08-10
+fetched = 2026-08-20
 
 [[fixture]]
 file = "pubmed_collective_fau_without_comma.txt"
@@ -306,7 +306,7 @@ file = "pubmed_data_descriptor.txt"
 source = "pubmed"
 id = "42557261"
 url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42557261&rettype=medline&retmode=text"
-fetched = 2026-08-10
+fetched = 2026-08-20
 
 [[fixture]]
 file = "pubmed_eci_concern.txt"
@@ -327,7 +327,7 @@ file = "pubmed_epub_ahead_of_issue.txt"
 source = "pubmed"
 id = "41474069"
 url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=41474069&rettype=medline&retmode=text"
-fetched = 2026-08-10
+fetched = 2026-08-20
 
 [[fixture]]
 file = "pubmed_fau_without_comma.txt"
@@ -341,14 +341,14 @@ file = "pubmed_parallel_title.txt"
 source = "pubmed"
 id = "42526877"
 url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42526877&rettype=medline&retmode=text"
-fetched = 2026-08-10
+fetched = 2026-08-20
 
 [[fixture]]
 file = "pubmed_parallel_title_article.txt"
 source = "pubmed"
 id = "42559441"
 url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42559441&rettype=medline&retmode=text"
-fetched = 2026-08-10
+fetched = 2026-08-20
 
 [[fixture]]
 file = "pubmed_qualifier_inner_colon.txt"
@@ -369,7 +369,7 @@ file = "pubmed_qualifier_year.txt"
 source = "pubmed"
 id = "42555391"
 url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42555391&rettype=medline&retmode=text"
-fetched = 2026-08-10
+fetched = 2026-08-20
 
 [[fixture]]
 file = "pubmed_retracted.txt"
