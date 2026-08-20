@@ -51,7 +51,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from enum import StrEnum, unique
 from types import MappingProxyType
 
@@ -627,6 +627,12 @@ class Reason(StrEnum):
     REGISTRY_INITIAL_ONLY = ("registry surname truncated", False)
     ET_AL = ("et-al marker", False)
 
+    #: The registry put the whole creator in one slot and states nothing about
+    #: where the family name ends, so a reading that splits a forename off it
+    #: agreed. Which reading was right is exactly what nobody knows, so this is
+    #: no evidence that two surnames were compared.
+    UNSPLIT_REGISTRY_NAME = ("registry name deposited in one slot", False)
+
     #: Two surnames were compared and do denote the same person.
     REGISTRY_MOJIBAKE = ("registry mojibake", True)
     PARTICLE_FILING = ("particle filing", True)
@@ -805,6 +811,19 @@ def names_agree(stored: Name, registry: Name) -> tuple[bool, Reason | None]:
     if stored_key == registry_key:
         return True, None
 
+    # Before every surname rule below, because each of them reads
+    # ``registry.family`` as a family name and an unsplit slot is not yet one:
+    # the registry deposited the creator whole and said nothing about where the
+    # surname ends. Both readings are put to the same comparison instead of one
+    # being chosen -- and the agreement has to be an *informative* one, or the
+    # reading that leaves a one-character surname behind would reach
+    # :attr:`Reason.REGISTRY_INITIAL_ONLY` and clear whatever name the
+    # bibliography carries at that position.
+    if registry.unsplit:
+        for reading in _unsplit_readings(registry):
+            if _agrees_informatively(stored, reading):
+                return True, Reason.UNSPLIT_REGISTRY_NAME
+
     # A registry value that only differs by mojibake is a registry defect.
     repaired, was_mojibake = demojibake(
         registry.literal or registry.family or ""
@@ -896,6 +915,26 @@ def names_agree(stored: Name, registry: Name) -> tuple[bool, Reason | None]:
         return True, Reason.SPELLING_VARIANT
 
     return False, None
+
+
+def _unsplit_readings(registry: Name) -> Iterator[Name]:
+    """The ways a single-slot creator could divide into surname and forename.
+
+    Two, because a source that deposits the whole name in one field follows no
+    convention about its order: MEDLINE's ``FAU - Xiaodong Lv`` is Lv, Xiaodong
+    and its ``FAU - Okano J`` is Okano, J., and both are two title-case tokens
+    in the same ``<LastName>`` element. So the last token is offered as the
+    forename and the first is offered as the forename, and the caller accepts
+    the stored name if either reading -- or the slot taken whole, which it has
+    already compared -- agrees with it.
+
+    A one-token slot yields nothing: there is no boundary to place.
+    """
+    tokens = (registry.family or registry.literal).split()
+    if len(tokens) < 2:
+        return
+    yield Name(family=" ".join(tokens[:-1]), given=tokens[-1])
+    yield Name(family=" ".join(tokens[1:]), given=tokens[0])
 
 
 def _agrees_informatively(stored: Name, registry: Name) -> bool:

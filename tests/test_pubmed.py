@@ -42,7 +42,7 @@ from typing import Any
 import pytest
 
 from bibaudit.model import Name, Record
-from bibaudit.names import names_agree
+from bibaudit.names import Reason, names_agree, parse_name
 from bibaudit.normalize import normalize_doi
 from bibaudit.registries import pubmed
 from bibaudit.registries.http import Transient
@@ -469,20 +469,24 @@ class TestAuthors:
 
 
 class TestAFullAuthorTagWithoutItsComma:
-    """``FAU`` is ``Surname, Initials``, and 10 values in 16,511 have no comma.
+    """``FAU`` is ``Surname, Initials``, and 23 of 36,568 values have no comma.
 
-    Measured over a live sample of 3,500 citations drawn from five windows
-    spanning 1992-2026: 9 records carry one, and each writes it character for
-    character as that record's own ``AU`` line — NLM never backfilled the
-    comma. Read with BibTeX's "Given Family" convention, ``Okano J`` becomes a
-    creator surnamed ``J``, and a one-character registry surname is what
-    ``names.Reason.REGISTRY_INITIAL_ONLY`` accepts *any* stored surname
-    against. The parser was manufacturing the evidence for an escape that then
-    cleared a fabricated name.
+    A comma-less value is a ``<LastName>``-only deposit: the publisher supplied
+    no forename and no initials, so NLM put the whole creator in the surname
+    slot and states nothing about where that surname ends. The XML behind every
+    recorded case carries ``<LastName>`` alone, with neither a ``<ForeName>``
+    nor an ``<Initials>`` beside it — ``Okano J``, ``K Sikorska``, ``Xiaodong
+    Lv``, ``Editorial Board Of Radiology``, ``The Lancet Child Adolescent
+    Health``, fetched 2026-08-20 — so the two readings a MEDLINE reader might
+    want are indistinguishable at the source, and neither is chosen here.
 
-    ``tests/data/pubmed_fau_without_comma.txt`` is NCBI's own bytes for PMID
+    Two fixtures, one for each reading the same shape can mean.
+    ``tests/data/pubmed_fau_without_comma.txt`` is NCBI's bytes for PMID
     11278851, whose two-creator byline carries one of each: ``FAU - Okano J``
-    beside ``FAU - Rustgi, A K``.
+    beside ``FAU - Rustgi, A K``, and ``Okano J`` is Okano, J.
+    ``tests/data/pubmed_fau_whole_name.txt`` is PMID 39226761, where
+    ``FAU - Xiaodong Lv`` is Lv, Xiaodong and sits ninth among eleven
+    colleagues written ``Qin, Xin``-fashion.
     """
 
     def _record(self) -> Record:
@@ -490,10 +494,17 @@ class TestAFullAuthorTagWithoutItsComma:
             "fau_without_comma", pmid="11278851", doi="10.1074/jbc.M011164200"
         )
 
-    def test_a_comma_less_value_keeps_medline_surname_first_order(self) -> None:
+    def _whole_name_record(self) -> Record:
+        return _resolve_one(
+            "fau_whole_name", pmid="39226761", doi="10.1016/j.plaphy.2024.109034"
+        )
+
+    def test_a_comma_less_value_is_the_surname_slot_verbatim(self) -> None:
+        """What a report shows has to be the value NLM holds."""
         record = self._record()
 
-        assert (record.authors[0].family, record.authors[0].given) == ("Okano", "J")
+        assert (record.authors[0].family, record.authors[0].given) == ("Okano J", "")
+        assert record.authors[0].unsplit
 
     def test_the_comma_carrying_value_beside_it_is_unchanged(self) -> None:
         """The comma says which half is which, so ``parse_name`` still reads it.
@@ -505,20 +516,67 @@ class TestAFullAuthorTagWithoutItsComma:
         record = self._record()
 
         assert (record.authors[1].family, record.authors[1].given) == ("Rustgi", "A K")
+        assert not record.authors[1].unsplit
 
-    def test_the_manufactured_surname_no_longer_clears_a_fabricated_name(self) -> None:
-        """The harm, end to end: a one-character surname agrees with anything."""
+    def test_the_reading_with_initials_last_agrees(self) -> None:
+        """``Okano J`` is Okano, J., and a bibliography spelling it so is right."""
         record = self._record()
 
-        agreed, _ = names_agree(Name(family="Zbragowitz"), record.authors[0])
+        assert names_agree(parse_name("Okano, J."), record.authors[0]) == (
+            True,
+            Reason.UNSPLIT_REGISTRY_NAME,
+        )
 
-        assert not agreed
+    def test_the_reading_with_the_forename_first_agrees_too(self) -> None:
+        """``Xiaodong Lv`` is Lv, Xiaodong — the same shape, the other way round.
+
+        Read as the abbreviated form this is a creator surnamed ``Xiaodong``
+        with the forename ``Lv``, and the byline that spells it right becomes an
+        ``authors/mismatch`` at error severity. Reproduced on
+        ``10.1016/j.plaphy.2024.109034``, ``10.1016/s2352-4642(23)00169-4`` and
+        ``10.1016/j.rxeng.2025.101663``.
+        """
+        record = self._whole_name_record()
+        unsplit = [name for name in record.authors if name.unsplit]
+
+        assert [name.family for name in unsplit] == ["Xiaodong Lv"]
+        assert names_agree(parse_name("Lv, Xiaodong"), unsplit[0]) == (
+            True,
+            Reason.UNSPLIT_REGISTRY_NAME,
+        )
+
+    def test_the_colleagues_beside_it_are_read_normally(self) -> None:
+        """Only the slot without the comma is unsplit; the other eleven are not."""
+        record = self._whole_name_record()
+
+        assert (record.authors[0].family, record.authors[0].given) == ("Qin", "Xin")
+        assert sum(name.unsplit for name in record.authors) == 1
+
+    def test_a_name_matching_neither_reading_is_still_reported(self) -> None:
+        """The escape accepts two readings, not any name at that position."""
+        record = self._record()
+
+        assert names_agree(Name(family="Zbragowitz"), record.authors[0]) == (False, None)
+
+    def test_no_reading_is_offered_a_one_character_surname(self) -> None:
+        """The reading that leaves ``J`` behind would clear whatever is stored.
+
+        ``names.Reason.REGISTRY_INITIAL_ONLY`` accepts *any* stored surname
+        against a registry surname of one character, so a split offered without
+        that constraint manufactures the evidence for an escape.
+        """
+        record = self._record()
+
+        assert names_agree(Name(family="Smith", given="J."), record.authors[0]) == (
+            False,
+            None,
+        )
 
     def test_an_editor_tag_is_read_by_the_same_convention(self) -> None:
-        """``FED`` is ``FAU``'s tag for an edited volume and MEDLINE's, not BibTeX's."""
+        """``FED`` is ``FAU``'s tag for an edited volume and carries its rule."""
         names = pubmed._authors_from({"FED": ["Okano J"]})[0]
 
-        assert (names[0].family, names[0].given) == ("Okano", "J")
+        assert (names[0].family, names[0].given, names[0].unsplit) == ("Okano J", "", True)
 
 
 class TestACharacterNlmSpelledOut:

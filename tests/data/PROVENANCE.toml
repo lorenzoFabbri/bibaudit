@@ -337,6 +337,13 @@ url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=11
 fetched = 2026-08-10
 
 [[fixture]]
+file = "pubmed_fau_whole_name.txt"
+source = "pubmed"
+id = "39226761"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=39226761&rettype=medline&retmode=text"
+fetched = 2026-08-20
+
+[[fixture]]
 file = "pubmed_parallel_title.txt"
 source = "pubmed"
 id = "42526877"

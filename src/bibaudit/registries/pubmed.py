@@ -182,6 +182,13 @@ def _initials_ahead_of_the_surname(tokens: list[str]) -> bool:
     ``"Sikorska K"[au]`` answers 215 citations and ``"K Sikorska"[au]``
     exactly that one.
 
+    That sighting is on the author tags, and what reaches
+    :func:`_parse_au_fallback` is ``ED``; the sample below counts ``FAU`` and
+    ``AU`` values, not editor ones. So on the editor tag this is a guard against
+    a shape recorded elsewhere in MEDLINE rather than a repair of one witnessed
+    there, and the conditions are what keep a guard from becoming a defect of
+    its own.
+
     Two conditions, each excluding a shape the same live sample carries — 27 of
     33,026 ``FAU``/``AU`` values over 3,500 citations spanning 1992-2026 open
     with a single letter:
@@ -213,37 +220,26 @@ def _parse_au_fallback(raw: str) -> Name:
     "Smith JA" to it unmodified would swap surname and given name and fail
     the author comparison on the surname alone.
 
-    Nothing reaches here from ``AU`` itself. What does is the comma-less
-    ``FAU``, sent by :func:`_parse_fau` for the same reason, and ``ED`` --
-    ``AU``'s convention on the editor side.
+    Nothing reaches here from ``AU`` itself, which :func:`_authors_from` never
+    reads. What does is ``ED`` -- ``AU``'s convention on the editor side.
     """
     text = clean(raw).strip()
     if not text:
         return Name()
-    # A comma-less FAU is a publisher's <LastName> with no <ForeName> beside
-    # it, and some publishers put an organisation in that slot: PMID 34064455
-    # deposits <Author><LastName>Study Group</LastName></Author> and NLM
-    # renders it `FAU - Study Group`. parse_name's own collective check only
-    # fires on a comma-less string, so it has to see this text before the
-    # synthetic "surname, initials" comma is introduced below -- inserting
-    # that comma first defeats the check and turns the whole group name into
-    # a bogus family/given split (family=every word but the last, given=the
-    # last word), so `Study Group` would be compared as a person surnamed
-    # Study. Rare and real: `"study group"[au]` answers 1 citation,
-    # `"working group"[au]` 3 and `"collaborators"[au]` 1, while `"research
-    # group"[au]`, `"consortium"[au]`, `"network"[au]`, `"committee"[au]` and
-    # `"collaboration"[au]` answer none -- an organisation NLM was given
-    # properly goes to CN, which `_corporate_creator` handles.
+    # `ED` carries no comma, and an organisation or an et-al marker deposited in
+    # that shape has to be recognised before the synthetic "surname, initials"
+    # comma is introduced below. `parse_name`'s collective check fires only on a
+    # comma-less string, so inserting the comma first defeats it and splits a
+    # whole group name into a bogus family/given pair -- family every word but
+    # the last, given the last word -- and `Study Group` is then compared as a
+    # person surnamed Study. `et_al` would not survive the comma either: `fold`
+    # deletes it again before `parse_name` looks for the marker, but a report
+    # naming the creator a byline stopped at would print `Et, al`, and a value
+    # shown to a reader has to be the registry's own.
     #
-    # `et_al` arrives by the same route: NLM writes the marker for a byline
-    # the publisher truncated -- 41 citations answer `"et al"[au]` -- and
-    # PMID 19420835 and 38010780 carry it as `FAU - Et Al`, comma-less, so it
-    # lands here. The marker is *recognised* either way, because `fold`
-    # deletes the synthetic comma again before `parse_name` looks for it.
-    # What it would not survive is the comma itself, which this function
-    # invented -- a report naming the creator the byline stopped at would
-    # print `Et, al`, and a value shown to a reader has to be the registry's
-    # own.
+    # MEDLINE's editor tags follow its author tags' convention, and both shapes
+    # are recorded on the author side -- see :func:`_parse_fau` for the
+    # citations and the counts.
     whole = parse_name(text)
     if whole.collective or whole.et_al:
         return whole
@@ -263,47 +259,49 @@ def _parse_fau(raw: str) -> Name:
     """Parse one MEDLINE ``FAU`` (full author) entry, e.g. "van Eijck, Casper H J".
 
     ``FAU`` is ``Surname, Initials`` and the comma says which half is which, so
-    :func:`~bibaudit.names.parse_name` reads it directly. What it cannot read is
-    the same tag written *without* the comma, because a comma-less string is
-    BibTeX's "Given Family": ``Okano J`` arrived as a creator surnamed ``J``,
-    and a registry surname of one character is what
-    ``names.Reason.REGISTRY_INITIAL_ONLY`` accepts any stored surname against —
-    so the parser manufactured the evidence for an escape that then cleared a
-    fabricated name at that position.
+    :func:`~bibaudit.names.parse_name` reads it directly.
 
-    10 of 16,511 ``FAU`` values on a live sample of 3,500 citations (five
-    windows spanning 1992-2026) carry no comma, in 9 records. Every one of them
-    is written character for character as that record's ``AU`` line — NLM simply
-    never backfilled the comma — so the abbreviated parser is not an
-    approximation here, it is the same string's own reading: ``Okano J``,
-    ``Chung H``, ``Watanabe Yi``, ``Liu Cj``, ``van der Schaaf A``,
-    ``Meijer Drees R``, ``van Veenendaal MA``, ``Van Siclen CD``,
-    ``K Sikorska`` and the single-token ``Desriani``.
+    Without the comma it is a ``<LastName>``-only deposit. NLM writes one where
+    the publisher supplied no forename and no initials, and the whole creator
+    string sits in the surname slot -- so the family name is that string entire,
+    and :attr:`~bibaudit.model.Name.unsplit` records that where it ends is
+    something the registry does not state. :func:`~bibaudit.names.names_agree`
+    then accepts the readings that split a forename off it instead of choosing
+    one, and what a report shows is the slot as NLM holds it.
 
-    A wider sample is where that stops holding. NLM writes a ``<LastName>``-only
-    ``FAU`` when the publisher deposited no forename and no initials, and the
-    abbreviated parser takes the last token as the initials block, so such a
-    surname loses its last word to an invented forename. Over 36,568 ``FAU``
-    values 23 carry no comma, and five of those are this shape: ``de LAVERGNE``,
-    ``Xiaodong Lv``, ``Hung Nguyen``, ``Editorial Board Of Radiology`` and ``The
-    Lancet Child Adolescent Health``, which become ``authors/mismatch`` at error
-    severity against bibliographies that spell them right — reproducing on
-    ``10.1016/j.rxeng.2025.101663``, ``10.1016/s2352-4642(23)00169-4`` and
-    ``10.1016/j.plaphy.2024.109034``.
+    23 of 36,568 ``FAU`` values carry no comma, and the XML behind every one
+    recorded here puts the whole value in ``<LastName>`` with neither a
+    ``<ForeName>`` nor an ``<Initials>`` beside it: ``Okano J`` (PMID 11278851),
+    ``K Sikorska`` (31128948), ``Xiaodong Lv`` (39226761), ``Editorial Board Of
+    Radiology`` (41224382) and ``The Lancet Child Adolescent Health``
+    (37474240), fetched 2026-08-20. Reading the last token as an initials block
+    is what invents a forename out of the surname's last word, and the five
+    bylines it costs are in ``docs/registry-artifacts.md``; nothing NLM exposes
+    would license the other choice either, since ``Ho Yi`` is Ho, Y. I. --
+    ``"Ho Yi"[au]`` answers 14 citations -- while ``Xiaodong Lv`` is Lv,
+    Xiaodong, and the two are deposited identically.
 
-    No shape rule separates the two readings, so nothing here narrows the
-    fallback. Both are real: ``Ho Yi`` is Ho, Y.I. — ``"Ho Yi"[au]`` answers 14
-    citations — while ``Xiaodong Lv`` is given-then-surname, and both are two
-    characters and title-case, so a bound on length or capitalisation refuses one
-    in order to accept the other. The discriminator is whether NLM's XML carried
-    a ``<ForeName>``, which ``efetch rettype=medline`` does not expose. Choosing
-    between fetching ``rettype=xml`` for comma-less values and declining to
-    report an author mismatch on them is a decision about what this client
-    requests, not one this parser can make.
+    An organisation and an et-al marker land in the same comma-less shape, so
+    ``parse_name`` sees the text before any of that: PMID 34064455 deposits
+    ``<Author><LastName>Study Group</LastName></Author>`` and NLM renders it
+    ``FAU - Study Group``, one creator and not a person surnamed Study, while
+    PMID 19420835 and 38010780 carry ``FAU - Et Al`` for a byline the publisher
+    truncated. Rare and real: ``"study group"[au]`` answers 1 citation,
+    ``"working group"[au]`` 3, ``"collaborators"[au]`` 1 and ``"et al"[au]`` 41,
+    while ``"research group"[au]``, ``"consortium"[au]``, ``"network"[au]``,
+    ``"committee"[au]`` and ``"collaboration"[au]`` answer none -- an
+    organisation NLM was given properly goes to ``CN``, which
+    :func:`_corporate_creator` handles.
     """
-    if "," in clean(raw):
+    text = clean(raw).strip()
+    if "," in text:
         return parse_name(raw)
-    return _parse_au_fallback(raw)
+    if not text:
+        return Name()
+    whole = parse_name(text)
+    if whole.collective or whole.et_al:
+        return whole
+    return Name(family=text, unsplit=True)
 
 
 def _corporate_creator(raw: str) -> Name:

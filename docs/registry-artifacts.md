@@ -716,71 +716,36 @@ suppress the author-count difference on top.
 
 ## A full-author tag written without its comma
 
-**What happens.** MEDLINE's `FAU` is `Surname, Initials` and the comma is what
-says which half is which. A few citations carry the tag without it, and a
-comma-less creator string is BibTeX's *Given Family* — so `FAU - Okano J` was
-read as a person surnamed `J`.
+**What happens.** MEDLINE's `FAU` is `Surname, Initials` and the comma is what says which half is which. A few citations carry the tag without it, because the publisher deposited no forename and no initials and NLM put the whole creator in the surname slot: the XML behind one of these carries `<LastName>` alone, with neither a `<ForeName>` nor an `<Initials>` beside it. So the value is a name whose two halves the registry never separated, and it is not the abbreviated `AU` form even though it looks exactly like one.
 
-That is not a cosmetic misreading. A registry surname of one character is
-exactly what *Author comparisons with nothing to compare* accepts **any** stored
-surname against, under `registry surname truncated`. The parser was
-manufacturing the evidence for an escape that then cleared whatever name the
-bibliography had at that position, so a fabricated co-author passed there and
-nowhere else.
+Read as the abbreviated form — last token as the initials block — a `<LastName>`-only value loses its last word to an invented forename. `Xiaodong Lv` becomes a creator surnamed `Xiaodong` with the forename `Lv`, and the bibliography that spells the name right is reported at error severity.
 
-**Observed.** 10 of 16,511 `FAU` values, in 9 of 3,500 citations sampled from
-five windows spanning 1992–2026: `Okano J` (PMID 11278851, recorded verbatim in
-`tests/data/pubmed_fau_without_comma.txt` beside `FAU - Rustgi, A K` in the same
-byline), `Chung H`, `Watanabe Yi`, `Liu Cj`, `van der Schaaf A`,
-`Meijer Drees R`, `van Veenendaal MA`, `Van Siclen CD`, `K Sikorska`, and the
-single-token `Desriani`. Every one of them is written character for character as
-that record's own `AU` line: NLM never backfilled the comma.
+**Reported as.** `registry name deposited in one slot`, where the stored name agrees with one of the readings. Nothing at all where it agrees with the slot taken whole, which is an ordinary surname match.
 
-**Reported as.** Nothing. This is a parsing rule, not a suppression — the
-creator is read the way the record means it and then compared normally.
+**Observed.** 23 of 36,568 `FAU` values carry no comma. Five are the whole-name shape — `de LAVERGNE`, `Xiaodong Lv`, `Hung Nguyen`, `Editorial Board Of Radiology` and `The Lancet Child Adolescent Health` — reproducing on `10.1016/j.rxeng.2025.101663`, `10.1016/s2352-4642(23)00169-4` and `10.1016/j.plaphy.2024.109034`. The rest are the initials shape, written character for character as that record's own `AU` line because NLM never backfilled the comma: `Okano J` (PMID 11278851), `Chung H`, `Watanabe Yi`, `Liu Cj`, `van der Schaaf A`, `Meijer Drees R`, `van Veenendaal MA`, `Van Siclen CD`, `K Sikorska` (PMID 31128948) and the single-token `Desriani`, 10 of 16,511 values in a sample of 3,500 citations spanning 1992–2026.
 
-**Detection.** `registries/pubmed._parse_fau`. A value with a comma goes to
-`names.parse_name` as before; one without goes to `_parse_au_fallback`, the
-parser for the abbreviated `AU` tag, which is not an approximation here but the
-same string's own reading. `FED`, the editor tag with `FAU`'s convention, is
-read by the same function.
+Nothing NLM exposes separates the two. `efetch` returned `<LastName>Okano J</LastName>`, `<LastName>K Sikorska</LastName>`, `<LastName>Xiaodong Lv</LastName>`, `<LastName>Editorial Board Of Radiology</LastName>` and `<LastName>The Lancet Child Adolescent Health</LastName>`, every one of them without a `<ForeName>` or an `<Initials>`, fetched 2026-08-20 — so the structured form holds exactly what the MEDLINE line holds, and requesting it would buy nothing. `Ho Yi` is Ho, Y. I. — `"Ho Yi"[au]` answers 14 citations — while `Xiaodong Lv` is Lv, Xiaodong, and both are two title-case tokens in the same element. A rule on length or capitalisation refuses one in order to accept the other.
 
-**The one citation that writes it the other way round.** PMID 31128948 carries
-`K Sikorska` — an initial in front of the surname — in both `FAU` and `AU`,
-beside fifteen colleagues written `Koole, S N`-fashion. `"Sikorska K"[au]`
-answers 215 citations and `"K Sikorska"[au]` exactly that one, so NLM's own
-order is what the record breaks. `pubmed._initials_ahead_of_the_surname`
-recognises it on two conditions, and 27 of the 33,026 `FAU`/`AU` values in the
-sample open with a single letter, so both are load-bearing:
+**Detection.** `registries/pubmed._parse_fau` reads a value with a comma through `names.parse_name` as before, and returns one without it as the surname slot verbatim, marked `Name.unsplit`. `FED`, the editor tag with `FAU`'s convention, is read by the same function. `names.names_agree` then compares the stored name against the slot taken whole and, failing that, against the two readings `names._unsplit_readings` offers — the last token as the forename, and the first token as the forename.
 
-- **exactly two tokens, the first one character long.** Eight surnames in the
-  sample genuinely begin with a lone letter — `A Richmond, Jacqueline`,
-  `T Rahma, Azhar`, `E Albuquerque, Rodrigo Pires`, `W Y Chan, Stella` — and the
-  abbreviated form of each carries its initials as a further token, so none is
-  two tokens long. One character rather than a short one, because two-letter
-  surnames are among the commonest in this literature and take a transliterated
-  initials block: `"Ho Yi"[au]` answers 14 citations and is Ho, Y. I.;
-- **the second token is not written in capitals.** An initials block is, and a
-  surname of one or two letters is real: `S DMTS`, `A LK`, `N AK` and `T T` are
-  surnames `S`, `A`, `N` and `T` with their initials after them, which is NLM's
-  order already. A length test cannot separate those from `Sikorska`; the
-  capitals can.
+Both readings go through the full comparison, and each has to agree *informatively*: a reading that leaves a one-character surname behind reaches `registry surname truncated`, which accepts any stored surname at all, and offering it would manufacture the evidence for an escape. So `Okano, J.` agrees with `Okano J` and `Lv, Xiaodong` agrees with `Xiaodong Lv`, while `Smith, J.` agrees with neither and is reported.
 
-**Where the fallback is wrong, and why nothing here narrows it.** NLM writes a
-`<LastName>`-only `FAU` when the publisher deposited no forename and no
-initials. The abbreviated parser takes the last token as the initials block, so
-such a surname loses its last word to an invented forename. Over 36,568 `FAU`
-values, 23 carry no comma and five are that shape — `de LAVERGNE`, `Xiaodong
-Lv`, `Hung Nguyen`, `Editorial Board Of Radiology` and `The Lancet Child
-Adolescent Health` — and each becomes an `authors/mismatch` at error severity
-against a bibliography that spells it right, reproducing on
-`10.1016/j.rxeng.2025.101663`, `10.1016/s2352-4642(23)00169-4` and
-`10.1016/j.plaphy.2024.109034`. No shape rule separates the two readings:
-`Ho Yi` needs given-last and `Xiaodong Lv` needs given-first, and both are two
-characters and title-case. The discriminator is whether NLM's XML carried a
-`<ForeName>`, which `efetch rettype=medline` does not expose — so separating
-them is a decision about what `registries/pubmed` requests, not a rule this
-parser can carry.
+**Why it matters.** A stored name that matches no reading is still a finding, so a creator the bibliography invented is not cleared here. What the escape gives up is the case where a fabricated name happens to be the *other* reading of a real one — the price of not choosing a reading the registry declined to state.
+
+---
+
+## An initial written in front of the surname
+
+**What happens.** MEDLINE's abbreviated tags order surname before initials. One recorded citation writes the other way round: PMID 31128948 carries `K Sikorska` in both `FAU` and `AU`, beside fifteen colleagues written `Koole, S N`-fashion. `"Sikorska K"[au]` answers 215 citations and `"K Sikorska"[au]` exactly that one, so NLM's own order is what the record breaks.
+
+**Reported as.** Nothing. This is a parsing rule rather than a suppression.
+
+**Detection.** `pubmed._initials_ahead_of_the_surname`, on two conditions, each excluding a shape the same live sample carries — 27 of 33,026 `FAU`/`AU` values open with a single letter:
+
+- **exactly two tokens, the first one character long.** Eight surnames in the sample genuinely begin with a lone letter — `A Richmond, Jacqueline`, `T Rahma, Azhar`, `E Albuquerque, Rodrigo Pires`, `W Y Chan, Stella` — and the abbreviated form of each carries its initials as a further token, so none is two tokens long. One character rather than a short one, because two-letter surnames are among the commonest in this literature and take a transliterated initials block: `"Ho Yi"[au]` answers 14 citations and is Ho, Y. I.;
+- **the second token is not written in capitals.** An initials block is, and a surname of one or two letters is real: `S DMTS`, `A LK`, `N AK` and `T T` are surnames `S`, `A`, `N` and `T` with their initials after them, which is NLM's order already. A length test cannot separate those from `Sikorska`; the capitals can.
+
+**A guard rather than a repair.** What reaches this function is `ED`, the abbreviated editor tag, which `_parse_au_fallback` is the parser for. The sighting above is on the author tags, and the sample counts `FAU` and `AU` values rather than editor ones — so no `ED` value is known to carry the shape. It is kept because MEDLINE's editor tags follow its author tags' convention, which makes the shape possible there, and because the two conditions are what stop a guard from becoming a defect of its own. On the author side the question no longer arises: a comma-less `FAU` is read as the surname slot verbatim, one section above.
 
 ---
 

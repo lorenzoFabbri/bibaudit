@@ -128,6 +128,12 @@ class Name:
     #: BibTeX's ``and others`` / CSL's et-al marker. Truncates the list rather
     #: than naming a person, so a length comparison past this point is void.
     et_al: bool = False
+    #: The source put the whole creator in one slot, so where the family name
+    #: ends is not something it states. ``family`` carries the slot verbatim,
+    #: which is the only value a report may show, and
+    #: :func:`~bibaudit.names.names_agree` accepts the readings that split a
+    #: forename off it rather than choosing one of them.
+    unsplit: bool = False
 
     def __str__(self) -> str:
         if self.literal:

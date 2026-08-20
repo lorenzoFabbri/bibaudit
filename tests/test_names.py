@@ -1587,6 +1587,13 @@ _WITNESSED_REASONS: tuple[tuple[Reason, int, list[Name], list[Name]], ...] = (
         [Name(family="Alpha", given="A"), Name(family="Bravo", given="B")],
         [Name(family="Alpha", given="A"), Name(family="B", given="B")],
     ),
+    # MEDLINE deposits the whole creator in `<LastName>` and says nothing about
+    # where the surname ends; `Okano, J.` is what the byline correctly carries.
+    (
+        Reason.UNSPLIT_REGISTRY_NAME, 2,
+        [Name(family="Alpha", given="A"), Name(family="Okano", given="J.")],
+        [Name(family="Alpha", given="A"), Name(family="Okano J", unsplit=True)],
+    ),
     (
         Reason.ET_AL, 2,
         [Name(family="Alpha", given="A"), Name(et_al=True)],

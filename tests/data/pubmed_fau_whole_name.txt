@@ -1,0 +1,138 @@
+
+PMID- 39226761
+OWN - NLM
+STAT- MEDLINE
+DCOM- 20240914
+LR  - 20240914
+IS  - 1873-2690 (Electronic)
+IS  - 0981-9428 (Linking)
+VI  - 215
+DP  - 2024 Oct
+TI  - Rice OsCIPK17-OsCBL2/3 module enhances shoot Na(+) exclusion and plant salt 
+      tolerance in transgenic Arabidopsis.
+PG  - 109034
+LID - S0981-9428(24)00702-2 [pii]
+LID - 10.1016/j.plaphy.2024.109034 [doi]
+AB  - Soil salinity is detrimental to plant growth and remains a major threat to crop 
+      productivity of the world. Plants employ various physiological and molecular 
+      mechanisms to maintain growth under salt stress. Identification of genes and 
+      genetic loci underlying plant salt tolerance holds the key to breeding salt 
+      tolerant crops. CIPK-CBL pathways regulate adaptive responses of plants 
+      (especially ion transport) to abiotic stresses via fine-tuned Ca(2+) signal 
+      transduction. In this study, we showed that over-expression of OsCIPK17 in 
+      Arabidopsis enhanced primary root elongation under salt stress, which is in a 
+      Ca(2+) dependent manner. Further investigation revealed that, under salt stress, 
+      OsCIPK17 transcript level was significantly induced and its protein moved from 
+      the cytosol to the tonoplast. Using both Y2H and BiFC, tonoplast-localised OsCBL2 
+      and OsCBL3 were shown to interact with OsCIPK17. Interestingly, over-expressing 
+      salt-induced OsCBL2 or OsCBL3 in Arabidopsis led to enhanced primary root 
+      elongation under salt stress. In this process, OsCIPK17 was shown recruited to 
+      the tonoplast (similar to the effect of salt stress). Furthermore, transgenic 
+      Arabidopsis lines individually over-expressing OsCIPK17, OsCBL2 and OsCBL3 all 
+      demonstrated larger biomass and less Na (+) accumulation in the shoot under salt 
+      stress. All data combined suggest that OsCIPK17- OsCBL2/3 module is a major 
+      component of shoot Na(+) exclusion and therefore plant salt tolerance, which is 
+      through enhanced Na (+) compartmentation into the vacuole in the root. OsCIPK17 
+      and OsCBL2/3 are therefore potential genetic targets that can be used for 
+      delivering salt tolerant rice cultivars.
+CI  - Copyright (c) 2024. Published by Elsevier Masson SAS.
+FAU - Qin, Xin
+AU  - Qin X
+AD  - Ministry of Education Key Laboratory of Cell Activities and Stress Adaptations, 
+      School of Life Sciences, Lanzhou University, Lanzhou, 730000, China; Key 
+      Laboratory of Gene Editing for Breeding, Gansu Province, Lanzhou 730000, China.
+FAU - Zhang, Xiaohua
+AU  - Zhang X
+AD  - Ministry of Education Key Laboratory of Cell Activities and Stress Adaptations, 
+      School of Life Sciences, Lanzhou University, Lanzhou, 730000, China; Key 
+      Laboratory of Gene Editing for Breeding, Gansu Province, Lanzhou 730000, China.
+FAU - Ma, Chenyujie
+AU  - Ma C
+AD  - Ministry of Education Key Laboratory of Cell Activities and Stress Adaptations, 
+      School of Life Sciences, Lanzhou University, Lanzhou, 730000, China; Key 
+      Laboratory of Gene Editing for Breeding, Gansu Province, Lanzhou 730000, China.
+FAU - Yang, Xue
+AU  - Yang X
+AD  - Jiayuguan Ecological and Environmental Monitoring Center, Jiayuguan 735100, 
+      China.
+FAU - Hu, Yibo
+AU  - Hu Y
+AD  - Ministry of Education Key Laboratory of Cell Activities and Stress Adaptations, 
+      School of Life Sciences, Lanzhou University, Lanzhou, 730000, China; Key 
+      Laboratory of Gene Editing for Breeding, Gansu Province, Lanzhou 730000, China.
+FAU - Liu, Yuan
+AU  - Liu Y
+AD  - Ministry of Education Key Laboratory of Cell Activities and Stress Adaptations, 
+      School of Life Sciences, Lanzhou University, Lanzhou, 730000, China; Key 
+      Laboratory of Gene Editing for Breeding, Gansu Province, Lanzhou 730000, China.
+FAU - Hu, Yunfei
+AU  - Hu Y
+AD  - Ministry of Education Key Laboratory of Cell Activities and Stress Adaptations, 
+      School of Life Sciences, Lanzhou University, Lanzhou, 730000, China; Key 
+      Laboratory of Gene Editing for Breeding, Gansu Province, Lanzhou 730000, China.
+FAU - Wang, Dan
+AU  - Wang D
+AD  - Ministry of Education Key Laboratory of Cell Activities and Stress Adaptations, 
+      School of Life Sciences, Lanzhou University, Lanzhou, 730000, China; Key 
+      Laboratory of Gene Editing for Breeding, Gansu Province, Lanzhou 730000, China.
+FAU - Xiaodong Lv
+AU  - Xiaodong Lv
+AD  - Ministry of Education Key Laboratory of Cell Activities and Stress Adaptations, 
+      School of Life Sciences, Lanzhou University, Lanzhou, 730000, China; Key 
+      Laboratory of Gene Editing for Breeding, Gansu Province, Lanzhou 730000, China.
+FAU - Wang, Chao
+AU  - Wang C
+AD  - College of Life Sciences, Shaoxing University, Shaoxing 312000, China.
+FAU - Shou, Jianxin
+AU  - Shou J
+AD  - Ministry of Education Key Laboratory of Cell Activities and Stress Adaptations, 
+      School of Life Sciences, Lanzhou University, Lanzhou, 730000, China; College of 
+      Life Sciences, Shaoxing University, Shaoxing 312000, China. Electronic address: 
+      jianxinshou@usx.edu.cn.
+FAU - Li, Bo
+AU  - Li B
+AD  - Ministry of Education Key Laboratory of Cell Activities and Stress Adaptations, 
+      School of Life Sciences, Lanzhou University, Lanzhou, 730000, China; Key 
+      Laboratory of Gene Editing for Breeding, Gansu Province, Lanzhou 730000, China. 
+      Electronic address: li_bo@lzu.edu.cn.
+LA  - eng
+PT  - Journal Article
+DEP - 20240815
+PL  - France
+TA  - Plant Physiol Biochem
+JT  - Plant physiology and biochemistry : PPB
+JID - 9882449
+RN  - 0 (Plant Proteins)
+RN  - 9NEZ333N27 (Sodium)
+SB  - IM
+MH  - *Arabidopsis/genetics/metabolism
+MH  - *Plants, Genetically Modified
+MH  - *Oryza/genetics/metabolism
+MH  - *Salt Tolerance/genetics
+MH  - *Plant Shoots/genetics/metabolism
+MH  - *Plant Proteins/genetics/metabolism
+MH  - *Sodium/metabolism
+MH  - Gene Expression Regulation, Plant
+MH  - Plant Roots/genetics/metabolism
+OTO - NOTNLM
+OT  - Arabidopsis
+OT  - Na(+) exclusion
+OT  - Salinity tolerance
+OT  - Vacuolar compartmentation
+COIS- Declaration of competing interest The authors declare that they have no known 
+      competing financial interests or personal relationships that could have appeared 
+      to influence the work reported in this paper.
+EDAT- 2024/09/04 01:01
+MHDA- 2024/09/14 10:46
+CRDT- 2024/09/03 18:06
+PHST- 2023/12/28 00:00 [received]
+PHST- 2024/07/30 00:00 [revised]
+PHST- 2024/08/08 00:00 [accepted]
+PHST- 2024/09/14 10:46 [medline]
+PHST- 2024/09/04 01:01 [pubmed]
+PHST- 2024/09/03 18:06 [entrez]
+AID - S0981-9428(24)00702-2 [pii]
+AID - 10.1016/j.plaphy.2024.109034 [doi]
+PST - ppublish
+SO  - Plant Physiol Biochem. 2024 Oct;215:109034. doi: 10.1016/j.plaphy.2024.109034. 
+      Epub 2024 Aug 15.

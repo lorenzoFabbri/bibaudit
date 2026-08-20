@@ -452,20 +452,7 @@ that motivated it, and the true-positive half of each is tested beside it.
   the range separator, and `compare._check_pages` accepts an empty opening only
   against identical text.
 
-- **A MEDLINE `FAU` written without its comma is read MEDLINE's way.** `FAU` is
-  `Surname, Initials` and the comma says which half is which; without it the
-  value reached `names.parse_name`, whose comma-less convention is BibTeX's
-  "Given Family", and `Okano J` arrived as a creator surnamed `J`. A registry
-  surname of one character is what `Reason.REGISTRY_INITIAL_ONLY` accepts *any*
-  stored surname against, so the entry's byline stopped being checked at that
-  position. 13 of 24,456 `FAU` values on 11 of 4,800 citations carry no comma,
-  each written character-for-character as its own `AU` line. The one citation
-  written the other way round — PMID 31128948's `K Sikorska`, where
-  `"Sikorska K"[au]` answers 215 citations and `"K Sikorska"[au]` exactly one —
-  is rewritten on two conditions, because 67 of 48,919 `FAU`/`AU` values open
-  with a single letter and the rest are surnames of one or two letters followed
-  by their initials (`S DMTS`, `A LK`, `N AK`, `T T`), which is NLM's order
-  already.
+- **A MEDLINE `FAU` written without its comma is read as the surname slot it is.** `FAU` is `Surname, Initials` and the comma says which half is which. Without it, NLM deposited no forename and no initials and put the whole creator in `<LastName>` — so the family name is that string entire, and the boundary inside it is something the registry never states. `names.names_agree` accepts the stored name against the slot taken whole or against either reading that splits a forename off it, under `registry name deposited in one slot`, and reports a name matching none of them. Both readings are real: `Okano J` is Okano, J. and `Xiaodong Lv` is Lv, Xiaodong, and `efetch` returns the two identically. Reading the last token as an initials block — which is right for the abbreviated `AU` tag and wrong here — invented a forename out of the surname's last word, and five real bylines among 23 comma-less values in 36,568 became `authors/mismatch` at error severity, reproducing on `10.1016/j.rxeng.2025.101663`, `10.1016/s2352-4642(23)00169-4` and `10.1016/j.plaphy.2024.109034`. `pubmed._initials_ahead_of_the_surname`, which rewrites `K Sikorska` (PMID 31128948), now guards the `ED` editor tag alone.
 
 - **A PubMed outage no longer deletes Retraction Watch's answer.** The outage
   raised a `RetractionOutage` carrying the names of the downed sources, and
