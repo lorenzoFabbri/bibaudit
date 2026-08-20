@@ -20,7 +20,7 @@ An entry is a claim by whoever wrote it. The offline suite establishes only that
 MEDLINE and the Retraction Watch rows are compared with nothing ignored. Two registries stamp their own record-keeping into the payload, and comparing on those would redden the check every week over values no deposit carries, until nobody ran it:
 
 - **Crossref** — `indexed` and `deposited`, the index and last-deposit timestamps; `is-referenced-by-count`, a citation counter; and `link`, whose URL follows the publisher's hosting rather than the deposit.
-- **DataCite** — `updated`, and the aggregates `viewCount`, `downloadCount`, `citationCount`, `referenceCount`, `partCount`, `partOfCount`, `versionCount` and `versionOfCount`.
+- **DataCite** — `updated`, and the aggregates `viewCount`, `downloadCount`, `citationCount`, `citationsOverTime`, `referenceCount`, `partCount`, `partOfCount`, `versionCount` and `versionOfCount`. One level over, under `data.relationships`, the same goes for `citations`, the list of citing records that `citationCount` counts — ignoring the count and comparing the list leaves the check red for the identical reason. Every other relationship is compared.
 
 Everything else is compared, and a difference means the record was revised — re-fetch, read the diff, commit it — or the file was never that record. Widening this list hides a fabricated value, so it grows only for a field that is demonstrably the registry's own bookkeeping, and each addition is named here: `tests/test_fixture_provenance.py` fails the build for one that is not.
 

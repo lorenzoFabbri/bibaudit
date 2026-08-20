@@ -126,6 +126,11 @@ _VOLATILE_DATACITE = frozenset(
         "viewCount",
         "downloadCount",
         "citationCount",
+        # The same counter broken down by year, and it moves for the same
+        # reason: the Transformers preprint's 2026 bucket grew between two
+        # runs of this check nine days apart while its every deposited
+        # attribute stayed put.
+        "citationsOverTime",
         "referenceCount",
         "partCount",
         "partOfCount",
@@ -133,6 +138,15 @@ _VOLATILE_DATACITE = frozenset(
         "versionOfCount",
     }
 )
+
+#: The same aggregates one level over, under ``data.relationships``, where
+#: DataCite lists the records behind a count rather than the count. Ignoring
+#: ``citationCount`` and comparing the list it counts leaves the check red for
+#: the identical reason: the Transformers preprint went from 55 citing DOIs to
+#: 57 between two runs nine days apart, with every deposited attribute
+#: unchanged. Only the relationship witnessed moving is here; the rest are
+#: compared.
+_VOLATILE_DATACITE_RELATIONSHIPS = frozenset({"citations"})
 
 
 def _entries() -> list[dict[str, Any]]:
@@ -564,7 +578,9 @@ def test_every_ignored_field_is_written_up_for_a_contributor() -> None:
     """
     prose = RULES.read_text(encoding="utf-8")
     missing = sorted(
-        field for field in _VOLATILE_CROSSREF | _VOLATILE_DATACITE if f"`{field}`" not in prose
+        field
+        for field in _VOLATILE_CROSSREF | _VOLATILE_DATACITE | _VOLATILE_DATACITE_RELATIONSHIPS
+        if f"`{field}`" not in prose
     )
 
     assert missing == []
@@ -825,6 +841,9 @@ def _datacite_comparable(payload: dict[str, Any]) -> dict[str, Any]:
     """*payload* with DataCite's own counters and timestamps taken out."""
     data = dict(payload.get("data") or {})
     data["attributes"] = _strip(dict(data.get("attributes") or {}), _VOLATILE_DATACITE)
+    data["relationships"] = _strip(
+        dict(data.get("relationships") or {}), _VOLATILE_DATACITE_RELATIONSHIPS
+    )
     return {**payload, "data": data}
 
 
@@ -893,9 +912,15 @@ def test_a_datacite_fixture_is_what_the_api_returns_today(
 
     stored = json.loads((DATA / str(entry["file"])).read_text(encoding="utf-8"))
 
-    assert _datacite_comparable(stored) == _datacite_comparable(answer), (
+    comparable_stored = _datacite_comparable(stored)
+    comparable_answer = _datacite_comparable(answer)
+
+    # Named from the compared dicts, not the raw ones: a message listing a
+    # field this check ignores sends the reader after a counter that did not
+    # fail anything.
+    assert comparable_stored == comparable_answer, (
         f"{entry['file']}: "
-        f"{_differing_keys(stored['data']['attributes'], answer['data']['attributes'])}"
+        f"{_differing_keys(comparable_stored['data']['attributes'], comparable_answer['data']['attributes'])}"
     )
 
 
