@@ -90,16 +90,14 @@ see [in CI](ci.md).
 ## Install
 
 ```bash
-uv tool install --prerelease=allow bibaudit
+uv tool install bibaudit
 ```
 
-Or with pip, which needs no flag:
+Or with pip:
 
 ```bash
 pip install bibaudit
 ```
-
-The flag is for the parser: bibaudit needs bibtexparser v2, which has published only betas so far. pip applies PEP 440's rule that a requirement no final release can satisfy may take a pre-release; uv asks to be told. Nothing else here is a pre-release.
 
 From a checkout:
 

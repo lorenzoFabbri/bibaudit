@@ -38,20 +38,14 @@ classifiers = [
 # present in a CI container before a citation can be checked.
 dependencies = [
     # v2 parses one-line and multi-entry-per-line files correctly. The upper
-    # bound is not ceremony: naming a pre-release makes resolvers accept every
-    # later pre-release too, and `bibtex.py` calls `parse_file`, which v2 does
-    # not list in its public exports. A lockfile constrains this repo and CI,
-    # not somebody installing the published package.
+    # bound is not ceremony: `bibtex.py` calls `parse_file`, which v2 imports
+    # into its top level without declaring an `__all__`, so nothing promises
+    # it survives a major version. A lockfile constrains this repo and CI, not
+    # somebody installing the published package.
     #
-    # v2 has published only betas, so this is a range no final release can
-    # satisfy. pip installs it anyway, under PEP 440's rule for that case; uv
-    # refuses until told `--prerelease=allow`, and no way of writing the
-    # constraint avoids it -- `==2.0.0b9` and a bare `>=2.0.0b9` are refused
-    # in the same breath when the depending package comes from an index rather
-    # than a path. So the range stays and the flag is documented, because
-    # pinning one beta would give up patch upgrades and buy nothing. The whole
-    # question ends when bibtexparser 2.0.0 ships.
-    "bibtexparser>=2.0.0b7,<3",
+    # The floor is a final release so that no resolver has a reason to
+    # consider the v2 betas, and no installer needs a pre-release flag.
+    "bibtexparser>=2.0.0,<3",
 
     "rapidfuzz>=3.0",        # fuzzy matching that stays fast on thousands of entries
 ]

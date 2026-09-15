@@ -69,8 +69,6 @@ see it.
 
 ## GitHub Actions
 
-`--prerelease=allow` is for bibtexparser v2, which has published only betas; nothing else bibaudit depends on is a pre-release.
-
 ```yaml
 name: references
 on: [push, pull_request]
@@ -79,13 +77,13 @@ jobs:
   bibaudit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-      - run: uv tool install --prerelease=allow bibaudit
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.1.0
+      - run: uv tool install bibaudit
       - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Restore the registry cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .bibaudit-cache
           key: bibaudit-${{ hashFiles('references.bib') }}
