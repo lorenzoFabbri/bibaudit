@@ -23,14 +23,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.1.0
         with:
           enable-cache: true
           # Pinned so every job installs the same uv a laptop runs, rather
           # than whatever is newest that morning. It does not avoid the
           # version-manifest fetch setup-uv makes on every job regardless, and
           # that fetch has a short timeout that has aborted a job.
-          version: "0.11.7"
+          version: "0.12.14"
       # --strict fails the build on a broken internal link, so a page that
       # points at a file somebody renamed is caught here rather than by a
       # reader hitting a 404.
