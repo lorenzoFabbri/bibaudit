@@ -56,7 +56,7 @@ dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6", "mypy>=1.11"]
 
 # Documentation only, and a dependency-group rather than an extra so that it
 # stays out of the test environment. `.github/workflows/ci.yml` installs with
-# `uv sync --all-extras` on three Python versions; that unions every entry in
+# `uv sync --all-extras` on every Python version in its matrix; that unions every entry in
 # `[project.optional-dependencies]`, so a `docs` *extra* would have been
 # installed by the very command this separation exists to keep it out of.
 # `--all-extras` does not pull non-default dependency-groups, so this does.
@@ -80,7 +80,7 @@ build-backend = "hatchling.build"
 packages = ["src/bibaudit"]
 
 [tool.coverage.report]
-# Branch coverage sits at 95.43%. The floor is a ratchet against a change that
+# Branch coverage sits at 95.32%. The floor is a ratchet against a change that
 # quietly deletes coverage, not a target to chase: set close enough to bite and
 # far enough that an ordinary refactor moving lines around does not fail the
 # build for a reason nobody can act on. A number reported to a log nobody reads
