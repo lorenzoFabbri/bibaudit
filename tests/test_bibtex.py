@@ -198,6 +198,60 @@ class TestLocator:
     def test_unknown_key_gets_a_placeholder_not_a_keyerror(self) -> None:
         assert entry_locator(_FIXTURE, "nonexistent-key") == "sample.bib:?"
 
+    def test_a_parenthesised_block_is_located_like_a_braced_one(
+        self, tmp_path: pathlib.Path
+    ) -> None:
+        """BibTeX lets ``(...)`` delimit a block as well as ``{...}``, and the
+        parser reads both, so the locator must find both.
+
+        ``paren2003`` holds a ``)`` inside a braced DOI and another inside a
+        quoted value, and neither closes the block. Were either taken for the
+        closing delimiter, the scan would resume inside the block and meet the
+        quoted ``@article(after2021,`` text first, which would claim the real
+        ``after2021`` entry's line.
+        """
+        path = tmp_path / "paren.bib"
+        path.write_text(
+            "@article{braced2020,\n"
+            "  title = {Braced},\n"
+            "}\n"
+            "\n"
+            "@article(paren2003,\n"
+            "  doi = {10.1016/S0140-6736(03)14065-2},\n"
+            '  note = "a ) here, then @article(after2021, as text",\n'
+            ")\n"
+            "@misc(fieldless2021)\n"
+            "@article{after2021,\n"
+            "  title = {After},\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        assert {r.key: r.locator for r in read_bibtex(path)} == {
+            "braced2020": "paren.bib:1",
+            "paren2003": "paren.bib:5",
+            "fieldless2021": "paren.bib:9",
+            "after2021": "paren.bib:10",
+        }
+
+    def test_a_comment_is_skipped_whole_whatever_it_holds(self, tmp_path: pathlib.Path) -> None:
+        """An entry quoted inside ``@comment`` must not claim the real entry's line.
+
+        The braced comment opens with free text rather than a ``key,``, which
+        is what an ordinary comment looks like. The parenthesised one holds a
+        lone ``"``: comments are free text, so that quote opens no value and
+        the ``)`` after it still closes the block.
+        """
+        path = tmp_path / "comment.bib"
+        path.write_text(
+            "@comment{exported from the group library; see @article{real2022, below}}\n"
+            '@comment(note, a stray " quote, and @article(real2022, again)\n'
+            "@article{real2022,\n"
+            "  title = {Real},\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        assert [r.locator for r in read_bibtex(path)] == ["comment.bib:3"]
+
 
 class TestFailedBlocks:
     """bibtexparser's own recovery from two different defects, surfaced as warnings."""

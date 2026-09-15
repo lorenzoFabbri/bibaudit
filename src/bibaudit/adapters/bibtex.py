@@ -69,9 +69,9 @@ def read_bibtex(path: pathlib.Path) -> list[Reference]:
     built.
     """
     path = pathlib.Path(path)
-    # bibtexparser re-exports parse_file from .entrypoint without listing it
-    # in __init__.py's own __all__, which mypy --strict's implicit-reexport
-    # check flags even though it is documented top-level API.
+    # bibtexparser imports parse_file into its top level without declaring an
+    # __all__, which mypy --strict's implicit-reexport check flags even though
+    # it is documented top-level API.
     library = bibtexparser.parse_file(str(path))  # type: ignore[attr-defined]
     _warn_failed_blocks(path, library.failed_blocks)
     return [_entry_to_reference(path, entry) for entry in library.entries]
@@ -258,17 +258,25 @@ def _warn_failed_blocks(path: pathlib.Path, failed_blocks: list[ParsingFailedBlo
 # entry_locator
 # ---------------------------------------------------------------------------
 
-#: An entry opens with "@type{key," (or, rarely, "@type{key}" for a
-#: field-less entry). The key class excludes comma/whitespace/close-brace
-#: rather than allowlisting characters, because real citekeys use ':', '.'
-#: and '/' (DOI-derived keys, Better BibTeX's "auto-export" keys) that an
-#: allowlist would have to keep growing to cover.
-_ENTRY_OPEN_RE = re.compile(r"@([A-Za-z]+)\s*\{\s*([^,\s}]+)\s*[,}]")
+#: "@type" and an opening delimiter start a block. BibTeX accepts "(" as the
+#: delimiter as readily as "{", and bibtexparser reads both.
+_BLOCK_OPEN_RE = re.compile(r"@([A-Za-z]+)\s*([{(])")
 
-#: "@word{" also opens a @string macro, @comment or @preamble block. None of
-#: those has a citekey worth indexing, and skipping them means a macro name
-#: that happens to collide with a real citekey can never shadow the entry's
-#: own line.
+#: The citekey after an entry's opening delimiter: "key," or, rarely, "key}" /
+#: "key)" for a field-less entry. Each class excludes comma, whitespace and
+#: that block's own closing delimiter rather than allowlisting characters,
+#: because real citekeys use ':', '.' and '/' (DOI-derived keys, Better
+#: BibTeX's "auto-export" keys) that an allowlist would have to keep growing
+#: to cover.
+_ENTRY_KEY_RE = {
+    "{": re.compile(r"\s*([^,\s}]+)\s*[,}]"),
+    "(": re.compile(r"\s*([^,\s)]+)\s*[,)]"),
+}
+
+#: "@string", "@comment" and "@preamble" open blocks too. None of them has a
+#: citekey worth indexing, and each is skipped whole whatever it begins with,
+#: so neither a macro name that collides with a real citekey nor an entry
+#: quoted inside a comment can shadow the entry's own line.
 _NON_ENTRY_BLOCK_TYPES = frozenset({"string", "comment", "preamble"})
 
 #: (resolved path, mtime_ns) -> {citekey: 1-based line number}. entry_locator
@@ -277,6 +285,37 @@ _NON_ENTRY_BLOCK_TYPES = frozenset({"string", "comment", "preamble"})
 #: call; without this, locating N references would cost O(N * file size)
 #: instead of O(file size + N).
 _LINE_CACHE: dict[tuple[str, int], dict[str, int]] = {}
+
+
+def _block_end(text: str, i: int, parenthesised: bool, track_quotes: bool) -> int | None:
+    """Index just past the delimiter closing a block whose body starts at *i*.
+
+    The rule is bibtexparser's own, so the locator and the parser agree on
+    where a block ends. A braced block closes at the ``}`` balancing its
+    opener. A parenthesised block closes at the first ``)`` outside every
+    nested ``{...}`` and, with *track_quotes*, outside a ``"..."`` value at
+    brace depth 0: a ``)`` is ordinary text in both places, and a DOI such as
+    ``10.1016/S0140-6736(03)14065-2`` carries two. ``@comment`` blocks do not
+    track quotes, because free text may leave one unbalanced. ``None`` when the
+    block never closes.
+    """
+    depth = 0
+    in_quotes = False
+    for j in range(i, len(text)):
+        c = text[j]
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            if depth > 0:
+                depth -= 1
+            elif not parenthesised:
+                return j + 1
+        elif parenthesised and depth == 0:
+            if c == '"' and track_quotes:
+                in_quotes = not in_quotes
+            elif c == ")" and not in_quotes:
+                return j + 1
+    return None
 
 
 def _citekey_lines(path: pathlib.Path) -> dict[str, int]:
@@ -288,55 +327,51 @@ def _citekey_lines(path: pathlib.Path) -> dict[str, int]:
         return cached
 
     text = resolved.read_text(encoding="utf-8")
-    n = len(text)
     lines: dict[str, int] = {}
     line_no = 1
     pos = 0  # last position line_no has been advanced to
     scan_from = 0
     # Repeated search-and-skip rather than a flat finditer(): a bare
-    # _ENTRY_OPEN_RE.finditer(text) matches "@type{key," anywhere in the raw
-    # text, including *inside* another entry's own title — "A study
-    # mentioning @article{other-key, as an example}" — and when that fake
-    # occurrence comes first in the file, lines.setdefault keeps it and the
-    # real "other-key" entry is reported at the wrong line. So once a match
-    # is found, its own body is skipped by counting braces from *that
-    # match's* opening brace only — never across the free text between
-    # blocks, which BibTeX's implicit-comment rule leaves unbalanced by
-    # design (a stray "{" in a note is not a defect) and which a whole-file
-    # depth counter would misread as "still inside a block" forever after.
+    # _BLOCK_OPEN_RE.finditer(text) matches "@type{" anywhere in the raw text,
+    # including *inside* another entry's own title — "A study mentioning
+    # @article{other-key, as an example}" — and when that fake occurrence
+    # comes first in the file, lines.setdefault keeps it and the real
+    # "other-key" entry is reported at the wrong line. So once a block is
+    # found, its own body is skipped from *that block's* opening delimiter
+    # only — never across the free text between blocks, which BibTeX's
+    # implicit-comment rule leaves unbalanced by design (a stray "{" in a note
+    # is not a defect) and which a whole-file depth counter would misread as
+    # "still inside a block" forever after.
     while True:
-        match = _ENTRY_OPEN_RE.search(text, scan_from)
+        match = _BLOCK_OPEN_RE.search(text, scan_from)
         if match is None:
             break
         start = match.start()
-        if match.group(1).lower() not in _NON_ENTRY_BLOCK_TYPES:
+        block_type = match.group(1).lower()
+        delimiter = match.group(2)
+        if block_type not in _NON_ENTRY_BLOCK_TYPES:
+            key = _ENTRY_KEY_RE[delimiter].match(text, match.end())
+            if key is None:
+                # No citekey where bibtexparser requires one, so the parser
+                # rejects this opening too and there is no body to skip.
+                scan_from = start + 1
+                continue
             line_no += text.count("\n", pos, start)
             pos = start
             # First occurrence wins. A duplicate citekey's second block never
             # reaches library.entries (see _warn_failed_blocks), so its line
             # must not overwrite the line of the entry actually in the audit.
-            lines.setdefault(match.group(2), line_no)
+            lines.setdefault(key.group(1), line_no)
 
-        # The regex's own "\s*\{\s*" already consumed the block's opening
-        # brace, so the first "{" at or after `start` is exactly that one.
-        depth = 1
-        i = text.index("{", start) + 1
-        while i < n and depth > 0:
-            c = text[i]
-            if c == "{":
-                depth += 1
-            elif c == "}":
-                depth -= 1
-            i += 1
-        # depth == 0 means i now sits just past this block's real closing
-        # brace. A block whose braces never balance is a syntax error
-        # bibtexparser will already have reported via _warn_failed_blocks;
-        # resuming right after its opener (rather than scanning to EOF as
-        # "still inside") keeps that one bad block from hiding every entry
-        # that follows it, at the cost of possibly re-scanning its own
-        # (already broken) interior — the same fallback a flat scan would
-        # give.
-        scan_from = i if depth == 0 else start + 1
+        end = _block_end(
+            text, match.end(), delimiter == "(", track_quotes=block_type != "comment"
+        )
+        # None means the block never closes: a syntax error bibtexparser will
+        # already have reported via _warn_failed_blocks. Resuming right after
+        # its opener (rather than scanning to EOF as "still inside") keeps that
+        # one bad block from hiding every entry that follows it, at the cost
+        # of possibly re-scanning its own (already broken) interior.
+        scan_from = end if end is not None else start + 1
 
     # Drop any earlier snapshot of this same path so a long-lived process
     # that re-reads a file across edits does not accumulate one cache entry
