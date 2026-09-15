@@ -9,6 +9,16 @@ signature moved, so verdict and wording changes are listed here alongside API
 ones. That is the point of the file: somebody deciding whether to re-run an
 audit needs to know whether the answer could differ.
 
+## [0.1.2] - 2026-09-15
+
+No verdict changes; two report locations do.
+
+bibaudit now requires `bibtexparser>=2.0.0,<3`. bibtexparser 2.0.0 is a final release, so `uv tool install bibaudit` works without a flag, and `--prerelease=allow` is gone from every install route in the README and the documentation.
+
+An entry written with parentheses, `@article(key, ...)`, which bibtexparser 2.0 reads, is reported at its line rather than at `references.bib:?`. An entry quoted inside an `@comment` no longer claims the line of the real entry with the same key.
+
+Python 3.14 is tested in CI and listed in the package classifiers. The GitHub Actions example in the CI guide names current action versions.
+
 ## [0.1.1] - 2026-08-20
 
 Documentation only; the package is unchanged.
@@ -881,5 +891,6 @@ that motivated it, and the true-positive half of each is tested beside it.
   also covers `bibaudit check notes/ notes/references.bib` and a `--bibliography`
   repeating a file already named.
 
+[0.1.2]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.2
 [0.1.1]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.1
 [0.1.0]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.0
