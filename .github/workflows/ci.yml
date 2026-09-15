@@ -20,7 +20,7 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: true
           # Pinned so every job installs the same uv a laptop runs, rather
