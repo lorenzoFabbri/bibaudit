@@ -1,38 +1,42 @@
 
 PMID- 42550479
 OWN - NLM
-STAT- Publisher
-LR  - 20260804
+STAT- MEDLINE
+DCOM- 20261110
+LR  - 20261110
 IS  - 1460-2105 (Electronic)
 IS  - 0027-8874 (Linking)
-DP  - 2026 Aug 4
+VI  - 118
+IP  - 11
+DP  - 2026 Nov 1
 TI  - The joint association of clonal hematopoiesis of indeterminate potential and 
-      biological aging with cancer risk among 332,911 individuals.
-LID - djag268 [pii]
+      biological aging with cancer risk among 332 911 individuals.
+PG  - 2159-2169
 LID - 10.1093/jnci/djag268 [doi]
 AB  - BACKGROUND: Clonal hematopoiesis of indeterminate potential (CHIP) and biological 
       aging have been individually associated with increased cancer risks. However, 
       their joint effect on cancer risks remains unknown. METHODS: We analyzed data 
-      from 332,911 participants at baseline in the UK Biobank. We defined CHIP as a 
+      from 332 911 participants at baseline in the UK Biobank. We defined CHIP as a 
       pathogenic variant with variant allele fractions >/=2%. Biological aging was 
       assessed by the phenotypic age acceleration (PhenoAgeAccel) and categorized as 
       biologically younger and older. Associations of CHIP and biological aging with 25 
       cancers were assessed by Cox proportional hazard models. Interactions between 
       CHIP and biological aging were tested on additive and multiplicative scales. 
-      RESULTS: CHIP was associated with higher risks of myeloid malignancies (HR 9.56, 
-      95%CI 8.28-11.03), lung cancer (HR 1.61, 95%CI 1.42-1.82) and oesophageal cancer 
-      (HR 1.54, 95%CI 1.18-2.01). Biologically older participants had higher risks of 
-      hematologic neoplasms (HR 1.42, 95%CI 1.30-1.55) and various solid tumors 
-      compared with biologically younger participants. CHIP carriers who were 
-      biologically older had increased risks of hematologic neoplasms (HR 6.56, 95%CI 
-      5.67-7.59) and various solid tumors compared with biologically younger 
-      participants without CHIP. The proportion of excess risk attributable to additive 
-      interaction was 40% for hematologic neoplasms and 27% for lung cancer. A 
-      significant multiplicative interaction was also observed for hematologic 
-      neoplasms (P  interaction<0.001). CONCLUSION: CHIP confers substantial cancer 
-      risk, amplified when participants are biologically older. Assessing CHIP and 
-      biological aging may serve as an effective strategy for early screening and risk 
-      stratification for hematologic neoplasms and lung cancer.
+      RESULTS: CHIP was associated with higher risks of myeloid malignancies (HR = 
+      9.56, 95% CI = 8.28 to 11.03), lung cancer (HR = 1.61, 95% CI = 1.42 to 1.82) and 
+      esophageal cancer (HR = 1.54, 95% CI = 1.18 to 2.01). Biologically older 
+      participants had higher risks of hematologic neoplasms (HR = 1.42, 95% CI = 1.30 
+      to 1.55) and various solid tumors compared with biologically younger 
+      participants. CHIP carriers who were biologically older had increased risks of 
+      hematologic neoplasms (HR = 6.56, 95% CI = 5.67 to 7.59) and various solid tumors 
+      compared with biologically younger participants without CHIP. The proportion of 
+      excess risk attributable to additive interaction was 40% for hematologic 
+      neoplasms and 27% for lung cancer. A significant multiplicative interaction was 
+      also observed for hematologic neoplasms (Pinteraction < .001). CONCLUSION: CHIP 
+      confers substantial cancer risk, amplified when participants are biologically 
+      older. Assessing CHIP and biological aging may serve as an effective strategy for 
+      early screening and risk stratification for hematologic neoplasms and lung 
+      cancer.
 CI  - (c) The Author(s) 2026. Published by Oxford University Press. All rights reserved. 
       For commercial re-use, please contact reprints@oup.com for reprints and 
       translation rights for reprints. All other permissions can be obtained through 
@@ -40,50 +44,51 @@ CI  - (c) The Author(s) 2026. Published by Oxford University Press. All rights r
       site-for further information please contact journals.permissions@oup.com.
 FAU - Wang, Li
 AU  - Wang L
+AUID- ORCID: 0000-0002-3495-6786
 AD  - Affiliated Mental Health Centre & Hangzhou Seventh People's Hospital, Zhejiang 
-      University School of Medicine, Hangzhou, 310013, China.
+      University School of Medicine, Hangzhou, China.
 FAU - Sun, Kaili
 AU  - Sun K
-AD  - The Second Affiliated Hospital, Zhejiang University School of Medicine, Hangzhou 
-      310058, Zhejiang, China.
+AD  - The Second Affiliated Hospital, Zhejiang University School of Medicine, Hangzhou, 
+      Zhejiang, China.
 AD  - Department of Big Data in Health Science, School of Public Health, Zhejiang 
       University School of Medicine, Zhejiang Key Laboratory of Intelligent Preventive 
-      Medicine, Hangzhou 310058, Zhejiang, China.
+      Medicine, Hangzhou, Zhejiang, China.
 FAU - Lu, Siqi
 AU  - Lu S
 AD  - Department of Big Data in Health Science, School of Public Health, Zhejiang 
       University School of Medicine, Zhejiang Key Laboratory of Intelligent Preventive 
-      Medicine, Hangzhou 310058, Zhejiang, China.
+      Medicine, Hangzhou, Zhejiang, China.
 FAU - Zheng, Yuyang
 AU  - Zheng Y
 AD  - Department of Big Data in Health Science, School of Public Health, Zhejiang 
       University School of Medicine, Zhejiang Key Laboratory of Intelligent Preventive 
-      Medicine, Hangzhou 310058, Zhejiang, China.
+      Medicine, Hangzhou, Zhejiang, China.
 FAU - Jia, Xueqing
 AU  - Jia X
-AD  - The Second Affiliated Hospital, Zhejiang University School of Medicine, Hangzhou 
-      310058, Zhejiang, China.
+AD  - The Second Affiliated Hospital, Zhejiang University School of Medicine, Hangzhou, 
+      Zhejiang, China.
 AD  - Department of Big Data in Health Science, School of Public Health, Zhejiang 
       University School of Medicine, Zhejiang Key Laboratory of Intelligent Preventive 
-      Medicine, Hangzhou 310058, Zhejiang, China.
+      Medicine, Hangzhou, Zhejiang, China.
 FAU - Zhao, Yanjie
 AU  - Zhao Y
-AD  - The Second Affiliated Hospital, Zhejiang University School of Medicine, Hangzhou 
-      310058, Zhejiang, China.
+AD  - The Second Affiliated Hospital, Zhejiang University School of Medicine, Hangzhou, 
+      Zhejiang, China.
 AD  - Department of Big Data in Health Science, School of Public Health, Zhejiang 
       University School of Medicine, Zhejiang Key Laboratory of Intelligent Preventive 
-      Medicine, Hangzhou 310058, Zhejiang, China.
+      Medicine, Hangzhou, Zhejiang, China.
 FAU - Shen, Lujia
 AU  - Shen L
-AD  - The Second Affiliated Hospital, Zhejiang University School of Medicine, Hangzhou 
-      310058, Zhejiang, China.
+AD  - The Second Affiliated Hospital, Zhejiang University School of Medicine, Hangzhou, 
+      Zhejiang, China.
 AD  - Department of Big Data in Health Science, School of Public Health, Zhejiang 
       University School of Medicine, Zhejiang Key Laboratory of Intelligent Preventive 
-      Medicine, Hangzhou 310058, Zhejiang, China.
+      Medicine, Hangzhou, Zhejiang, China.
 FAU - Zhang, Jingyun
 AU  - Zhang J
 AD  - Department of Epidemiology and Health Statistics, School of Public Health, 
-      Hangzhou Medical College, Hangzhou 310059, Zhejiang, China.
+      Hangzhou Medical College, Hangzhou, Zhejiang, China.
 FAU - Shao, Jing
 AU  - Shao J
 AD  - Department of Nursing, the Fourth Affiliated Hospital of School of Medicine, and 
@@ -91,14 +96,16 @@ AD  - Department of Nursing, the Fourth Affiliated Hospital of School of Medicin
       University, Zhejiang, China.
 FAU - Tan, Xiao
 AU  - Tan X
+AUID- ORCID: 0000-0003-3992-5812
 AD  - Department of Big Data in Health Science, School of Public Health, Zhejiang 
       University School of Medicine, Zhejiang Key Laboratory of Intelligent Preventive 
-      Medicine, Hangzhou 310058, Zhejiang, China.
+      Medicine, Hangzhou, Zhejiang, China.
 AD  - Department of Psychiatry, Sir Run Run Shaw Hospital, Zhejiang University School 
       of Medicine, Hangzhou, China.
 AD  - Department of Medical Sciences, Uppsala University, Uppsala, Sweden.
 FAU - Sun, Jie
 AU  - Sun J
+AUID- ORCID: 0009-0001-2999-3689
 AD  - Department of Hematology, The First Affiliated Hospital, Zhejiang University 
       School of Medicine, Hangzhou, Zhejiang, China.
 AD  - Zhejiang Key Laboratory for Precision Diagnosis and Treatment of Hematological 
@@ -107,29 +114,53 @@ AD  - Zhejiang Provincial Clinical Research Center for Hematological Disorders,
       Hangzhou, Zhejiang, China.
 FAU - Liu, Zuyun
 AU  - Liu Z
-AD  - The Second Affiliated Hospital, Zhejiang University School of Medicine, Hangzhou 
-      310058, Zhejiang, China.
+AUID- ORCID: 0000-0001-6120-5913
+AD  - The Second Affiliated Hospital, Zhejiang University School of Medicine, Hangzhou, 
+      Zhejiang, China.
 AD  - Department of Big Data in Health Science, School of Public Health, Zhejiang 
       University School of Medicine, Zhejiang Key Laboratory of Intelligent Preventive 
-      Medicine, Hangzhou 310058, Zhejiang, China.
+      Medicine, Hangzhou, Zhejiang, China.
+AD  - Center for Aging & Health Studies, Zhejiang University, Hangzhou, 310058, 
+      Zhejiang, China.
 LA  - eng
+GR  - 2025C02104/Zhejiang Key Laboratory of Intelligent Preventive Medicine/
+GR  - 2026C02A1147/Zhejiang Key Laboratory of Intelligent Preventive Medicine/
+GR  - 2026C02A1144/Zhejiang Key Laboratory of Intelligent Preventive Medicine/
+GR  - 2020E10004/Zhejiang Key Laboratory of Intelligent Preventive Medicine/
+GR  - Key Laboratory of Geriatric Long-term Care/
+GR  - LNYB-2025-04/Ministry of Education/
+GR  - 2025HY0477/Medical and Health Science Program of Zhejiang Province/
 PT  - Journal Article
-DEP - 20260804
 PL  - United States
 TA  - J Natl Cancer Inst
 JT  - Journal of the National Cancer Institute
 JID - 7503089
 SB  - IM
+CIN - J Natl Cancer Inst. 2026 Nov 1;118(11):1998-2000. doi: 10.1093/jnci/djag309. 
+      PMID: 42828732
+MH  - Humans
+MH  - Female
+MH  - Middle Aged
+MH  - *Clonal Hematopoiesis/genetics
+MH  - Male
+MH  - Aged
+MH  - *Aging/genetics
+MH  - Risk Factors
+MH  - *Neoplasms/epidemiology/genetics/etiology
+MH  - United Kingdom/epidemiology
+MH  - Proportional Hazards Models
+MH  - Age Factors
+MH  - Lung Neoplasms/epidemiology/genetics
 EDAT- 2026/08/04 12:46
-MHDA- 2026/08/04 12:46
+MHDA- 2026/11/10 11:31
 CRDT- 2026/08/04 11:33
 PHST- 2025/12/08 00:00 [received]
 PHST- 2026/05/08 00:00 [revised]
 PHST- 2026/07/17 00:00 [accepted]
-PHST- 2026/08/04 12:46 [medline]
+PHST- 2026/11/10 11:31 [medline]
 PHST- 2026/08/04 12:46 [pubmed]
 PHST- 2026/08/04 11:33 [entrez]
 AID - 8751166 [pii]
 AID - 10.1093/jnci/djag268 [doi]
-PST - aheadofprint
-SO  - J Natl Cancer Inst. 2026 Aug 4:djag268. doi: 10.1093/jnci/djag268.
+PST - ppublish
+SO  - J Natl Cancer Inst. 2026 Nov 1;118(11):2159-2169. doi: 10.1093/jnci/djag268.

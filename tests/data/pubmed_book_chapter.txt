@@ -55,15 +55,13 @@ AB  - CLINICAL CHARACTERISTICS: BRCA1- and BRCA2-associated hereditary breast an
       possible.
 CI  - Copyright (c) 1993-2026, University of Washington, Seattle. GeneReviews is a 
       registered trademark of the University of Washington, Seattle. All rights 
-      reserved. Test.
+      reserved.
 FED - Adam, Margaret P
 ED  - Adam MP
 FED - Bick, Sarah
 ED  - Bick S
 FED - Mirzaa, Ghayda M
 ED  - Mirzaa GM
-FED - Pagon, Roberta A
-ED  - Pagon RA
 FED - Wallace, Stephanie E
 ED  - Wallace SE
 FED - Amemiya, Anne

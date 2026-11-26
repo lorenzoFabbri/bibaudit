@@ -3,13 +3,13 @@
     "date-parts": [
       [
         2026,
-        6,
-        18
+        11,
+        11
       ]
     ],
-    "date-time": "2026-06-18T17:23:14Z",
-    "timestamp": 1781803394996,
-    "version": "3.54.5"
+    "date-time": "2026-11-11T07:21:55Z",
+    "timestamp": 1794381715834,
+    "version": "4.9.0"
   },
   "publisher-location": "Totowa, NJ",
   "reference-count": 4,
@@ -46,8 +46,8 @@
         14
       ]
     ],
-    "date-time": "2010-10-14T23:57:29Z",
-    "timestamp": 1287100649000
+    "date-time": "2010-10-14T19:57:29Z",
+    "timestamp": 1287086249000
   },
   "page": "179-191",
   "source": "Crossref",
@@ -195,8 +195,8 @@
         21
       ]
     ],
-    "date-time": "2019-03-21T17:18:14Z",
-    "timestamp": 1553188694000
+    "date-time": "2019-03-21T13:18:14Z",
+    "timestamp": 1553174294000
   },
   "score": 1,
   "resource": {
@@ -221,7 +221,15 @@
   ],
   "references-count": 4,
   "URL": "https://doi.org/10.1007/978-1-59745-423-0_7",
-  "relation": {},
+  "relation": {
+    "is-part-of": [
+      {
+        "id-type": "doi",
+        "id": "https://doi.org/10.1007/978-1-59745-423-0",
+        "asserted-by": "object"
+      }
+    ]
+  },
   "ISSN": [
     "1064-3745",
     "1940-6029"

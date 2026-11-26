@@ -3,7 +3,7 @@ PMID- 42538063
 OWN - NLM
 STAT- MEDLINE
 DCOM- 20260731
-LR  - 20260731
+LR  - 20260821
 IS  - 1556-5653 (Electronic)
 IS  - 0015-0282 (Linking)
 VI  - 126
@@ -22,22 +22,22 @@ CI  - Copyright (c) 2026 American Society for Reproductive Medicine. Published b
 CN  - Practice Committee of the American Society for Reproductive Medicine
 AD  - American Society for Reproductive Medicine, Washington, D.C.
 LA  - eng
+PT  - Consensus Statement
 PT  - Journal Article
-PT  - Review
 PL  - United States
 TA  - Fertil Steril
 JT  - Fertility and sterility
 JID - 0372772
 SB  - IM
+MH  - Female
 MH  - Humans
 MH  - Pregnancy
 MH  - *Embryo Implantation/physiology
 MH  - *Embryo Transfer/standards/adverse effects
-MH  - Female
 MH  - *Fertilization in Vitro/standards/adverse effects
-MH  - Treatment Failure
 MH  - *Infertility, Female/therapy/diagnosis/physiopathology
 MH  - Risk Factors
+MH  - Treatment Failure
 OTO - NOTNLM
 OT  - IVF
 OT  - Implantation failure

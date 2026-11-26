@@ -86,7 +86,7 @@ file = "audit_crossref_series_and_book_container.json"
 source = "crossref"
 id = "10.1007/978-1-59745-423-0_7"
 url = "https://api.crossref.org/works/10.1007%2F978-1-59745-423-0_7"
-fetched = 2026-08-10
+fetched = 2026-11-26
 holds = "work"
 
 [[fixture]]
@@ -159,7 +159,7 @@ file = "datacite_arxiv_preprint.json"
 source = "datacite"
 id = "10.48550/arxiv.1706.03762"
 url = "https://api.datacite.org/dois/10.48550/arxiv.1706.03762"
-fetched = 2026-08-10
+fetched = 2026-11-26
 
 [[fixture]]
 file = "datacite_creator_given_name_only.json"
@@ -258,7 +258,7 @@ file = "pubmed_acronym_prefix.txt"
 source = "pubmed"
 id = "42550479"
 url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42550479&rettype=medline&retmode=text"
-fetched = 2026-08-10
+fetched = 2026-11-26
 
 [[fixture]]
 file = "pubmed_acronym_prefix_subtitle.txt"
@@ -272,14 +272,14 @@ file = "pubmed_book.txt"
 source = "pubmed"
 id = "20301295"
 url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=20301295&rettype=medline&retmode=text"
-fetched = 2026-08-10
+fetched = 2026-11-26
 
 [[fixture]]
 file = "pubmed_book_chapter.txt"
 source = "pubmed"
 id = "20301425"
 url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=20301425&rettype=medline&retmode=text"
-fetched = 2026-08-10
+fetched = 2026-11-26
 
 [[fixture]]
 file = "pubmed_collective_creator.txt"
@@ -300,14 +300,14 @@ file = "pubmed_concern_only.txt"
 source = "pubmed"
 id = "10475862"
 url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=10475862&rettype=medline&retmode=text"
-fetched = 2026-08-10
+fetched = 2026-11-26
 
 [[fixture]]
 file = "pubmed_corporate_author.txt"
 source = "pubmed"
 id = "42538063"
 url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42538063&rettype=medline&retmode=text"
-fetched = 2026-08-10
+fetched = 2026-11-26
 
 [[fixture]]
 file = "pubmed_data_descriptor.txt"
@@ -363,7 +363,7 @@ file = "pubmed_parallel_title_article.txt"
 source = "pubmed"
 id = "42559441"
 url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42559441&rettype=medline&retmode=text"
-fetched = 2026-08-20
+fetched = 2026-11-26
 
 [[fixture]]
 file = "pubmed_qualifier_inner_colon.txt"
@@ -384,7 +384,7 @@ file = "pubmed_qualifier_year.txt"
 source = "pubmed"
 id = "42555391"
 url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=42555391&rettype=medline&retmode=text"
-fetched = 2026-08-20
+fetched = 2026-11-26
 
 [[fixture]]
 file = "pubmed_retracted.txt"
