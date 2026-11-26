@@ -170,7 +170,7 @@ An appended invented name is the documented failure mode of a generated bibliogr
 
 A live sweep of 1,177 entries written from the MEDLINE record, and so correct by construction, fails none of them and reports no uncorroborated creator. Append one fabricated name to each of the same 1,177 and every one fails, against 0 of 4,255 without the tail check.
 
-Three kinds of tail position do not support that claim, and each is excluded from it instead of reported.
+Four kinds of tail position do not support that claim, and each is excluded from it instead of reported.
 
 ### A creator the corroborating registry does name
 
@@ -183,6 +183,18 @@ Three kinds of tail position do not support that claim, and each is excluded fro
 **Detection.** `compare._drop_creators_the_corroborator_names` matches on surnames, on the same terms as the rest of the author comparison. It excludes empty keys, because a corroborator holding one creator whose surname `fold` discards would otherwise vouch for every stored creator whose surname it also discards. The PMID path consults no second registry and keeps its findings.
 
 **The residual.** A fabricated name sharing a surname with a real creator on the corroborator's byline is dropped.
+
+### A creator Open Library's title-page transcription names
+
+**What happens.** An Open Library edition carries two bylines. `authors` links author records and is routinely short; `by_statement` is the cataloguer's transcription of the title page. Without this exception, the creators the linked list leaves out are reported against a record that names them in its own statement.
+
+**Observed.** ISBN 0412042312, *An Introduction to the Bootstrap*: `authors` links Bradley Efron alone, and `by_statement` reads "Bradley Efron and Robert J. Tibshirani." (`tests/data/openlibrary_by_statement_second_author.json`, fetched 2026-11-26). The work record, `/works/OL3905086W`, links Efron alone as well.
+
+**Reported as.** `authors/count`, at warning severity, as in the section above.
+
+**Detection.** `compare._drop_creators_the_title_page_names` withdraws a creator when their surname is a whole word of the folded `by_statement`, so "Day" is not found inside "Dayton", and never when the surname folds to nothing. The statement is free text ("edited by", "Vol. 1", "with a foreword by"), so it is searched and never parsed into a byline, and nothing else reads it. Only an Open Library primary is consulted this way.
+
+**The residual.** A fabricated name whose surname happens to appear anywhere in the statement, as an editor's or a translator's say, is dropped.
 
 ### A collective creator past the registry's last
 

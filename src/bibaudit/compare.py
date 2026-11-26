@@ -494,6 +494,7 @@ def _check_authors(ctx: _Context) -> bool:
 
     diff = compare_author_lists(stored, registry)
     _drop_creators_the_corroborator_names(ctx, diff)
+    _drop_creators_the_title_page_names(ctx, diff)
     _dispute_creators_the_corroborator_agrees_with(ctx, diff)
 
     for position, reason in sorted(diff.reasons.items()):
@@ -573,6 +574,38 @@ def _drop_creators_the_corroborator_names(ctx: _Context, diff: AuthorDiff) -> No
         (position, name)
         for position, name in diff.uncorroborated
         if family_key(ctx.ref.authors[position - 1]) not in corroborated
+    ]
+
+
+def _drop_creators_the_title_page_names(ctx: _Context, diff: AuthorDiff) -> None:
+    """Un-report a tail creator Open Library's own transcription of the title page names.
+
+    An Open Library edition carries two bylines. ``authors`` links author
+    records, and is routinely short of the book's: ISBN 0412042312 links only
+    Bradley Efron. ``by_statement`` is the cataloguer's transcription of the
+    title page, and on that same record reads "Bradley Efron and Robert J.
+    Tibshirani." A creator the entry names past the linked list is therefore
+    not one "no consulted record names", which is the whole claim of
+    ``uncorroborated``.
+
+    Withdrawn when the creator's surname occurs as a whole word of the folded
+    statement — whole words, so ``Day`` is not found inside ``Dayton`` — and
+    never for a creator whose surname folds to nothing. The length difference
+    stays reported as ``authors/count``, as in
+    :func:`_drop_creators_the_corroborator_names`. The statement is free text,
+    so it is searched rather than parsed, and it is read only to withdraw this
+    one finding; positional comparison never sees it.
+    """
+    if not diff.uncorroborated or ctx.primary.source != "openlibrary":
+        return
+    statement = ctx.primary.raw.get("by_statement")
+    if not isinstance(statement, str):
+        return
+    words = f" {fold(statement)} "
+    diff.uncorroborated = [
+        (position, name)
+        for position, name in diff.uncorroborated
+        if not (key := family_key(ctx.ref.authors[position - 1])) or f" {key} " not in words
     ]
 
 

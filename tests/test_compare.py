@@ -45,6 +45,7 @@ from bibaudit.model import (
 )
 from bibaudit.registries import pubmed as pubmed_client
 from bibaudit.registries.crossref import Crossref
+from bibaudit.registries.openlibrary import OpenLibrary
 
 
 def make_ref(**overrides: object) -> Reference:
@@ -639,6 +640,76 @@ class TestACreatorTheTwoRegistriesDisagreeAbout:
 
         assert result.verdict == "FIELD-MISMATCH"
         assert not [i for i in result.issues if i.field == "authors" and i.kind == "disputed"]
+
+
+class _SavedPayload:
+    """Serves one saved response, as it was recorded, to any ``get_json``."""
+
+    def __init__(self, fixture: str) -> None:
+        self._payload = json.loads((_DATA / fixture).read_text(encoding="utf-8"))
+
+    def get_json(self, url: str, **_: Any) -> Any:
+        return self._payload
+
+
+class TestACreatorOnlyTheTitlePageNames:
+    """Open Library links one author for ISBN 0412042312 and transcribes two."""
+
+    FIXTURE = "openlibrary_by_statement_second_author.json"
+
+    def _audit(self, authors: list[Name], *, statement: str | None = "keep") -> Result:
+        [record] = OpenLibrary(_SavedPayload(self.FIXTURE)).by_isbns(["0412042312"]).values()  # type: ignore[arg-type]
+        if statement != "keep":
+            raw = {k: v for k, v in record.raw.items() if k != "by_statement"}
+            if statement is not None:
+                raw["by_statement"] = statement
+            record = dataclasses.replace(record, raw=raw)
+        ref = make_ref(
+            kind="book", doi=None, isbn="0412042312", title="An Introduction to the Bootstrap",
+            authors=authors, year=1993, container=None, volume=None, issue=None, pages=None,
+            publisher="Chapman & Hall",
+        )
+        return compare(ref, {"openlibrary": record})
+
+    EFRON = (Name(family="Efron", given="Bradley"), Name(family="Tibshirani", given="Robert J."))
+
+    @staticmethod
+    def _authors(result: Result) -> set[tuple[str, str]]:
+        return {(i.kind, i.severity) for i in result.issues if i.field == "authors"}
+
+    def test_the_second_author_is_not_reported_invented(self) -> None:
+        result = self._audit(list(self.EFRON))
+
+        assert self._authors(result) == {("count", "warning")}
+        assert not result.fails
+
+    def test_a_creator_the_title_page_does_not_name_still_fails(self) -> None:
+        invented = [self.EFRON[0], Name(family="Hastie", given="Trevor")]
+        result = self._audit(invented)
+
+        assert ("uncorroborated", "error") in self._authors(result)
+        assert result.fails
+
+    def test_a_surname_inside_a_longer_word_is_not_a_witness(self) -> None:
+        result = self._audit(
+            [self.EFRON[0], Name(family="Day", given="N.")],
+            statement="Bradley Efron and Nicholas Dayton.",
+        )
+
+        assert ("uncorroborated", "error") in self._authors(result)
+
+    def test_a_record_with_no_statement_keeps_the_finding(self) -> None:
+        assert ("uncorroborated", "error") in self._authors(self._audit(list(self.EFRON), statement=None))
+
+    def test_another_registry_s_raw_statement_is_not_read(self) -> None:
+        """The field is Open Library's; a Crossref record carrying the key is ignored."""
+        record = make_record(
+            authors=[Name(family="Efron", given="Bradley")],
+            raw={"by_statement": "Bradley Efron and Robert J. Tibshirani."},
+        )
+        result = compare(make_ref(authors=list(self.EFRON)), {"crossref": record})
+
+        assert ("uncorroborated", "error") in self._authors(result)
 
 
 def wakefield_paper_ref(**overrides: object) -> Reference:

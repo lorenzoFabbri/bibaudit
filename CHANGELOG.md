@@ -10,6 +10,8 @@ An entry with no identifier that OpenAlex found is compared against the venue Op
 
 A creator Crossref deposited malformed, where PubMed names that creator exactly as the entry does at the same position, is reported `authors/disputed` with both registries' values and the verdict `DISPUTED`, which does not fail. It was `authors/mismatch` or `authors/forename` and `FIELD-MISMATCH`: Crossref gives Smith the forename "and P G" on 10.1093/ije/9.1.89 and splits Tchetgen Tchetgen on 10.5705/ss.202015.0116. A name neither registry carries at that position still fails.
 
+A book author missing from Open Library's linked author list, but named in the same record's transcription of the title page (`by_statement`), is no longer reported `authors/uncorroborated`. A warning that the two author counts differ remains. Tibshirani, on ISBN 0412042312, was failing the build.
+
 ## [0.1.3] - 2026-11-26
 
 Two verdict changes, both towards reporting what was not checked and away from false mismatches.
