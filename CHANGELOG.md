@@ -4,7 +4,9 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 A change to what the tool *reports* is a user-visible change even when no signature moved, so verdict and wording changes are listed here alongside API ones. That is the point of the file: somebody deciding whether to re-run an audit needs to know whether the answer could differ.
 
-## [Unreleased]
+## [0.1.3] - 2026-11-26
+
+Two verdict changes, both towards reporting what was not checked and away from false mismatches.
 
 A run that left an entry out of the audit now fails. A BibTeX block bibtexparser cannot parse, such as an entry with a comma inside its citekey, and the second of two entries sharing a citekey were dropped with only a Python `RuntimeWarning`, and the run still printed `PASS` and exited 0. Each is now listed under `entries not audited` with its file, line and reason, the banner reads `FAIL`, and the run exits 1 whatever `--fail-on` says. A bibliography with no readable entry is reported the same way rather than as the usage error "no references found".
 
@@ -174,6 +176,7 @@ Nothing here relaxes a check to make a report quieter: every suppression added i
 - **`--suggest` proposed nothing for an entry that does not start in column 1.** An entry's source span was located at the start of its first line while bibtexparser's `raw` starts at the `@`, so any leading whitespace failed the verbatim check and the entry was dropped from the span map without a word. A file exported with every entry indented got an empty suggestion, and one entry moved by hand got a suggestion missing exactly that entry. The fields added to an indented entry now also keep the file's own indentation, and its closing brace keeps its own.
 - **A bibliography reached both from the command line and from a document's front matter was read twice.** Discovery resolves the paths it finds while the command line keeps what was typed, so the two compared unequal and every entry was collected twice. `_deduplicate` collapses on the identifier, so entries carrying a DOI survived it and the rest did not: the summary over-counted an arbitrary part of the file. Inputs are now compared as resolved paths, which also covers `bibaudit check notes/ notes/references.bib` and a `--bibliography` repeating a file already named.
 
+[0.1.3]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.3
 [0.1.2]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.2
 [0.1.1]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.1
 [0.1.0]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.0
