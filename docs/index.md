@@ -83,7 +83,7 @@ What is in that report, and why:
 - Every report ends with the sentence about what was *not* checked. It is not
   boilerplate to be skipped; see [what it cannot tell you](#what-it-cannot-tell-you).
 
-The run exits `1`. Exit `2` means the tool could not run at all — bad
+The run exits `1`, as it does when a bibliography entry cannot be read and so goes unaudited. Exit `2` means the tool could not run at all — bad
 arguments, an unreadable input, a broken config. A registry outage is neither:
 see [in CI](ci.md).
 

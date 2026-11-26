@@ -11,7 +11,7 @@ check whose failures are unpredictable is a check that gets removed.
 | Code | Meaning |
 |---|---|
 | `0` | No reference's verdict is in the failing set. |
-| `1` | At least one is — or a `[@citekey]` used in a document has no entry in any bibliography that was read. |
+| `1` | At least one is, or a bibliography entry could not be read and so was not audited, or a `[@citekey]` used in a document has no entry in any bibliography that was read. |
 | `2` | The tool could not run at all. |
 
 **`0` and `1`** come from one comparison: `Summary.exit_code` returns `1` when
@@ -19,13 +19,11 @@ any result's verdict is in the set `--fail-on` resolved to, and `0` otherwise.
 Nothing else about the run enters it — not how many fields differed, not how
 many registries answered.
 
-**Unresolved citation keys are the one addition.** When a document cites
-`[@key]` and no bibliography read in the same run defines it, the run exits `1`
-regardless of `--fail-on`, including `--fail-on ''`. It is a build failure
-waiting to happen rather than a metadata disagreement, so it is not governed by
-the verdict policy. `--no-citekey-check` turns the check off entirely — and so,
-silently, does giving the run no bibliography at all: with nothing defining any
-key, there is no set to resolve against and the check does not run.
+**Two failures sit outside the verdict policy.** Each exits `1` regardless of `--fail-on`, including `--fail-on ''`, because neither is a metadata disagreement a policy could choose to tolerate.
+
+An entry bibtexparser could not read is one the audit never checked: a block with a syntax error, such as a comma inside a citekey, or the second of two entries sharing a citekey, which bibtexparser discards. The report lists each under `entries not audited` with its file, line and reason, and the banner reads `FAIL — 1 entry not audited` even when every reference it did check passed. A bibliography in which no entry could be read is reported the same way, not as exit `2`.
+
+When a document cites `[@key]` and no bibliography read in the same run defines it, the citation will not build. `--no-citekey-check` turns that check off entirely, and so, silently, does giving the run no bibliography at all: with nothing defining any key, there is no set to resolve against and the check does not run.
 
 **`2` means the invocation was wrong, not the bibliography.** It is what you get
 from a path that does not exist, a file no adapter claims (`bibaudit: do not
@@ -186,14 +184,7 @@ one.
 
 ## Reading the JSON report from a script
 
-`summary.failing_verdicts` and `summary.exit_code` in the payload both reflect
-the policy `--fail-on` resolved to, so a job can gate on the field instead of on
-`$?`. Per result, `fails` is membership of the **default** failing set, which is
+`summary.failing_verdicts` reflects the policy `--fail-on` resolved to, and `summary.exit_code` is the process's exit code, so a job can gate on the field instead of on `$?`. The top-level `unread` array lists every entry that was not audited, each with `locator`, `reason` and the `key` when the parser recovered one, and `unresolved_citekeys` maps each unresolved key to the places that cite it. Per result, `fails` is membership of the **default** failing set, which is
 what lets a consumer tell "needs attention" from "breaks this build": read
 `fails` beside whether that result's `verdict` appears in
 `summary.failing_verdicts`.
-
-One gap is worth knowing before you rely on the field. The JSON report has no
-citekey section, so an unresolved `[@citekey]` makes the process exit `1` while
-`summary.exit_code` stays `0`. Until that section exists, `$?` is the only
-complete answer for a JSON run.

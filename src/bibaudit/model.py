@@ -141,6 +141,27 @@ class Name:
         return f"{self.family}, {self.given}".strip(", ")
 
 
+@dataclass(frozen=True, slots=True)
+class Unread:
+    """A bibliography block that never became a :class:`Reference`.
+
+    bibtexparser recovers from a syntax error, and from a second entry reusing
+    a citekey, by leaving the block out of the entries it returns. Nothing
+    downstream can then check the entry, so a run holding one has verified less
+    than the file it was given and cannot pass; see ``Summary.exit_code``.
+    """
+
+    #: ``"references.bib:74"``, or the bare file name when the line is unknown.
+    locator: str
+    #: What went wrong, in the parser's words or this tool's.
+    reason: str
+    #: The citekey the block claims, when the parser recovered one.
+    key: str | None = None
+
+    def __str__(self) -> str:
+        return f"{self.locator}: {self.reason}"
+
+
 @dataclass(slots=True)
 class Reference:
     """A citation exactly as stored, before any normalisation."""

@@ -13,11 +13,13 @@ from __future__ import annotations
 
 import pathlib
 import re
+import subprocess
+import sys
 import warnings
 
 import pytest
 
-from bibaudit.adapters.bibtex import duplicate_report, entry_locator, read_bibtex
+from bibaudit.adapters.bibtex import duplicate_report, entry_locator, parse_bibtex, read_bibtex
 from bibaudit.model import Reference
 
 _FIXTURE = pathlib.Path(__file__).parent / "data" / "sample.bib"
@@ -278,6 +280,34 @@ class TestFailedBlocks:
 
     def test_the_fixture_raises_exactly_those_two_warnings(self) -> None:
         assert len(self._messages()) == 2
+
+    def test_parse_bibtex_returns_the_left_out_blocks_as_data(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            references, unread = parse_bibtex(_FIXTURE)
+        assert references
+        assert [(u.locator, u.key) for u in unread] == [
+            ("sample.bib:68", "dupkey2022"),
+            ("sample.bib:74", None),
+        ]
+
+    def test_bibtexparser_prints_nothing_of_its_own(self, tmp_path: pathlib.Path) -> None:
+        """Its abort message would otherwise reach stderr beside this tool's own.
+
+        Run in a fresh interpreter because pytest installs logging handlers of
+        its own, which keep Python's last-resort handler from ever printing.
+        """
+        path = tmp_path / "broken.bib"
+        path.write_text("@article{bad,key2021,\n  title = {T}\n}\n", encoding="utf-8")
+        script = (
+            "import sys; from bibaudit.adapters.bibtex import parse_bibtex; "
+            "print(len(parse_bibtex(sys.argv[1])[1]))"
+        )
+        done = subprocess.run(
+            [sys.executable, "-c", script, str(path)], capture_output=True, text=True, check=True
+        )
+        assert done.stdout.strip() == "1"
+        assert done.stderr == ""
 
     def test_unterminated_block_produces_no_reference(self, refs: list[Reference]) -> None:
         assert not any(r.key == "malformed2023" for r in refs)

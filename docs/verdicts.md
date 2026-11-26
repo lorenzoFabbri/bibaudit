@@ -88,8 +88,7 @@ bibaudit check references.bib --fail-on RETRACTED,BAD-ID,WRONG-WORK
 bibaudit check references.bib --fail-on ''    # no verdict fails the run
 ```
 
-An unresolved citekey — used in a document, absent from the bibliography — also
-exits 1, independently of the verdicts. Exit 2 means the tool could not run:
+Two things exit 1 independently of the verdicts: a bibliography entry that could not be read and so was never audited, and an unresolved citekey, used in a document and absent from the bibliography. Exit 2 means the tool could not run:
 a usage error or an unreadable file. See [in CI](ci.md).
 
 ## `BAD-ID` is about whichever identifier did the looking up

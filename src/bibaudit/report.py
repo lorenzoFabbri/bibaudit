@@ -17,11 +17,11 @@ import json
 import os
 import sys
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict
 from typing import TextIO
 
-from .model import FAILING_VERDICTS, VERDICTS, Issue, Result, is_registry_artifact
+from .model import FAILING_VERDICTS, VERDICTS, Issue, Result, Unread, is_registry_artifact
 
 __all__ = [
     "LIMITS_NOTICE",
@@ -129,10 +129,26 @@ class _Style:
 
 
 class Summary:
-    """Counts derived from a run, used by both reporters and by the exit code."""
+    """Counts derived from a run, used by both reporters and by the exit code.
 
-    def __init__(self, results: Sequence[Result]) -> None:
+    *unread* and *unresolved_citekeys* are the two ways a run can fail with no
+    result to carry the verdict: a bibliography block that never became a
+    reference, and a ``[@key]`` no bibliography defines. Either fails the run
+    whatever ``--fail-on`` says, because neither is a metadata disagreement a
+    policy could choose to tolerate; one is an entry nobody checked and the
+    other a citation that will not build.
+    """
+
+    def __init__(
+        self,
+        results: Sequence[Result],
+        *,
+        unread: Sequence[Unread] = (),
+        unresolved_citekeys: Mapping[str, Sequence[str]] | None = None,
+    ) -> None:
         self.results = list(results)
+        self.unread = list(unread)
+        self.unresolved_citekeys = dict(unresolved_citekeys or {})
         self.verdicts = Counter(r.verdict for r in results)
         self.fields = Counter(
             issue.field for r in results for issue in r.issues if issue.severity == "error"
@@ -171,7 +187,10 @@ class Summary:
         return self.verdicts["OK"]
 
     def exit_code(self, *, failing_verdicts: frozenset[str] = FAILING_VERDICTS) -> int:
-        """0 when nothing in *failing_verdicts* occurred, else 1."""
+        """1 when a verdict in *failing_verdicts* occurred, an entry went unread,
+        or a cited key is unresolved; else 0."""
+        if self.unread or self.unresolved_citekeys:
+            return 1
         return 1 if self.failing_under(failing_verdicts) else 0
 
 
@@ -270,6 +289,8 @@ def render_text(
     verbose: bool = False,
     show_suppressed: bool = False,
     failing_verdicts: frozenset[str] = FAILING_VERDICTS,
+    unread: Sequence[Unread] = (),
+    unresolved_citekeys: Mapping[str, Sequence[str]] | None = None,
 ) -> Summary:
     """Write the human report and return the summary.
 
@@ -289,10 +310,15 @@ def render_text(
     """
     out: TextIO = stream if stream is not None else sys.stdout
     style = _Style(_supports_colour(out))
-    summary = Summary(results)
+    summary = Summary(results, unread=unread, unresolved_citekeys=unresolved_citekeys)
 
     print(style.bold(f"bibaudit — {summary.total} references checked"), file=out)
     print(file=out)
+    if summary.unread:
+        print(style.red(f"entries not audited ({len(summary.unread)})"), file=out)
+        for block in summary.unread:
+            print(f"    {style.bold(block.locator)}  {block.reason}", file=out)
+        print(file=out)
 
     # The standing set *plus* whatever this run was told to fail on. Both
     # halves are needed and neither is enough: a verdict the caller excluded
@@ -385,18 +411,24 @@ def render_text(
 
     print(file=out)
     breaking = summary.failing_under(failing_verdicts)
-    if breaking:
-        print(
-            style.red(f"FAIL — {len(breaking)} reference(s) in the failing set"),
-            file=out,
-        )
+    causes = [
+        f"{len(breaking)} reference(s) in the failing set" if breaking else "",
+        f"{len(summary.unread)} entr{'y' if len(summary.unread) == 1 else 'ies'} not audited"
+        if summary.unread
+        else "",
+        f"{len(summary.unresolved_citekeys)} unresolved citation key(s)"
+        if summary.unresolved_citekeys
+        else "",
+    ]
+    if any(causes):
+        print(style.red("FAIL — " + "; ".join(c for c in causes if c)), file=out)
     else:
         print(style.green("PASS — no reference in the failing set"), file=out)
     if failing_verdicts != FAILING_VERDICTS:
         # Only when the policy is not the documented default: printing it on
         # every ordinary run would be noise, and printing it on none of them is
         # how the banner came to be unreadable in the first place.
-        listed = ", ".join(sorted(failing_verdicts)) or "empty — nothing fails this run"
+        listed = ", ".join(sorted(failing_verdicts)) or "empty — no verdict fails this run"
         print(style.dim(f"  failing set (--fail-on): {listed}"), file=out)
     _print_retraction_gap(summary, style, out)
     excluded = [r for r in summary.failing if r.verdict not in failing_verdicts]
@@ -419,6 +451,8 @@ def render_json(
     *,
     stream: TextIO | None = None,
     failing_verdicts: frozenset[str] = FAILING_VERDICTS,
+    unread: Sequence[Unread] = (),
+    unresolved_citekeys: Mapping[str, Sequence[str]] | None = None,
 ) -> Summary:
     """Write a machine-readable report.
 
@@ -435,7 +469,7 @@ def render_json(
     reason; the two reports describe one policy, not two.
     """
     out: TextIO = stream if stream is not None else sys.stdout
-    summary = Summary(results)
+    summary = Summary(results, unread=unread, unresolved_citekeys=unresolved_citekeys)
     payload = {
         "tool": "bibaudit",
         "limits": LIMITS_NOTICE,
@@ -453,6 +487,12 @@ def render_json(
             "adjudicated": summary.adjudicated,
             "failing_verdicts": sorted(failing_verdicts),
             "exit_code": summary.exit_code(failing_verdicts=failing_verdicts),
+        },
+        # Both fail the run outside the verdict policy, so a consumer gating on
+        # ``summary.exit_code`` needs the items that set it.
+        "unread": [asdict(block) for block in summary.unread],
+        "unresolved_citekeys": {
+            key: list(locators) for key, locators in sorted(summary.unresolved_citekeys.items())
         },
         "results": [
             {

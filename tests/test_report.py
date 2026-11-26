@@ -27,6 +27,7 @@ from bibaudit.model import (
     Issue,
     Reference,
     Result,
+    Unread,
 )
 from bibaudit.report import (
     LIMITS_NOTICE,
@@ -681,7 +682,7 @@ class TestBannerAndExitCodeAgree:
     def test_an_empty_policy_says_so_in_words(self) -> None:
         """``failing set: `` with nothing after it reads like a rendering bug."""
         output = text_of([make_result(verdict="OK")], failing_verdicts=frozenset())
-        assert "nothing fails this run" in output
+        assert "no verdict fails this run" in output
 
     def test_a_narrowed_policy_still_fails_on_what_it_names(self) -> None:
         """The true positive: narrowing is not switching the check off."""
@@ -1147,3 +1148,45 @@ class TestThePublishedVerdictTables:
     def test_the_fails_ci_column_is_the_failing_set(self, name: str) -> None:
         published = _published_table(name)
         assert {v for v, fails in published.items() if fails} == set(FAILING_VERDICTS)
+
+
+class TestFailuresWithoutAResult:
+    """An unread entry and an unresolved key fail the run under any policy."""
+
+    _UNREAD = Unread("refs.bib:8", "block failed to parse (x)")
+
+    def test_an_unread_entry_fails_even_an_empty_policy(self) -> None:
+        summary = Summary([make_result(verdict="OK")], unread=[self._UNREAD])
+        assert summary.exit_code(failing_verdicts=frozenset()) == 1
+
+    def test_an_unresolved_citekey_fails_even_an_empty_policy(self) -> None:
+        summary = Summary([make_result(verdict="OK")], unresolved_citekeys={"k": ["a.qmd:3"]})
+        assert summary.exit_code(failing_verdicts=frozenset()) == 1
+
+    def test_the_banner_names_every_cause(self) -> None:
+        out = io.StringIO()
+        render_text(
+            [make_result(verdict="FIELD-MISMATCH")],
+            stream=out,
+            unread=[self._UNREAD, self._UNREAD],
+            unresolved_citekeys={"k": ["a.qmd:3"]},
+        )
+        assert (
+            "FAIL — 1 reference(s) in the failing set; 2 entries not audited; "
+            "1 unresolved citation key(s)"
+        ) in out.getvalue()
+
+    def test_the_json_report_carries_both_lists(self) -> None:
+        out = io.StringIO()
+        render_json(
+            [make_result(verdict="OK")],
+            stream=out,
+            unread=[self._UNREAD],
+            unresolved_citekeys={"k": ["a.qmd:3"]},
+        )
+        payload = json.loads(out.getvalue())
+        assert payload["unread"] == [
+            {"locator": "refs.bib:8", "reason": "block failed to parse (x)", "key": None}
+        ]
+        assert payload["unresolved_citekeys"] == {"k": ["a.qmd:3"]}
+        assert payload["summary"]["exit_code"] == 1

@@ -9,6 +9,16 @@ signature moved, so verdict and wording changes are listed here alongside API
 ones. That is the point of the file: somebody deciding whether to re-run an
 audit needs to know whether the answer could differ.
 
+## [Unreleased]
+
+A run that left an entry out of the audit now fails. A BibTeX block bibtexparser cannot parse, such as an entry with a comma inside its citekey, and the second of two entries sharing a citekey were dropped with only a Python `RuntimeWarning`, and the run still printed `PASS` and exited 0. Each is now listed under `entries not audited` with its file, line and reason, the banner reads `FAIL`, and the run exits 1 whatever `--fail-on` says. A bibliography with no readable entry is reported the same way rather than as the usage error "no references found".
+
+The JSON report gains an `unread` array and an `unresolved_citekeys` object, and its `summary.exit_code` now counts both, so it always equals the process's exit code. It used to stay 0 over an unresolved `[@citekey]` while the process exited 1.
+
+Warnings print as one `bibaudit: warning: …` line on stderr instead of Python's source-file line and quoted code, and bibtexparser's own log line about an abandoned block is no longer printed beside bibaudit's.
+
+`bibaudit.adapters.bibtex.parse_bibtex` returns the references and the left-out blocks, as `bibaudit.Unread`; `read_bibtex` is unchanged.
+
 ## [0.1.2] - 2026-09-15
 
 No verdict changes; two report locations do.

@@ -40,9 +40,7 @@ fail the run without saying which entry did it; a verdict left out of it keeps
 printing if it was going to print anyway, so `--fail-on ''` still shows a
 retracted citation. See
 [verdicts](verdicts.md) for what each name means and [in CI](ci.md) for the exit
-codes. One thing it cannot switch off: a `[@citekey]` used in a document with no
-matching bibliography entry exits `1` on its own, whatever `--fail-on` says and
-whichever format was asked for.
+codes. Two things it cannot switch off, whichever format was asked for: a bibliography entry that could not be read exits `1`, and so does a `[@citekey]` used in a document with no matching bibliography entry.
 
 ## Registries
 

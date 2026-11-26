@@ -21,7 +21,7 @@ not "usually right" — it is "wrong in a way you can prove, or not stated".
 
 ```
 src/bibaudit/
-  model.py       Reference / Record / Name / Issue / Result — the contracts
+  model.py       Reference / Record / Name / Issue / Result / Unread — the contracts
   normalize.py   clean() for display, fold() for comparison; DOI, year, page rules
   names.py       author parsing and comparison: collectives, particles, mojibake
   compare.py     the field matrix and the verdict rule

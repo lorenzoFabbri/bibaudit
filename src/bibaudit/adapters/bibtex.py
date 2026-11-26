@@ -1,10 +1,15 @@
 """Read a BibTeX (``.bib``) file into :class:`~bibaudit.model.Reference` objects.
 
-Three public functions:
+Four public functions:
+
+``parse_bibtex(path)``
+    Parse *path* with :mod:`bibtexparser` (v2) and return one Reference per
+    successfully parsed entry, plus one :class:`~bibaudit.model.Unread` per
+    block the parser left out.
 
 ``read_bibtex(path)``
-    Parse *path* with :mod:`bibtexparser` (v2) and return one Reference per
-    successfully parsed entry.
+    The References alone, with each left-out block raised as a
+    :class:`RuntimeWarning`.
 
 ``entry_locator(path, key)``
     Map a citekey back to a ``"filename:line"`` string, independent of any
@@ -24,6 +29,7 @@ splits the file on newlines or on ``^@``.
 
 from __future__ import annotations
 
+import logging
 import pathlib
 import re
 import warnings
@@ -35,7 +41,7 @@ import bibtexparser
 from bibtexparser.model import DuplicateBlockKeyBlock, Entry, ParsingFailedBlock
 from rapidfuzz import fuzz
 
-from ..model import Name, Reference
+from ..model import Name, Reference, Unread
 from ..names import parse_name_list
 from ..normalize import (
     clean,
@@ -47,11 +53,18 @@ from ..normalize import (
     parse_year,
 )
 
-__all__ = ["duplicate_report", "entry_locator", "read_bibtex"]
+__all__ = ["duplicate_report", "entry_locator", "parse_bibtex", "read_bibtex"]
+
+# bibtexparser logs every block it abandons, and with no handler configured
+# Python's last-resort handler prints that line to stderr beside this tool's
+# own account of the same block. A library adds a NullHandler to the loggers
+# it owns; here it is added on bibtexparser's behalf, which leaves any handler
+# an application configures untouched.
+logging.getLogger("bibtexparser").addHandler(logging.NullHandler())
 
 
-def read_bibtex(path: pathlib.Path) -> list[Reference]:
-    """Parse *path* as BibTeX and return one Reference per parsed entry.
+def parse_bibtex(path: pathlib.Path) -> tuple[list[Reference], list[Unread]]:
+    """Parse *path* as BibTeX: the References, and every block left out of them.
 
     Uses bibtexparser's default middleware stack (string resolution + one
     layer of enclosing-brace removal per field) rather than a bespoke one:
@@ -61,20 +74,35 @@ def read_bibtex(path: pathlib.Path) -> list[Reference]:
     single author (``{World Health Organization}``) intact for
     :func:`~bibaudit.names.parse_name_list` to see.
 
-    A block bibtexparser could not attach to the library — most often two
-    entries sharing one citekey, where the second is dropped from
-    ``library.entries`` entirely — is never silently swallowed: each one
-    raises a :class:`RuntimeWarning` naming the file, line and reason, so the
-    defect is visible even though the reference it belongs to cannot be
-    built.
+    A block bibtexparser could not attach to the library — a syntax error, or
+    a second entry reusing a citekey, which is dropped from
+    ``library.entries`` entirely — comes back as an
+    :class:`~bibaudit.model.Unread` naming the file, line and reason, because
+    the entry it belongs to is not checked and the run has to say so.
     """
     path = pathlib.Path(path)
     # bibtexparser imports parse_file into its top level without declaring an
     # __all__, which mypy --strict's implicit-reexport check flags even though
     # it is documented top-level API.
     library = bibtexparser.parse_file(str(path))  # type: ignore[attr-defined]
-    _warn_failed_blocks(path, library.failed_blocks)
-    return [_entry_to_reference(path, entry) for entry in library.entries]
+    references = [_entry_to_reference(path, entry) for entry in library.entries]
+    return references, _unread_blocks(path, library.failed_blocks)
+
+
+def read_bibtex(path: pathlib.Path) -> list[Reference]:
+    """The References in *path*, each block left out of them raised as a warning.
+
+    For a caller that wants only the References; :func:`parse_bibtex` returns
+    the left-out blocks as data instead. Each warning names the file, line and
+    reason, so the defect is visible even though the reference it belongs to
+    cannot be built.
+    """
+    references, unread = parse_bibtex(path)
+    for block in unread:
+        # stacklevel=2 blames the caller of read_bibtex, the code that chose
+        # to receive these as warnings.
+        warnings.warn(str(block), RuntimeWarning, stacklevel=2)
+    return references
 
 
 # ---------------------------------------------------------------------------
@@ -213,45 +241,36 @@ def _entry_to_reference(path: pathlib.Path, entry: Entry) -> Reference:
     )
 
 
-def _warn_failed_blocks(path: pathlib.Path, failed_blocks: list[ParsingFailedBlock]) -> None:
-    """Raise a RuntimeWarning per block bibtexparser could not parse.
+def _unread_blocks(path: pathlib.Path, failed_blocks: list[ParsingFailedBlock]) -> list[Unread]:
+    """One :class:`~bibaudit.model.Unread` per block bibtexparser could not parse.
 
     A duplicate-citekey block is bibtexparser's own way of catching a real
-    defect (two entries claiming the same key): it does not raise, it just
-    quietly excludes the second entry from ``library.entries`` and records a
-    :class:`DuplicateBlockKeyBlock` here instead. Treating that as nothing to
-    report would make ``read_bibtex`` return 437 references from a 438-entry
-    file with no indication why — the exact "not something to swallow"
-    failure this function exists to prevent. ``warnings.warn`` matches
-    ``adapters.zotero``'s convention for a non-fatal defect the caller must
-    still see.
+    defect (two entries claiming the same key): it does not raise, it quietly
+    excludes the second entry from ``library.entries`` and records a
+    :class:`DuplicateBlockKeyBlock` here instead. Left unreported,
+    ``read_bibtex`` returns 437 references from a 438-entry file with no
+    indication why.
     """
-    # stacklevel=3: frame 1 is this function's own warnings.warn() call,
-    # frame 2 is read_bibtex() (the only caller), so frame 3 is whoever
-    # called read_bibtex() — the actual "user" adapters.zotero's convention
-    # means to point at. Leaving this at 2 (right for a warning raised
-    # directly in a public function, which is zotero's case) would blame the
-    # line inside read_bibtex that calls this helper instead of the caller's
-    # own code, which is not something to swallow either.
-    stacklevel = 3
+    unread: list[Unread] = []
     for block in failed_blocks:
         line = block.start_line
         location = f"{path.name}:{line + 1}" if line is not None else path.name
         if isinstance(block, DuplicateBlockKeyBlock):
-            warnings.warn(
-                f"{location}: duplicate citekey {block.key!r} — the second "
-                "entry using this key was discarded and is not in the audit",
-                RuntimeWarning,
-                stacklevel=stacklevel,
+            unread.append(
+                Unread(
+                    location,
+                    f"duplicate citekey {block.key!r} — the second entry using this "
+                    "key was discarded and is not in the audit",
+                    key=block.key,
+                )
             )
             continue
         # BlockAbortedException (bibtexparser's usual syntax-error exception)
         # carries its message in .abort_reason, not in str(exc) — the base
         # Exception is constructed without one, so str() alone is blank.
         reason = getattr(block.error, "abort_reason", None) or str(block.error) or repr(block.error)
-        warnings.warn(
-            f"{location}: block failed to parse ({reason})", RuntimeWarning, stacklevel=stacklevel
-        )
+        unread.append(Unread(location, f"block failed to parse ({reason})"))
+    return unread
 
 
 # ---------------------------------------------------------------------------
@@ -359,7 +378,7 @@ def _citekey_lines(path: pathlib.Path) -> dict[str, int]:
             line_no += text.count("\n", pos, start)
             pos = start
             # First occurrence wins. A duplicate citekey's second block never
-            # reaches library.entries (see _warn_failed_blocks), so its line
+            # reaches library.entries (see _unread_blocks), so its line
             # must not overwrite the line of the entry actually in the audit.
             lines.setdefault(key.group(1), line_no)
 
@@ -367,7 +386,7 @@ def _citekey_lines(path: pathlib.Path) -> dict[str, int]:
             text, match.end(), delimiter == "(", track_quotes=block_type != "comment"
         )
         # None means the block never closes: a syntax error bibtexparser will
-        # already have reported via _warn_failed_blocks. Resuming right after
+        # already have reported via _unread_blocks. Resuming right after
         # its opener (rather than scanning to EOF as "still inside") keeps that
         # one bad block from hiding every entry that follows it, at the cost
         # of possibly re-scanning its own (already broken) interior.

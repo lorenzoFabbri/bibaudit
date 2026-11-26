@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from .audit import AuditOptions, audit
 from .compare import Thresholds, compare, verdict_for
-from .model import FAILING_VERDICTS, VERDICTS, Issue, Name, Record, Reference, Result
+from .model import FAILING_VERDICTS, VERDICTS, Issue, Name, Record, Reference, Result, Unread
 from .report import LIMITS_NOTICE, Summary, render_json, render_text
 from .suppress import Suppressions, load_suppressions
 
@@ -38,6 +38,7 @@ __all__ = [
     "Summary",
     "Suppressions",
     "Thresholds",
+    "Unread",
     "audit",
     "compare",
     "load_suppressions",

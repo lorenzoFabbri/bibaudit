@@ -17,6 +17,8 @@ import argparse
 import hashlib
 import importlib
 import json
+import subprocess
+import sys
 import urllib.request
 from collections.abc import Sequence
 from pathlib import Path
@@ -584,6 +586,95 @@ class TestExitCodes:
         assert json.loads(target.read_text(encoding="utf-8"))["summary"]["exit_code"] == 1
 
 
+#: The second entry's citekey carries a comma, which bibtexparser cannot parse.
+BIB_UNPARSEABLE = """\
+@article{bad,key2021,
+  title = {Comma in key},
+  author = {Doe, Jane},
+  year = {2021}
+}
+"""
+
+#: The same citekey twice: bibtexparser keeps the first and discards the second.
+BIB_DUPLICATE_KEY = BIB_MAIN.replace("@article{molinamontes2018family", "@article{dupkey2018")
+
+
+class TestUnreadEntries:
+    """An entry left out of the audit fails the run, whatever the policy."""
+
+    def test_an_unparseable_entry_fails_a_run_that_would_otherwise_pass(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        install_registries(monkeypatch, crossref=resolving_crossref())
+        path = tmp_path / "references.bib"
+        path.write_text(BIB_MAIN + "\n" + BIB_UNPARSEABLE, encoding="utf-8")
+
+        assert main(check(tmp_path, str(path), "--fail-on", "")) == 1
+        out = capsys.readouterr().out
+        assert "entries not audited (1)" in out
+        assert "references.bib:12" in out
+        assert "FAIL — 1 entry not audited" in out
+        assert "PASS" not in out
+
+    def test_a_discarded_duplicate_citekey_fails_the_run(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        install_registries(monkeypatch, crossref=resolving_crossref())
+        path = tmp_path / "references.bib"
+        path.write_text(BIB_DUPLICATE_KEY + "\n" + BIB_DUPLICATE_KEY, encoding="utf-8")
+
+        assert main(check(tmp_path, str(path))) == 1
+        assert "duplicate citekey 'dupkey2018'" in capsys.readouterr().out
+
+    def test_a_file_with_no_parseable_entry_is_reported_not_a_usage_error(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        install_registries(monkeypatch, crossref=resolving_crossref())
+        path = tmp_path / "references.bib"
+        path.write_text(BIB_UNPARSEABLE, encoding="utf-8")
+
+        assert main(check(tmp_path, str(path))) == 1
+        captured = capsys.readouterr()
+        assert "entries not audited (1)" in captured.out
+        assert "no references found" not in captured.err
+
+    def test_the_json_report_lists_the_entry_and_agrees_with_the_exit_code(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
+    ) -> None:
+        install_registries(monkeypatch, crossref=resolving_crossref())
+        path = tmp_path / "references.bib"
+        path.write_text(BIB_MAIN + "\n" + BIB_UNPARSEABLE, encoding="utf-8")
+        target = tmp_path / "audit.json"
+
+        code = main(check(tmp_path, str(path), "--format", "json", "--output", str(target)))
+
+        payload = json.loads(target.read_text(encoding="utf-8"))
+        assert code == 1
+        assert payload["summary"]["exit_code"] == 1
+        assert [u["locator"] for u in payload["unread"]] == ["references.bib:12"]
+
+
+class TestWarningFormat:
+    def test_a_warning_reaches_stderr_as_one_bibaudit_line(self, tmp_path: Path) -> None:
+        """Python's default quotes the raising source line, which is this tool's code.
+
+        Run in a fresh interpreter: pytest records every warning a test
+        raises, so in-process the formatter is never reached.
+        """
+        path = tmp_path / "references.bib"
+        path.write_text(BIB_MAIN, encoding="utf-8")
+        done = subprocess.run(
+            [sys.executable, "-m", "bibaudit.cli", *check(tmp_path, str(path), "--offline")],
+            capture_output=True, text=True,
+        )
+        assert done.returncode == 0, done.stderr
+        assert done.stderr.startswith("bibaudit: warning: Retraction Watch data could not")
+        assert "RuntimeWarning" not in done.stderr
+
+
 class TestUsageErrors:
     def test_an_unknown_path_exits_two_with_a_message(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
@@ -965,7 +1056,7 @@ class TestInputExpansion:
         )
         monkeypatch.chdir(project)
 
-        references, _, defined, bibs = _collect(
+        references, _, _, defined, bibs = _collect(
             argparse.Namespace(paths=["paper.qmd", "references.bib"], bibliography=[])
         )
         assert bibs == [Path("references.bib")]
@@ -979,7 +1070,7 @@ class TestInputExpansion:
         bib = project / "references.bib"
         bib.write_text(BIB_MAIN, encoding="utf-8")
 
-        references, _, _, bibs = _collect(
+        references, _, _, _, bibs = _collect(
             argparse.Namespace(paths=[str(project), str(bib)], bibliography=[])
         )
         assert bibs == [bib]
@@ -993,7 +1084,7 @@ class TestInputExpansion:
         bib.write_text(BIB_MAIN, encoding="utf-8")
         monkeypatch.chdir(tmp_path)
 
-        references, _, _, bibs = _collect(
+        references, _, _, _, bibs = _collect(
             argparse.Namespace(paths=[str(bib)], bibliography=["./references.bib"])
         )
         assert bibs == [bib]
@@ -1127,15 +1218,9 @@ class TestCitekeys:
         """The exit code is the contract with CI; it cannot depend on the format.
 
         A project that switched to ``--format json`` to parse the report
-        would otherwise silently stop failing on unresolved citekeys.
-
-        The payload's ``summary.exit_code`` stays 0 here and the process
-        exits 1, which is a *known gap*, not a decision worth defending: the
-        JSON report has no citekey section, so it has nothing to derive the
-        difference from. Asserted rather than left unstated so that whoever
-        adds that section sees this line go red and closes the gap instead of
-        discovering it in a CI job that parsed the field and passed. Until
-        then, ``$?`` is the only complete answer for a JSON run.
+        would otherwise silently stop failing on unresolved citekeys, and the
+        payload's ``summary.exit_code`` has to agree with ``$?`` so a job can
+        gate on either.
         """
         page, bib = project
         install_registries(monkeypatch, crossref=resolving_crossref())
@@ -1143,8 +1228,10 @@ class TestCitekeys:
 
         code = main(check(tmp_path, str(page), str(bib), "--format", "json", "--output", str(target)))
 
+        payload = json.loads(target.read_text(encoding="utf-8"))
         assert code == 1
-        assert json.loads(target.read_text(encoding="utf-8"))["summary"]["exit_code"] == 0
+        assert payload["summary"]["exit_code"] == 1
+        assert "nosuchkey2020" in payload["unresolved_citekeys"]
 
     def test_the_citekey_check_can_be_turned_off(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, project: tuple[Path, Path]

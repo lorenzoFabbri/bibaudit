@@ -65,11 +65,7 @@ report can show you what was actually written.
   quoted inside another entry's title would otherwise be indexed as `other-key`'s
   line and send the report to the wrong place for the real entry.
 
-Two defects in the file itself are reported as warnings rather than swallowed.
-A **duplicate citekey** means the second entry never reaches the audit at all —
-saying nothing would return 437 references from a 438-entry file with no
-indication why. A **block that fails to parse** is named with its file, line and
-reason. Separately, the end of a text report counts probable *accidental*
+Two defects in the file itself keep an entry out of the audit, and either fails the run whatever `--fail-on` says. A **duplicate citekey** means bibtexparser discards the second entry, so a 438-entry file yields 437 references. A **block that fails to parse**, such as an entry with a comma inside its citekey, yields none. The report lists each under `entries not audited` with its file, line and reason, and the JSON report under `unread`. Separately, the end of a text report counts probable *accidental*
 duplication: two citekeys sharing a DOI, one citekey appearing twice across
 merged sources, and pairs of near-identical titles.
 

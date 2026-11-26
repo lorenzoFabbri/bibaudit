@@ -22,16 +22,17 @@ from __future__ import annotations
 
 import argparse
 import sys
+import warnings
 from collections.abc import Sequence
 from pathlib import Path
 
 from . import __version__
-from .adapters.bibtex import duplicate_report, read_bibtex
+from .adapters.bibtex import duplicate_report, parse_bibtex
 from .adapters.markdown import scan_markdown
 from .adapters.zotero import read_zotero
 from .audit import AuditOptions, audit
 from .compare import Thresholds
-from .model import FAILING_VERDICTS, Reference, Result
+from .model import FAILING_VERDICTS, Reference, Result, Unread
 from .registries.http import Cache, default_cache_dir
 from .report import render_citekey_problems, render_json, render_text
 from .suggest import SuggestionOutcome, write_suggestions
@@ -297,8 +298,8 @@ def _expand(paths: Sequence[str]) -> tuple[list[Path], list[Path], list[str]]:
 
 def _collect(
     args: argparse.Namespace,
-) -> tuple[list[Reference], dict[str, list[str]], set[str], list[Path]]:
-    """Read every input and return references, cited keys, defined keys, and bib paths.
+) -> tuple[list[Reference], list[Unread], dict[str, list[str]], set[str], list[Path]]:
+    """Read every input: references, unread blocks, cited keys, defined keys, bib paths.
 
     The bibliography paths are returned (not just consumed here) so
     ``--suggest`` can re-read each one afterwards — it needs the resolved
@@ -307,6 +308,7 @@ def _collect(
     """
     bibs, docs, libraries = _expand(args.paths)
     references: list[Reference] = []
+    unread: list[Unread] = []
     defined: set[str] = set()
     citekeys: dict[str, list[str]] = {}
 
@@ -338,16 +340,19 @@ def _collect(
         remember(path)
 
     for bib in bibs:
-        entries = read_bibtex(bib)
+        entries, left_out = parse_bibtex(bib)
         references.extend(entries)
+        unread.extend(left_out)
         defined.update(entry.key for entry in entries)
 
     for library in libraries:
         references.extend(read_zotero(library))
 
-    if not references:
+    # A bibliography whose every block failed to parse is a defect in the
+    # file, reported as one, not an invocation that found nothing to read.
+    if not references and not unread:
         raise _Usage("no references found in the given paths")
-    return references, citekeys, defined, bibs
+    return references, unread, citekeys, defined, bibs
 
 
 def _deduplicate(refs: Sequence[Reference]) -> list[Reference]:
@@ -402,7 +407,7 @@ def _report_suggestions(outcomes: Sequence[SuggestionOutcome]) -> None:
 
 
 def _run_check(args: argparse.Namespace) -> int:
-    collected, citekeys, defined, bibs = _collect(args)
+    collected, unread, citekeys, defined, bibs = _collect(args)
     references = _deduplicate(collected)
 
     try:
@@ -452,7 +457,10 @@ def _run_check(args: argparse.Namespace) -> int:
     stream = args.output.open("w", encoding="utf-8") if args.output else sys.stdout
     try:
         if args.format == "json":
-            summary = render_json(results, stream=stream, failing_verdicts=failing)
+            summary = render_json(
+                results, stream=stream, failing_verdicts=failing,
+                unread=unread, unresolved_citekeys=missing_keys,
+            )
         else:
             summary = render_text(
                 results, stream=stream, verbose=args.verbose,
@@ -463,6 +471,8 @@ def _run_check(args: argparse.Namespace) -> int:
                 # unlabelled policies in one report, and a reader had no way to
                 # tell which was answering their question.
                 failing_verdicts=failing,
+                unread=unread,
+                unresolved_citekeys=missing_keys,
             )
             if citekeys and defined and not args.no_citekey_check:
                 render_citekey_problems(
@@ -481,8 +491,6 @@ def _run_check(args: argparse.Namespace) -> int:
         if args.output:
             stream.close()
 
-    if missing_keys:
-        return 1
     return summary.exit_code(failing_verdicts=failing)
 
 
@@ -522,8 +530,33 @@ def _run_cache(args: argparse.Namespace) -> int:
     return 0
 
 
+def _format_warning(
+    message: Warning | str,
+    category: type[Warning],
+    filename: str,
+    lineno: int,
+    line: str | None = None,
+) -> str:
+    """A warning as one ``bibaudit: warning:`` line, like every other message.
+
+    Python's default names the source file and line that raised it and quotes
+    that line, which points a reader of the report at this tool's code rather
+    than at their bibliography.
+    """
+    return f"bibaudit: warning: {message}\n"
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Entry point. Returns the process exit code rather than calling ``exit``."""
+    original_format = warnings.formatwarning
+    warnings.formatwarning = _format_warning
+    try:
+        return _main(argv)
+    finally:
+        warnings.formatwarning = original_format
+
+
+def _main(argv: Sequence[str] | None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
