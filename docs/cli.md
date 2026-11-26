@@ -1,8 +1,6 @@
 # Command line
 
-There are two subcommands. `check` audits references; `cache` inspects or
-empties the store `check` reads and writes. `bibaudit --version` prints the
-installed version and exits.
+There are two subcommands. `check` audits references; `cache` inspects or empties the store `check` reads and writes. `bibaudit --version` prints the installed version and exits.
 
 ```bash
 bibaudit check references.bib
@@ -11,16 +9,7 @@ bibaudit check ~/Zotero/zotero.sqlite
 bibaudit check . --format json --output audit.json
 ```
 
-`check` takes one or more `paths`: bibliographies (`.bib`), documents
-(`.qmd`/`.md`), Zotero libraries (`zotero.sqlite`, a CSL-JSON export, or the
-word `local` for a running Zotero), or directories containing them. A directory
-is walked recursively, except that a directory holding a `zotero.sqlite` is read
-as a library instead; dot-prefixed components, `_site`, `_freeze`,
-`node_modules` and any `*.suggested.bib` are skipped during that walk. Naming a
-`.suggested.bib` file on the command line still audits it — that is exactly what
-reviewing a proposal before applying it requires. The paths matched against
-those rules are relative to the directory being scanned, so a project that
-lives under a dot-directory is not silently emptied of every file.
+`check` takes one or more `paths`: bibliographies (`.bib`), documents (`.qmd`/`.md`), Zotero libraries (`zotero.sqlite`, a CSL-JSON export, or the word `local` for a running Zotero), or directories containing them. A directory is walked recursively, except that a directory holding a `zotero.sqlite` is read as a library instead; dot-prefixed components, `_site`, `_freeze`, `node_modules` and any `*.suggested.bib` are skipped during that walk. Naming a `.suggested.bib` file on the command line still audits it — that is exactly what reviewing a proposal before applying it requires. The paths matched against those rules are relative to the directory being scanned, so a project that lives under a dot-directory is not silently emptied of every file.
 
 | Flag | Default | |
 |---|---|---|
@@ -29,18 +18,7 @@ lives under a dot-directory is not silently emptied of every file.
 | `-o`, `--output PATH` | stdout | write the report here instead of stdout |
 | `--fail-on LIST` | `BAD-ID,FIELD-MISMATCH,RETRACTED,UNCONFIRMED,WRONG-WORK` | comma-separated verdicts that make the exit code non-zero. Pass an empty string to never fail |
 
-`--fail-on` is split on commas, stripped and upper-cased; it is not validated
-against the known verdicts, so a misspelled name quietly fails nothing. Whatever
-it resolves to governs the exit code, the closing `PASS`/`FAIL` banner, the
-`summary.failing_verdicts` and `summary.exit_code` fields of the JSON report, and
-which verdict groups the terminal report prints — one policy, stated in every
-place the reader might read it from. A verdict named here brings its references
-into the report with their citekeys, locators and issue lines, so nothing can
-fail the run without saying which entry did it; a verdict left out of it keeps
-printing if it was going to print anyway, so `--fail-on ''` still shows a
-retracted citation. See
-[verdicts](verdicts.md) for what each name means and [in CI](ci.md) for the exit
-codes. Two things it cannot switch off, whichever format was asked for: a bibliography entry that could not be read exits `1`, and so does a `[@citekey]` used in a document with no matching bibliography entry.
+`--fail-on` is split on commas, stripped and upper-cased; it is not validated against the known verdicts, so a misspelled name quietly fails nothing. Whatever it resolves to governs the exit code, the closing `PASS`/`FAIL` banner, the `summary.failing_verdicts` and `summary.exit_code` fields of the JSON report, and which verdict groups the terminal report prints — one policy, stated in every place the reader might read it from. A verdict named here brings its references into the report with their citekeys, locators and issue lines, so nothing can fail the run without saying which entry did it; a verdict left out of it keeps printing if it was going to print anyway, so `--fail-on ''` still shows a retracted citation. See [verdicts](verdicts.md) for what each name means and [in CI](ci.md) for the exit codes. Two things it cannot switch off, whichever format was asked for: a bibliography entry that could not be read exits `1`, and so does a `[@citekey]` used in a document with no matching bibliography entry.
 
 ## Registries
 
@@ -59,123 +37,35 @@ codes. Two things it cannot switch off, whichever format was asked for: a biblio
 | `--cache-ttl DAYS` | `90` | how long a cached registry response stays valid |
 | `--timeout SECONDS` | `30.0` | per-request timeout |
 
-`--mailto` is appended to the User-Agent that every request carries, in the form
-`bibaudit/<version> (+https://github.com/lorenzoFabbri/bibaudit); mailto=you@example.org`.
-Crossref grants its polite pool — lower latency, priority during load-shedding —
-to requests carrying a contact address in exactly that form, so omitting it is a
-silent slowdown rather than an error, which is how it stays wrong for a long
-time. It is not an API key, and there is no API key anywhere in this tool:
-nothing bibaudit sends to any registry is a credential, and no service it
-consults requires an account.
+`--mailto` is appended to the User-Agent that every request carries, in the form `bibaudit/<version> (+https://github.com/lorenzoFabbri/bibaudit); mailto=you@example.org`. Crossref grants its polite pool — lower latency, priority during load-shedding — to requests carrying a contact address in exactly that form, so omitting it is a silent slowdown rather than an error, which is how it stays wrong for a long time. It is not an API key, and there is no API key anywhere in this tool: nothing bibaudit sends to any registry is a credential, and no service it consults requires an account.
 
-**`--no-corroborate`** constructs no PubMed client at all, which costs two
-different things on two kinds of entry.
+**`--no-corroborate`** constructs no PubMed client at all, which costs two different things on two kinds of entry.
 
-On a DOI-bearing entry it removes PubMed from the resolution path: what you lose
-is the independently curated second opinion — the one that catches a defect in
-Crossref's own deposit rather than agreeing with it. What you do not lose on an
-otherwise default run is the requests: the retraction check has its own PubMed
-leg, handed the identical DOI list, so the same E-utilities queries are issued
-either way — by the corroboration pass, or, once this flag removes it, by the
-retraction pass that had been reading them back out of the cache the
-corroboration pass filled. `--help` says the flag halves request volume; that
-holds only alongside `--no-retraction-check`, which is also what it takes to
-stop querying PubMed at all.
+On a DOI-bearing entry it removes PubMed from the resolution path: what you lose is the independently curated second opinion — the one that catches a defect in Crossref's own deposit rather than agreeing with it. What you do not lose on an otherwise default run is the requests: the retraction check has its own PubMed leg, handed the identical DOI list, so the same E-utilities queries are issued either way — by the corroboration pass, or, once this flag removes it, by the retraction pass that had been reading them back out of the cache the corroboration pass filled. `--help` says the flag halves request volume; that holds only alongside `--no-retraction-check`, which is also what it takes to stop querying PubMed at all.
 
-On an entry resolved by a **PMID** it removes the only registry that could have
-answered: Crossref and DataCite are keyed on DOIs and have nothing to say about
-a PMID, and the retraction leg is keyed on DOIs too, so it does not pick this
-up. Such an entry is then reported `UNCHECKED` — nothing was verified — and not
-`BAD-ID`, which takes a response from PubMed with no citation under that number
-in it. It is the distinction `--no-isbn` rests on below, and it is what stops a
-decision not to look from reading as evidence about the bibliography.
+On an entry resolved by a **PMID** it removes the only registry that could have answered: Crossref and DataCite are keyed on DOIs and have nothing to say about a PMID, and the retraction leg is keyed on DOIs too, so it does not pick this up. Such an entry is then reported `UNCHECKED` — nothing was verified — and not `BAD-ID`, which takes a response from PubMed with no citation under that number in it. It is the distinction `--no-isbn` rests on below, and it is what stops a decision not to look from reading as evidence about the bibliography.
 
-**`--no-search`** stops entries carrying no identifier at all — no DOI, no PMID,
-no ISBN — from being looked up by title and author. An entry storing any of the
-three is not among them: it has an identifier, it is resolved by it, and this
-flag never reaches it. The flag does not quieten the rest — in a run where every
-registry answered, such an entry is reported `UNCONFIRMED`, a failing verdict,
-having consulted nothing. It stops the attempt to clear them, not the
-consequence of their not being cleared.
+**`--no-search`** stops entries carrying no identifier at all — no DOI, no PMID, no ISBN — from being looked up by title and author. An entry storing any of the three is not among them: it has an identifier, it is resolved by it, and this flag never reaches it. The flag does not quieten the rest — in a run where every registry answered, such an entry is reported `UNCONFIRMED`, a failing verdict, having consulted nothing. It stops the attempt to clear them, not the consequence of their not being cleared.
 
-**`--no-retraction-check`** turns off the independent pair: Retraction Watch's
-own export and PubMed's expression-of-concern cross-reference. It does not turn
-off retraction reporting. A retraction the publisher deposited in Crossref's
-`updated-by` linkage, or that MEDLINE flags with `PT  - Retracted Publication`,
-is read off the record itself and still fails as `RETRACTED`. What goes unnoticed
-is a retraction that was never deposited in either place — the gap the
-independent check exists for — and an expression of concern, which NLM records
-as `ECI` rather than as a `PT` and which this flag stops being read on the DOI
-path and the PMID path alike.
+**`--no-retraction-check`** turns off the independent pair: Retraction Watch's own export and PubMed's expression-of-concern cross-reference. It does not turn off retraction reporting. A retraction the publisher deposited in Crossref's `updated-by` linkage, or that MEDLINE flags with `PT  - Retracted Publication`, is read off the record itself and still fails as `RETRACTED`. What goes unnoticed is a retraction that was never deposited in either place — the gap the independent check exists for — and an expression of concern, which NLM records as `ECI` rather than as a `PT` and which this flag stops being read on the DOI path and the PMID path alike.
 
-Most of that narrower coverage is stated rather than left to be noticed: every
-reference nothing was found against carries a `status/not-asked` finding naming
-`retraction-watch`, the run prints it beside the banner, and `consulted` records
-`retraction-watch` as `not-asked` on every reference in the run. A reference some
-source *did* report a retraction for carries the retraction instead — there is no
-gap left to state once the answer arrived. `status/retraction-unverified` is a
-different finding and stays what it is: a source that could not be *reached*.
+Most of that narrower coverage is stated rather than left to be noticed: every reference nothing was found against carries a `status/not-asked` finding naming `retraction-watch`, the run prints it beside the banner, and `consulted` records `retraction-watch` as `not-asked` on every reference in the run. A reference some source *did* report a retraction for carries the retraction instead — there is no gap left to state once the answer arrived. `status/retraction-unverified` is a different finding and stays what it is: a source that could not be *reached*.
 
-The `ECI` half is the part no line states. PubMed answered — it returned the
-citation every other field was compared against — so `consulted` says `answered`
-and nothing names the field that went unread. That is the one gap this flag
-opens silently, and [retraction](retraction.md) says why there is no fourth
-consultation state for it. It covers the four sources in full as well.
+The `ECI` half is the part no line states. PubMed answered — it returned the citation every other field was compared against — so `consulted` says `answered` and nothing names the field that went unread. That is the one gap this flag opens silently, and [retraction](retraction.md) says why there is no fourth consultation state for it. It covers the four sources in full as well.
 
-**`--no-isbn`** means Open Library is never constructed, so no book is resolved
-through it — neither by ISBN nor by the title/author search used for books with
-no identifier at all. A book with no identifier then loses the one candidate
-source organised around books. A book that stores only an ISBN carries an
-identifier that nothing was asked about, and is reported `UNCHECKED`: nothing
-was verified, and the run says so rather than treating your decision not to look
-as evidence the book does not exist.
+**`--no-isbn`** means Open Library is never constructed, so no book is resolved through it — neither by ISBN nor by the title/author search used for books with no identifier at all. A book with no identifier then loses the one candidate source organised around books. A book that stores only an ISBN carries an identifier that nothing was asked about, and is reported `UNCHECKED`: nothing was verified, and the run says so rather than treating your decision not to look as evidence the book does not exist.
 
 !!! note "This flag cannot fail a book for existing"
 
-    `BAD-ID` requires a registry that answered "I do not hold this". Switching
-    the only competent registry off produces no such answer, so it cannot
-    produce that verdict. A malformed ISBN is different and still fails: a bad
-    check digit is arithmetic on the stored value, and no registry's answer
-    could change it. See [verdicts](verdicts.md).
+    `BAD-ID` requires a registry that answered "I do not hold this". Switching the only competent registry off produces no such answer, so it cannot produce that verdict. A malformed ISBN is different and still fails: a bad check digit is arithmetic on the stored value, and no registry's answer could change it. See [verdicts](verdicts.md).
 
-**`--no-europepmc`** and **`--no-openalex`** affect only the confirmation path
-for entries with no identifier; neither is consulted for a DOI. They are not
-symmetrical. Europe PMC is curated separately from Crossref and indexes material
-Crossref does not — preprints, some grey literature, agency reports — so
-dropping it loses candidates nothing else in the tool would find. OpenAlex
-substantially re-crawls Crossref's deposits, so it never corroborates a match on
-its own and is consulted for discovery only; dropping it narrows what can be
-*found*, never what would have been *accepted*. Every candidate, whichever
-source produced it, is judged by the identical bar. When *every* enabled search
-source fails for an entry, the search reports ignorance rather than an empty
-result, so a total outage leaves that entry `UNCHECKED` rather than
-`UNCONFIRMED`.
+**`--no-europepmc`** and **`--no-openalex`** affect only the confirmation path for entries with no identifier; neither is consulted for a DOI. They are not symmetrical. Europe PMC is curated separately from Crossref and indexes material Crossref does not — preprints, some grey literature, agency reports — so dropping it loses candidates nothing else in the tool would find. OpenAlex substantially re-crawls Crossref's deposits, so it never corroborates a match on its own and is consulted for discovery only; dropping it narrows what can be *found*, never what would have been *accepted*. Every candidate, whichever source produced it, is judged by the identical bar. When *every* enabled search source fails for an entry, the search reports ignorance rather than an empty result, so a total outage leaves that entry `UNCHECKED` rather than `UNCONFIRMED`.
 
-**`--offline`** never opens a socket. A cached answer is replayed — including a
-cached 404, which is a fact about a work and as worth replaying as a successful
-response — and anything uncached is reported `UNCHECKED` rather than fetched. A
-cached response older than `--cache-ttl` is a miss like any other, so the same
-command re-run outside that window derives an honestly narrower report, not a
-different one. `--refresh` cannot be honoured without a network: given both, the
-cache is still read.
+**`--offline`** never opens a socket. A cached answer is replayed — including a cached 404, which is a fact about a work and as worth replaying as a successful response — and anything uncached is reported `UNCHECKED` rather than fetched. A cached response older than `--cache-ttl` is a miss like any other, so the same command re-run outside that window derives an honestly narrower report, not a different one. `--refresh` cannot be honoured without a network: given both, the cache is still read.
 
-`--cache-dir` defaults to `$XDG_CACHE_HOME/bibaudit` when that variable is set on
-any platform, otherwise `~/Library/Caches/bibaudit` on macOS and
-`~/.cache/bibaudit` elsewhere. It relocates everything the run caches, the
-parsed Retraction Watch index included: that index lives in a
-`retraction-watch/` subdirectory of whichever cache root the run was given, so
-`bibaudit cache info` counts it and `bibaudit cache clear` discards it. It keeps
-its own seven-day lifetime, which `--cache-ttl` does not change and `--refresh`
-does not shorten. Ninety days is right for bibliographic fields, which do not
-change under a fixed DOI; seven is right for a status, which does. The export
-the index is parsed from is fetched past this cache rather than stored in it, so
-`--cache-ttl` cannot outlive the seven days and answer the refetch they ask
-for.
+`--cache-dir` defaults to `$XDG_CACHE_HOME/bibaudit` when that variable is set on any platform, otherwise `~/Library/Caches/bibaudit` on macOS and `~/.cache/bibaudit` elsewhere. It relocates everything the run caches, the parsed Retraction Watch index included: that index lives in a `retraction-watch/` subdirectory of whichever cache root the run was given, so `bibaudit cache info` counts it and `bibaudit cache clear` discards it. It keeps its own seven-day lifetime, which `--cache-ttl` does not change and `--refresh` does not shorten. Ninety days is right for bibliographic fields, which do not change under a fixed DOI; seven is right for a status, which does. The export the index is parsed from is fetched past this cache rather than stored in it, so `--cache-ttl` cannot outlive the seven days and answer the refetch they ask for.
 
-`--timeout` bounds one request. A logical lookup is retried — one attempt plus
-four retries, backing off 1, 2, 4 and 8 seconds, or by whatever a `Retry-After`
-header asks for up to a minute — after which the registry counts as unreachable,
-which is ignorance (`UNCHECKED`), never a missing work (`BAD-ID`).
+`--timeout` bounds one request. A logical lookup is retried — one attempt plus four retries, backing off 1, 2, 4 and 8 seconds, or by whatever a `Retry-After` header asks for up to a minute — after which the registry counts as unreachable, which is ignorance (`UNCHECKED`), never a missing work (`BAD-ID`).
 
 ## Report detail
 
@@ -186,27 +76,13 @@ which is ignorance (`UNCHECKED`), never a missing work (`BAD-ID`).
 | `--no-citekey-check` | off | skip checking that every `[@citekey]` resolves to a bibliography entry |
 | `--suggest` | off | write `<name>.suggested.bib` and `<name>.suggested.diff` beside each checked `.bib` with a fillable gap |
 
-By default the text report prints only the verdict groups a reader must act on —
-the failing set plus `DISPUTED`, where two curated registries contradict each
-other and only a person can settle it — and within those, only issues above
-informational severity. `--verbose` prints every group and every issue.
+By default the text report prints only the verdict groups a reader must act on — the failing set plus `DISPUTED`, where two curated registries contradict each other and only a person can settle it — and within those, only issues above informational severity. `--verbose` prints every group and every issue.
 
-`--show-suppressed` lists what was suppressed and why, beneath the entry it
-belongs to, and works without `--verbose`: it pulls in the entries that actually
-carry a suppressed difference even though their verdict group is not printed by
-default. The counts appear in the summary either way, because a report that
-quietly drops what it decided not to tell you is not an audit. See
-[adjudicating a difference](suppressions.md).
+`--show-suppressed` lists what was suppressed and why, beneath the entry it belongs to, and works without `--verbose`: it pulls in the entries that actually carry a suppressed difference even though their verdict group is not printed by default. The counts appear in the summary either way, because a report that quietly drops what it decided not to tell you is not an audit. See [adjudicating a difference](suppressions.md).
 
-`--no-citekey-check` drops both the unresolved-key list and the exit `1` it
-causes. The check runs only when documents were scanned *and* at least one
-bibliography entry was read, so it is already inert on a bare `.bib` run.
+`--no-citekey-check` drops both the unresolved-key list and the exit `1` it causes. The check runs only when documents were scanned *and* at least one bibliography entry was read, so it is already inert on a bare `.bib` run.
 
-`--suggest` fills only fields an entry has none of, writes `<name>.suggested.bib`
-and `<name>.suggested.diff` beside the source, and never opens the source for
-writing. Its notices go to stderr, not to the report stream, so a `--format json`
-stdout stays parseable; it is silent when there was nothing to propose. See
-[proposing fixes](suggest.md).
+`--suggest` fills only fields an entry has none of, writes `<name>.suggested.bib` and `<name>.suggested.diff` beside the source, and never opens the source for writing. Its notices go to stderr, not to the report stream, so a `--format json` stdout stays parseable; it is silent when there was nothing to propose. See [proposing fixes](suggest.md).
 
 ## Thresholds
 
@@ -215,14 +91,7 @@ stdout stays parseable; it is silent when there was nothing to propose. See
 | `--title-wrong-work R` | `0.55` | title similarity below which the identifier may point at a different work |
 | `--title-mismatch R` | `0.85` | title similarity below which titles are reported as disagreeing |
 
-Both are ratios on the same similarity function. `--title-wrong-work` can sit as
-low as it does only because a title scoring below it is cross-checked against the
-author list before `WRONG-WORK` is declared: one fuzzy score is not enough
-evidence to accuse a bibliography of citing the wrong paper. Lowering
-`--title-mismatch` quietens disagreements at the cost of missing real ones;
-raising it does the reverse. The relaxed bands used for books and chapters, the
-band above which a title difference drops to informational severity, and the bar
-for confirming an entry with no identifier are not exposed on the command line.
+Both are ratios on the same similarity function. `--title-wrong-work` can sit as low as it does only because a title scoring below it is cross-checked against the author list before `WRONG-WORK` is declared: one fuzzy score is not enough evidence to accuse a bibliography of citing the wrong paper. Lowering `--title-mismatch` quietens disagreements at the cost of missing real ones; raising it does the reverse. The relaxed bands used for books and chapters, the band above which a title difference drops to informational severity, and the bar for confirming an entry with no identifier are not exposed on the command line.
 
 ## `bibaudit cache`
 
@@ -231,9 +100,4 @@ bibaudit cache info
 bibaudit cache clear
 ```
 
-`info` prints the cache directory, how many responses are stored and their total
-size; `clear` empties it. Both accept `--cache-dir`, which has to match the one
-`check` was given. If the directory cannot be created, both say so on stderr
-rather than reporting a working, empty cache — an unusable cache and an empty one
-otherwise produce identical output, and the difference is exactly what someone
-diagnosing why `--offline` reports everything `UNCHECKED` needs to see.
+`info` prints the cache directory, how many responses are stored and their total size; `clear` empties it. Both accept `--cache-dir`, which has to match the one `check` was given. If the directory cannot be created, both say so on stderr rather than reporting a working, empty cache — an unusable cache and an empty one otherwise produce identical output, and the difference is exactly what someone diagnosing why `--offline` reports everything `UNCHECKED` needs to see.

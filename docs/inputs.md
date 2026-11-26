@@ -1,9 +1,6 @@
 # Inputs
 
-bibaudit reads bibliographies, Quarto and Obsidian notes, and Zotero libraries,
-and it reads all of them the same way: open, extract, close. No input is ever
-written back to; [`--suggest`](suggest.md) writes a separate file beside it, for
-you to diff.
+bibaudit reads bibliographies, Quarto and Obsidian notes, and Zotero libraries, and it reads all of them the same way: open, extract, close. No input is ever written back to; [`--suggest`](suggest.md) writes a separate file beside it, for you to diff.
 
 | Source | What is read |
 |---|---|
@@ -13,384 +10,118 @@ you to diff.
 | `.json` | a CSL-JSON export, or a dump of Zotero's own item JSON — told apart by their fields, not by their filename |
 | `local` | a running Zotero desktop client, through its read-only local API |
 
-A directory argument is walked for the bibliography and document extensions
-only — a Zotero library is read when you name it, or when the directory you
-named is itself a Zotero data directory, meaning it contains a `zotero.sqlite`.
-Three kinds of path are skipped during the walk: anything with a dot-prefixed
-component *relative to the directory you named*, so a vault that lives in
-`~/.notes` is still read in full; the generated trees `_site`, `_freeze` and
-`node_modules`; and any `*.suggested.bib` a previous [`--suggest`](suggest.md)
-run left beside its input. A file named explicitly whose extension matches none
-of the above is a usage error and exits 2; a `*.suggested.bib` named explicitly
-is read, which is what someone reviewing a suggestion wants.
+A directory argument is walked for the bibliography and document extensions only — a Zotero library is read when you name it, or when the directory you named is itself a Zotero data directory, meaning it contains a `zotero.sqlite`. Three kinds of path are skipped during the walk: anything with a dot-prefixed component *relative to the directory you named*, so a vault that lives in `~/.notes` is still read in full; the generated trees `_site`, `_freeze` and `node_modules`; and any `*.suggested.bib` a previous [`--suggest`](suggest.md) run left beside its input. A file named explicitly whose extension matches none of the above is a usage error and exits 2; a `*.suggested.bib` named explicitly is read, which is what someone reviewing a suggestion wants.
 
 ## `.bib`
 
-Every entry is parsed, and every field is kept. `title`, `author` (or `editor`),
-`year` (or `date`), `journal` or `booktitle`, `volume`, `number`, `pages`,
-`publisher`, `doi`, `pmid` (or a PubMed-typed `eprint`), `isbn` and `url` are
-read into the reference bibaudit checks; the entry's complete field dictionary
-is carried along beside it untouched, in the file's own capitalisation, so a
-report can show you what was actually written.
+Every entry is parsed, and every field is kept. `title`, `author` (or `editor`), `year` (or `date`), `journal` or `booktitle`, `volume`, `number`, `pages`, `publisher`, `doi`, `pmid` (or a PubMed-typed `eprint`), `isbn` and `url` are read into the reference bibaudit checks; the entry's complete field dictionary is carried along beside it untouched, in the file's own capitalisation, so a report can show you what was actually written.
 
-- **Authors.** The author field is never split naively on `" and "` — `{The
-  Endogenous Hormones and Breast Cancer Collaborative Group}` is one author,
-  and splitting it is the most reliable way to invent an author-list mismatch.
-  BibTeX's `and others` is recognised as *et al.*, not as a person named
-  "others", and it truncates the comparison rather than being counted as a
-  name. An entry with no `author` at all but with an `editor` — an edited
-  volume cited by its editors is correct BibTeX, not a defect — uses the
-  editors, and records that it did so.
-- **DOIs.** The dedicated `doi` field wins over a DOI buried in `url`. Crossref's
-  own BibTeX export writes the same DOI into both on many entries, differing
-  only in case, and preferring one means that difference is never even
-  evaluated. A placeholder some reference managers write into `doi` — `N/A`,
-  `TBD`, a pair of braces that survives as whitespace — is recognised as
-  not-a-DOI and the `url` is tried instead, rather than being normalised into a
-  confident-looking fake that a registry would then report as a bad identifier.
+- **Authors.** The author field is never split naively on `" and "` — `{The Endogenous Hormones and Breast Cancer Collaborative Group}` is one author, and splitting it is the most reliable way to invent an author-list mismatch. BibTeX's `and others` is recognised as *et al.*, not as a person named "others", and it truncates the comparison rather than being counted as a name. An entry with no `author` at all but with an `editor` — an edited volume cited by its editors is correct BibTeX, not a defect — uses the editors, and records that it did so.
+- **DOIs.** The dedicated `doi` field wins over a DOI buried in `url`. Crossref's own BibTeX export writes the same DOI into both on many entries, differing only in case, and preferring one means that difference is never even evaluated. A placeholder some reference managers write into `doi` — `N/A`, `TBD`, a pair of braces that survives as whitespace — is recognised as not-a-DOI and the `url` is tried instead, rather than being normalised into a confident-looking fake that a registry would then report as a bad identifier.
 - **SICI DOIs.** A DOI may contain angle brackets: Wiley and the American Meteorological Society deposited 1990s articles as `10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1`. The `<…>` segment is kept, in a `doi` field, in a `doi.org` link whose brackets are percent-encoded as `%3C` and `%3E`, and in Crossref's own record of the DOI. In running text a `<` still ends a DOI unless it opens a segment shaped `<digits:…>`, so an HTML tag or a markdown autolink is not swallowed. BibTeX's `\_` in a DOI reads as `_`.
 - **LaTeX.** Accent commands compose with their letter, so `{\'e}` reads as é and `Mart{\'\i}nez` as Martínez, and letter commands decode to the letter: `{\O}rnulf` is Ørnulf, and `\o`, `\aa`, `\AA`, `\ae`, `\oe`, `\ss`, `\l`, `\L`, `\dh`, `\th`, `\ng` and `\dj` and their capitals likewise. `\&`, `\%`, `\$`, `\#` and `\_` lose the backslash. Comparison then folds the result as it folds the registry's spelling, so `{\AA}nestad` agrees with Crossref's `ÅNESTAD`. Any other control word is dropped.
-- **PMIDs.** BibTeX has no standard field for one, so two spellings are read.
-  The dedicated `pmid = {28520842}` most exporters write wins; failing that,
-  BibLaTeX's `eprint`, and only when `eprinttype` (or the older
-  `archiveprefix`) folds to `pubmed` or `pmid`. That gate is not politeness
-  about a convention: `eprint` is a bare number with no meaning of its own, and
-  an arXiv id, an SSRN id and a HAL id are all exactly as bare-numeric as a
-  PMID. Reading one as the other would send a real identifier to a registry
-  that cannot hold it and report the answer as a work nobody can find. The
-  same placeholder safety the `doi` field gets applies here — `N/A`, `TBD`, an
-  empty pair of braces falls through as "no PMID recorded".
-- **Year.** `year` is used, falling back to `date` — the field Better BibTeX and
-  CSL-flavoured `.bib` files write instead.
-- **Locators.** Findings point at `references.bib:412`. The line index comes
-  from a brace-balanced scan, not a flat search, because an `@article{other-key,`
-  quoted inside another entry's title would otherwise be indexed as `other-key`'s
-  line and send the report to the wrong place for the real entry.
+- **PMIDs.** BibTeX has no standard field for one, so two spellings are read. The dedicated `pmid = {28520842}` most exporters write wins; failing that, BibLaTeX's `eprint`, and only when `eprinttype` (or the older `archiveprefix`) folds to `pubmed` or `pmid`. That gate is not politeness about a convention: `eprint` is a bare number with no meaning of its own, and an arXiv id, an SSRN id and a HAL id are all exactly as bare-numeric as a PMID. Reading one as the other would send a real identifier to a registry that cannot hold it and report the answer as a work nobody can find. The same placeholder safety the `doi` field gets applies here — `N/A`, `TBD`, an empty pair of braces falls through as "no PMID recorded".
+- **Year.** `year` is used, falling back to `date` — the field Better BibTeX and CSL-flavoured `.bib` files write instead.
+- **Locators.** Findings point at `references.bib:412`. The line index comes from a brace-balanced scan, not a flat search, because an `@article{other-key,` quoted inside another entry's title would otherwise be indexed as `other-key`'s line and send the report to the wrong place for the real entry.
 
-Two defects in the file itself keep an entry out of the audit, and either fails the run whatever `--fail-on` says. A **duplicate citekey** means bibtexparser discards the second entry, so a 438-entry file yields 437 references. A **block that fails to parse**, such as an entry with a comma inside its citekey, yields none. The report lists each under `entries not audited` with its file, line and reason, and the JSON report under `unread`. Separately, the end of a text report counts probable *accidental*
-duplication: two citekeys sharing a DOI, one citekey appearing twice across
-merged sources, and pairs of near-identical titles.
+Two defects in the file itself keep an entry out of the audit, and either fails the run whatever `--fail-on` says. A **duplicate citekey** means bibtexparser discards the second entry, so a 438-entry file yields 437 references. A **block that fails to parse**, such as an entry with a comma inside its citekey, yields none. The report lists each under `entries not audited` with its file, line and reason, and the JSON report under `unread`. Separately, the end of a text report counts probable *accidental* duplication: two citekeys sharing a DOI, one citekey appearing twice across merged sources, and pairs of near-identical titles.
 
 ## Quarto and Obsidian notes
 
-A note contributes three things: the citekeys it cites, any DOI typed directly
-into it, and the bibliography those citekeys are checked against.
+A note contributes three things: the citekeys it cites, any DOI typed directly into it, and the bibliography those citekeys are checked against.
 
 Recognised as a citation:
 
-- `[@key]`, including citation lists (`[@a; @b]`) and pandoc's
-  suppress-author form `[-@key]`
-- a bare `@key` outside brackets — at the start of a line, or after whitespace,
-  which is how a citation written into a markdown table cell appears
+- `[@key]`, including citation lists (`[@a; @b]`) and pandoc's suppress-author form `[-@key]`
+- a bare `@key` outside brackets — at the start of a line, or after whitespace, which is how a citation written into a markdown table cell appears
 - Obsidian's Citations-plugin wikilink, `[[@key]]` and `[[@key|display text]]`
-- every key in a front-matter `nocite:` field, whether written as a YAML block
-  scalar or inline
+- every key in a front-matter `nocite:` field, whether written as a YAML block scalar or inline
 
-Quarto cross-references share the `@key` syntax and are excluded by prefix:
-`@fig-`, `@tbl-`, `@sec-`, `@eq-`, `@lst-`, `@thm-`, `@def-`, `@exm-`, `@exr-`,
-`@cor-`, `@lem-`, `@prp-` and `@cnj-` name a figure or a table, not a work. An
-`@` preceded by a word character is not read as a citekey either: that is an
-email address.
+Quarto cross-references share the `@key` syntax and are excluded by prefix: `@fig-`, `@tbl-`, `@sec-`, `@eq-`, `@lst-`, `@thm-`, `@def-`, `@exm-`, `@exr-`, `@cor-`, `@lem-`, `@prp-` and `@cnj-` name a figure or a table, not a work. An `@` preceded by a word character is not read as a citekey either: that is an email address.
 
-DOIs are read out of prose, and out of fenced code blocks — including the two
-shapes an R publications table takes, `read.delim(text = "...")` and
-`data.frame(... DOI = c(...))`, where a Year, Author or Journal column beside
-the DOI column is read too and paired with it. The two shapes pair differently.
-In a `read.delim` literal the pairing is by row, so a row too short to reach the
-DOI column is not read as a table row at all and any DOI in it survives only as
-a bare DOI from the chunk's generic sweep. In a `data.frame` call the columns
-are separate vectors and the pairing is positional, so it is only done when
-every sibling vector has exactly the same length as the DOI vector: one short
-vector means position *i* no longer lines up, and the whole call falls back to
-DOI-only references — each one carrying a note of which vector mismatched —
-rather than filing one paper's year under another paper's DOI.
+DOIs are read out of prose, and out of fenced code blocks — including the two shapes an R publications table takes, `read.delim(text = "...")` and `data.frame(... DOI = c(...))`, where a Year, Author or Journal column beside the DOI column is read too and paired with it. The two shapes pair differently. In a `read.delim` literal the pairing is by row, so a row too short to reach the DOI column is not read as a table row at all and any DOI in it survives only as a bare DOI from the chunk's generic sweep. In a `data.frame` call the columns are separate vectors and the pairing is positional, so it is only done when every sibling vector has exactly the same length as the DOI vector: one short vector means position *i* no longer lines up, and the whole call falls back to DOI-only references — each one carrying a note of which vector mismatched — rather than filing one paper's year under another paper's DOI.
 
-Two exclusions worth knowing. A citekey inside an inline code span —
-`` `[@citekey]` `` in documentation about citing — is not a citation, while a
-DOI inside one still is; a code span is how you write *about* a citation, but a
-DOI is a DOI wherever it is written. And front matter is not scanned for prose
-citekeys or DOIs; only its `nocite:` and `bibliography:` fields are read.
+Two exclusions worth knowing. A citekey inside an inline code span — `` `[@citekey]` `` in documentation about citing — is not a citation, while a DOI inside one still is; a code span is how you write *about* a citation, but a DOI is a DOI wherever it is written. And front matter is not scanned for prose citekeys or DOIs; only its `nocite:` and `bibliography:` fields are read.
 
 ### What is deliberately not read as a citation
 
-Obsidian's other constructs are navigation. They are not near-misses that a
-better regex would catch — they address notes, sections and topics inside a
-vault, and none of them names a bibliography entry:
+Obsidian's other constructs are navigation. They are not near-misses that a better regex would catch — they address notes, sections and topics inside a vault, and none of them names a bibliography entry:
 
 - ordinary wikilinks: `[[Some Note]]`, `[[Some Note|display]]`, `[[#Heading]]`
-- embeds: `![[Some Note]]`, and `![[@key]]` too — an embed transcludes a note's
-  content, it does not cite a work
+- embeds: `![[Some Note]]`, and `![[@key]]` too — an embed transcludes a note's content, it does not cite a work
 - block references: `^block-id`
 - tags: `#tag`, `#nested/tag`
 
-Wikilinks and embeds are blanked before the generic citekey scan runs, because
-a vault that also uses `@name` for people would otherwise have a note title
-picked up as a citekey. Block references and tags need no such handling: neither
-can contain the `@` a citekey requires, so there is no failure mode to prevent.
-The omission is deliberate, not an oversight.
+Wikilinks and embeds are blanked before the generic citekey scan runs, because a vault that also uses `@name` for people would otherwise have a note title picked up as a citekey. Block references and tags need no such handling: neither can contain the `@` a citekey requires, so there is no failure mode to prevent. The omission is deliberate, not an oversight.
 
 ### Where the bibliography comes from
 
-A citekey is only checkable against a bibliography, and the path to that
-bibliography is resolved with the rule of whichever tool the note belongs to.
+A citekey is only checkable against a bibliography, and the path to that bibliography is resolved with the rule of whichever tool the note belongs to.
 
-A note's own front-matter `bibliography:` is resolved against **the note's own
-directory** — Quarto's rule — unless the note sits inside an Obsidian vault,
-meaning a directory carrying a `.obsidian` folder somewhere above it. Then it
-resolves against **the vault root** instead, because Obsidian citation plugins
-such as obsidian-pandoc-reference-list take that path as vault-relative. A vault
-declaring `bibliography: material/refs.bib` identically in a note two folders
-deep and one three folders deep is only consistent under the vault-relative
-reading; resolving against the note's own directory would send the deeper one
-looking for a file that is not there.
+A note's own front-matter `bibliography:` is resolved against **the note's own directory** — Quarto's rule — unless the note sits inside an Obsidian vault, meaning a directory carrying a `.obsidian` folder somewhere above it. Then it resolves against **the vault root** instead, because Obsidian citation plugins such as obsidian-pandoc-reference-list take that path as vault-relative. A vault declaring `bibliography: material/refs.bib` identically in a note two folders deep and one three folders deep is only consistent under the vault-relative reading; resolving against the note's own directory would send the deeper one looking for a file that is not there.
 
-A note with no front-matter `bibliography:` gets the one declared in the nearest
-`_quarto.yml` found by walking upward, resolved against that file's directory.
-The walk stops at the first `_quarto.yml` whether or not it declares one, since
-that file marks the project root and a project has no parent to inherit from.
-Scalar, flow-list and block-list forms are all accepted. `--bibliography` (or
-`-b`, repeatable) adds one explicitly.
+A note with no front-matter `bibliography:` gets the one declared in the nearest `_quarto.yml` found by walking upward, resolved against that file's directory. The walk stops at the first `_quarto.yml` whether or not it declares one, since that file marks the project root and a project has no parent to inherit from. Scalar, flow-list and block-list forms are all accepted. `--bibliography` (or `-b`, repeatable) adds one explicitly.
 
-When a bibliography was read, every citekey that resolves to no entry in it
-makes the run exit 1 — in either output format, since an unresolved key is a
-build failure waiting to happen whichever way you asked for the report. The
-text report lists each one with where it was cited. Entries never cited are
-listed too, as housekeeping, and fail nothing. `--no-citekey-check` turns both
-off.
+When a bibliography was read, every citekey that resolves to no entry in it makes the run exit 1 — in either output format, since an unresolved key is a build failure waiting to happen whichever way you asked for the report. The text report lists each one with where it was cited. Entries never cited are listed too, as housekeeping, and fail nothing. `--no-citekey-check` turns both off.
 
 ## Zotero
 
 ### `zotero.sqlite`
 
-The database is opened as `file:...?immutable=1`, and a `PRAGMA query_only = 1`
-is issued on the connection besides. This is your live library, and Zotero may
-be writing to it while bibaudit reads — this is the one file this tool touches
-that belongs to another application, so it gets belt and suspenders: the URI
-opens it as an unchangeable, read-only file, and the pragma makes a bug that
-ever slipped a write statement into that module fail loudly rather than corrupt
-a library.
+The database is opened as `file:...?immutable=1`, and a `PRAGMA query_only = 1` is issued on the connection besides. This is your live library, and Zotero may be writing to it while bibaudit reads — this is the one file this tool touches that belongs to another application, so it gets belt and suspenders: the URI opens it as an unchangeable, read-only file, and the pragma makes a bug that ever slipped a write statement into that module fail loudly rather than corrupt a library.
 
-If a `-wal` or `-journal` sidecar exists, Zotero is mid-write and the main file
-may hold a torn page, so a copy is made in a temp directory and *that* is read.
-You get a warning saying so. The copy is not a synchronised point-in-time backup
-— no WAL checkpoint is forced — only a guarantee against reading a database
-while it is being written.
+If a `-wal` or `-journal` sidecar exists, Zotero is mid-write and the main file may hold a torn page, so a copy is made in a temp directory and *that* is read. You get a warning saying so. The copy is not a synchronised point-in-time backup — no WAL checkpoint is forced — only a guarantee against reading a database while it is being written.
 
-What is read: every item that is not an `attachment`, a `note` or an
-`annotation`, since a library with one article and three attached PDFs is one
-citation, not four. Trashed items are excluded. Field IDs and item-type IDs are
-resolved **by name** at read time, never hardcoded, because Zotero renumbers
-them across schema migrations and a library synced since 2015 has been through
-several.
+What is read: every item that is not an `attachment`, a `note` or an `annotation`, since a library with one article and three attached PDFs is one citation, not four. Trashed items are excluded. Field IDs and item-type IDs are resolved **by name** at read time, never hardcoded, because Zotero renumbers them across schema migrations and a library synced since 2015 has been through several.
 
-`Extra` is one of the fields read, because Zotero's item schema has no PMID
-field and `Extra` is where its own users, its translators and its PubMed import
-all put one, a labelled line at a time. A line the label `PMID` **opens at
-column zero** is a declaration and is read; nothing else in the box is. That
-rules out the `PMCID: PMC5860629` line which usually sits directly beneath it —
-a different identifier for a different index, and one whose label does not begin
-with `PMID` — and it rules out the free notes, call numbers and reading
-reminders the same box holds. The first declaration settles it: where that
-line's value is not PMID-shaped, the entry records no PMID rather than falling
-through to whatever number a later line names.
+`Extra` is one of the fields read, because Zotero's item schema has no PMID field and `Extra` is where its own users, its translators and its PubMed import all put one, a labelled line at a time. A line the label `PMID` **opens at column zero** is a declaration and is read; nothing else in the box is. That rules out the `PMCID: PMC5860629` line which usually sits directly beneath it — a different identifier for a different index, and one whose label does not begin with `PMID` — and it rules out the free notes, call numbers and reading reminders the same box holds. The first declaration settles it: where that line's value is not PMID-shaped, the entry records no PMID rather than falling through to whatever number a later line names.
 
-The indent is part of the rule and not pedantry. `efetch` wraps at 80 columns
-and continues a field six spaces in, so MEDLINE back-matter pasted into this box
-puts a bare `PMID:` at the start of a continuation line — and the number there
-belongs to the correction, the comment or the retraction notice being cited *at*
-the work, never to the work itself. Zotero writes its own declaration at column
-zero.
+The indent is part of the rule and not pedantry. `efetch` wraps at 80 columns and continues a field six spaces in, so MEDLINE back-matter pasted into this box puts a bare `PMID:` at the start of a continuation line — and the number there belongs to the correction, the comment or the retraction notice being cited *at* the work, never to the work itself. Zotero writes its own declaration at column zero.
 
-Only the personal library — "My Library" — is read. Item keys and collection
-names are unique only *within* a library, so merging a group library into the
-personal one would file one library's work under another's key. Group libraries
-that hold readable items are named in a warning rather than silently dropped,
-because "scoped away" and "nothing there" otherwise produce the identical empty
-report. To check one, export it from Zotero as CSL JSON and pass the file.
+Only the personal library — "My Library" — is read. Item keys and collection names are unique only *within* a library, so merging a group library into the personal one would file one library's work under another's key. Group libraries that hold readable items are named in a warning rather than silently dropped, because "scoped away" and "nothing there" otherwise produce the identical empty report. To check one, export it from Zotero as CSL JSON and pass the file.
 
 ### `local`
 
-`bibaudit check local` talks to the Zotero desktop client's built-in HTTP API on
-`127.0.0.1:23119`, the same one Zotero's own browser connector uses. It is a
-read replica: it has no item-creation or item-modification routes, which is what
-makes calling it compatible with never writing to your library. Requests carry
-the `Zotero-Allowed-Request` header Zotero requires, results are paged, and the
-same non-bibliographic item types are skipped as on the SQLite path. This route,
-too, sees only the personal library — the local connector exposes nothing else.
-If Zotero is not running, or the "allow other applications to communicate with
-Zotero" setting is off, you get an error naming both, not an empty library.
+`bibaudit check local` talks to the Zotero desktop client's built-in HTTP API on `127.0.0.1:23119`, the same one Zotero's own browser connector uses. It is a read replica: it has no item-creation or item-modification routes, which is what makes calling it compatible with never writing to your library. Requests carry the `Zotero-Allowed-Request` header Zotero requires, results are paged, and the same non-bibliographic item types are skipped as on the SQLite path. This route, too, sees only the personal library — the local connector exposes nothing else. If Zotero is not running, or the "allow other applications to communicate with Zotero" setting is off, you get an error naming both, not an empty library.
 
 ### CSL-JSON
 
-There is no separate CSL-JSON adapter: a `.json` path goes to the Zotero
-adapter, which decides what it is holding by looking at the items themselves. An
-item carrying `itemType` is Zotero's own item JSON — the shape its API and its
-connector return; CSL calls that same concept `type` and never has an
-`itemType`, which makes it a safe discriminator, since a false positive would
-require a CSL producer to invent a field the CSL spec forbids. Reading one shape
-as the other would not fail loudly, it would produce items with every field
-empty, which is exactly the outcome worth spending a discriminator on.
+There is no separate CSL-JSON adapter: a `.json` path goes to the Zotero adapter, which decides what it is holding by looking at the items themselves. An item carrying `itemType` is Zotero's own item JSON — the shape its API and its connector return; CSL calls that same concept `type` and never has an `itemType`, which makes it a safe discriminator, since a false positive would require a CSL producer to invent a field the CSL spec forbids. Reading one shape as the other would not fail loudly, it would produce items with every field empty, which is exactly the outcome worth spending a discriminator on.
 
-From a CSL item, bibaudit reads `DOI`, `PMID`, `ISBN`, `URL`, `title`,
-`container-title`, `volume`, `issue`, `page`, `publisher`, and the year out of
-`issued` — from
-`date-parts`, or from the `raw`/`literal` forms a processor falls back to when
-it could not decompose a date. An item carries the `PMID` variable only where
-whatever wrote the file recognised the value as that variable; everything else
-in the item's `Extra` goes to CSL's `note` verbatim, newlines and labels intact,
-which is where a PMID typed by hand into Zotero's Extra box normally lands. So
-`note` is read as a fallback and a labelled `PMID: 11959894` line is taken out
-of it — one library exports both shapes, and reading only the dedicated variable
-leaves the hand-typed half on the floor, which is exactly the half nothing else
-has checked. The dedicated variable wins where both are present, because a
-`note` is free text that may also be quoting the PMID of a correction or a
-companion paper.
+From a CSL item, bibaudit reads `DOI`, `PMID`, `ISBN`, `URL`, `title`, `container-title`, `volume`, `issue`, `page`, `publisher`, and the year out of `issued` — from `date-parts`, or from the `raw`/`literal` forms a processor falls back to when it could not decompose a date. An item carries the `PMID` variable only where whatever wrote the file recognised the value as that variable; everything else in the item's `Extra` goes to CSL's `note` verbatim, newlines and labels intact, which is where a PMID typed by hand into Zotero's Extra box normally lands. So `note` is read as a fallback and a labelled `PMID: 11959894` line is taken out of it — one library exports both shapes, and reading only the dedicated variable leaves the hand-typed half on the floor, which is exactly the half nothing else has checked. The dedicated variable wins where both are present, because a `note` is free text that may also be quoting the PMID of a correction or a companion paper.
 
-The label has to open its line at column zero, in a `note` and in an `Extra`
-block alike. A note is also where MEDLINE back-matter gets pasted — `Comment in:
-JAMA. 2003;289:2560. PMID: 12759325`, `Erratum in PMID: 12237289`, and the
-indented continuation `efetch` wraps a `RIN` or `CIN` block onto — and where
-somebody writes `no PMID: 2017 reanalysis has one`. Every one of those names a
-document other than the one being cited, or no identifier at all, and with no
-DOI to outrank it the number would become the key the entry is resolved by. The
-retraction case is the sharpest: mining the wrapped number resolves a correct
-citation of a retracted paper to the *notice*, which is not itself retracted, so
-the entry is accused of naming the wrong work and nothing says the work it does
-name was pulled. Where the first labelled line holds something that is not
-PMID-shaped, the entry is read as recording no PMID rather than as declaring
-whichever number a later line mentions.
+The label has to open its line at column zero, in a `note` and in an `Extra` block alike. A note is also where MEDLINE back-matter gets pasted — `Comment in: JAMA. 2003;289:2560. PMID: 12759325`, `Erratum in PMID: 12237289`, and the indented continuation `efetch` wraps a `RIN` or `CIN` block onto — and where somebody writes `no PMID: 2017 reanalysis has one`. Every one of those names a document other than the one being cited, or no identifier at all, and with no DOI to outrank it the number would become the key the entry is resolved by. The retraction case is the sharpest: mining the wrapped number resolves a correct citation of a retracted paper to the *notice*, which is not itself retracted, so the entry is accused of naming the wrong work and nothing says the work it does name was pulled. Where the first labelled line holds something that is not PMID-shaped, the entry is read as recording no PMID rather than as declaring whichever number a later line mentions.
 
-`author` is used when present and `editor`
-substituted when it is not, the same rule the other two Zotero paths apply, and
-a creator written as a CSL `literal` stays one collective author rather than
-being torn into a given and a family name. `literal` is also the only creator
-field a truncated byline can be written into, so a `literal` reading `et al.`
-or `and others` — the same set BibTeX's `and others` is recognised against —
-is read as the marker it is rather than as an organisation. That marker says
-the stored list is short on purpose: its length is not compared against the
-registry's, while every name actually written down still is, so a byline
-naming the wrong first author is reported exactly as it would be without one.
-A bare top-level array is the usual shape; `{"items": [...]}`, as some export
-tools write, is accepted too.
+`author` is used when present and `editor` substituted when it is not, the same rule the other two Zotero paths apply, and a creator written as a CSL `literal` stays one collective author rather than being torn into a given and a family name. `literal` is also the only creator field a truncated byline can be written into, so a `literal` reading `et al.` or `and others` — the same set BibTeX's `and others` is recognised against — is read as the marker it is rather than as an organisation. That marker says the stored list is short on purpose: its length is not compared against the registry's, while every name actually written down still is, so a byline naming the wrong first author is reported exactly as it would be without one. A bare top-level array is the usual shape; `{"items": [...]}`, as some export tools write, is accepted too.
 
-Two things only a live source can do, because an export does not carry what they
-need. Filtering to a named collection: an export stores collections as opaque
-keys with no accompanying name table, so a name cannot be resolved from the file
-alone. And telling a trashed item from a live one: an export holds whatever was
-in the library when it was made, with no per-item flag left to read afterwards.
-Both are options on `read_zotero()`, the Python entry point behind all three
-Zotero routes, and asking for a collection by name against a `.json` file is an
-error rather than a filter that quietly matches nothing.
+Two things only a live source can do, because an export does not carry what they need. Filtering to a named collection: an export stores collections as opaque keys with no accompanying name table, so a name cannot be resolved from the file alone. And telling a trashed item from a live one: an export holds whatever was in the library when it was made, with no per-item flag left to read afterwards. Both are options on `read_zotero()`, the Python entry point behind all three Zotero routes, and asking for a collection by name against a `.json` file is an error rather than a filter that quietly matches nothing.
 
 ## PMIDs
 
-A PMID is read as an identifier in its own right, out of whichever field the
-source above keeps one in. Those fields divide into two kinds, and the division
-decides how much of what a file holds actually reaches the audit.
+A PMID is read as an identifier in its own right, out of whichever field the source above keeps one in. Those fields divide into two kinds, and the division decides how much of what a file holds actually reaches the audit.
 
-BibTeX's `pmid`, a PubMed-typed `eprint` and CSL's `PMID` variable are
-**declarations**: a field whose whole purpose is to hold this identifier, so
-whatever it holds is what the entry claims, and the only judgement made about it
-is the shape test below. A Zotero `Extra` box and a CSL `note` are **free text**
-that a PMID happens to be written into, so what the entry claims has to be read
-out of prose — and only a line the label `PMID` opens counts as a claim at all.
-A note can therefore hold a number this tool does not read, deliberately:
-`Erratum in PMID: 12237289` names a correction rather than the work being cited,
-and with no DOI to outrank it that number would become the key the entry is
-resolved by.
+BibTeX's `pmid`, a PubMed-typed `eprint` and CSL's `PMID` variable are **declarations**: a field whose whole purpose is to hold this identifier, so whatever it holds is what the entry claims, and the only judgement made about it is the shape test below. A Zotero `Extra` box and a CSL `note` are **free text** that a PMID happens to be written into, so what the entry claims has to be read out of prose — and only a line the label `PMID` opens counts as a claim at all. A note can therefore hold a number this tool does not read, deliberately: `Erratum in PMID: 12237289` names a correction rather than the work being cited, and with no DOI to outrank it that number would become the key the entry is resolved by.
 
-Once a number has been read, its route is forgotten and the rest of this section
-applies to it whole.
+Once a number has been read, its route is forgotten and the rest of this section applies to it whole.
 
-An entry carrying a PMID and no DOI is **resolved** by it. One `efetch` returns
-that MEDLINE citation and no other, where resolving a DOI costs an `esearch`
-and an `esummary` first — those two steps exist to turn a DOI into a PMID and
-to attribute the answer back to the DOI that asked, and an entry that stores
-its own PMID has already supplied both. It is not searched for by title and
-author, which is what an entry with no identifier gets: a similarity score
-against three registries, with a plausible lookalike as its failure mode, is a
-poor substitute for an exact answer the bibliography was already holding.
+An entry carrying a PMID and no DOI is **resolved** by it. One `efetch` returns that MEDLINE citation and no other, where resolving a DOI costs an `esearch` and an `esummary` first — those two steps exist to turn a DOI into a PMID and to attribute the answer back to the DOI that asked, and an entry that stores its own PMID has already supplied both. It is not searched for by title and author, which is what an entry with no identifier gets: a similarity score against three registries, with a plausible lookalike as its failure mode, is a poor substitute for an exact answer the bibliography was already holding.
 
-`efetch` coming back with no citation under that number is a `BAD-ID`, and
-[verdicts](verdicts.md) states how narrow that evidence is. `efetch` coming back
-with a citation under some *other* number, or failing outright, is `UNCHECKED`
-with an `identifier/inconclusive` finding naming what arrived instead: an answer
-about another record settles nothing about this one. PubMed being unreachable,
-or `--no-corroborate` having removed the only registry that could answer, is
-`UNCHECKED` as well, exactly as everywhere else in this tool.
+`efetch` coming back with no citation under that number is a `BAD-ID`, and [verdicts](verdicts.md) states how narrow that evidence is. `efetch` coming back with a citation under some *other* number, or failing outright, is `UNCHECKED` with an `identifier/inconclusive` finding naming what arrived instead: an answer about another record settles nothing about this one. PubMed being unreachable, or `--no-corroborate` having removed the only registry that could answer, is `UNCHECKED` as well, exactly as everywhere else in this tool.
 
-`TI - [Not Available].` is NLM stating that it holds no English title for a
-paper published in another language, and it is read as an empty field rather
-than as a title. The record's own `TT` — the transliterated title, which is
-what such a bibliography stores — is read instead.
+`TI - [Not Available].` is NLM stating that it holds no English title for a paper published in another language, and it is read as an empty field rather than as a title. The record's own `TT` — the transliterated title, which is what such a bibliography stores — is read instead.
 
-A PMID resolving to a **book** or a book chapter is compared like any other
-citation. NLM files those under different tags — the volume's title in `BTI`
-rather than `TI`, its editors in `FED`/`ED` rather than `FAU`/`AU`, and the
-date the contribution was filed and last revised in `CTDT` and `DRDT` beside
-the series' own `DP`. A chapter keeps its own `TI` and gains the volume as its
-container; a whole volume's record has `BTI` as its title and no container,
-because a work does not appear inside itself. `PB` is read by nothing: MEDLINE
-writes the place of publication into it where a bibliography writes the house,
-and there is no rule anywhere to absorb the difference.
+A PMID resolving to a **book** or a book chapter is compared like any other citation. NLM files those under different tags — the volume's title in `BTI` rather than `TI`, its editors in `FED`/`ED` rather than `FAU`/`AU`, and the date the contribution was filed and last revised in `CTDT` and `DRDT` beside the series' own `DP`. A chapter keeps its own `TI` and gains the volume as its container; a whole volume's record has `BTI` as its title and no container, because a work does not appear inside itself. `PB` is read by nothing: MEDLINE writes the place of publication into it where a bibliography writes the house, and there is no rule anywhere to absorb the difference.
 
-An entry carrying a PMID **and** a DOI is resolved by the DOI, and the same
-MEDLINE record is fetched once rather than twice under two keys. The PMID then
-has a different job: it looked nothing up, so it is a second, independent claim
-about which work is being cited, and it is compared against the PMID PubMed
-returns for the DOI. Two identifiers on one entry that name two different
-citations is reported as a warning, so the verdict is `INCOMPLETE` and the run
-still exits 0 — only one side of that comparison was looked up, and nothing here
-asks PubMed what the stored number names. `--fail-on INCOMPLETE` makes it bite,
-and prints it: a verdict named there is printed as well as failed, so the entry
-and its two numbers appear in the report that exits 1.
-[Why field-level](why.md) sets all of that against the DOI, which is the lookup
-key and can never be a failure.
+An entry carrying a PMID **and** a DOI is resolved by the DOI, and the same MEDLINE record is fetched once rather than twice under two keys. The PMID then has a different job: it looked nothing up, so it is a second, independent claim about which work is being cited, and it is compared against the PMID PubMed returns for the DOI. Two identifiers on one entry that name two different citations is reported as a warning, so the verdict is `INCOMPLETE` and the run still exits 0 — only one side of that comparison was looked up, and nothing here asks PubMed what the stored number names. `--fail-on INCOMPLETE` makes it bite, and prints it: a verdict named there is printed as well as failed, so the entry and its two numbers appear in the report that exits 1. [Why field-level](why.md) sets all of that against the DOI, which is the lookup key and can never be a failure.
 
-There is no check digit to test. A PMID is a sequential integer NLM assigns
-with no internal structure whatever, so nothing can be established about a
-stored one without asking PubMed. What is read is therefore a *rejection* and
-never a validation: a value carrying non-ASCII digits, a leading zero, or more
-digits than the widest PMID NLM has assigned is not PMID-shaped and is not
-treated as an identifier at all. It is not repaired either — a mistyped number
-falls through as "no PMID recorded", to whatever identifier the entry has left,
-rather than becoming a lookup that returns an authoritative absence about a
-number nobody meant to write.
+There is no check digit to test. A PMID is a sequential integer NLM assigns with no internal structure whatever, so nothing can be established about a stored one without asking PubMed. What is read is therefore a *rejection* and never a validation: a value carrying non-ASCII digits, a leading zero, or more digits than the widest PMID NLM has assigned is not PMID-shaped and is not treated as an identifier at all. It is not repaired either — a mistyped number falls through as "no PMID recorded", to whatever identifier the entry has left, rather than becoming a lookup that returns an authoritative absence about a number nobody meant to write.
 
 ## ISBNs
 
-An `isbn` field — BibTeX's `isbn`, Zotero's own ISBN field, CSL-JSON's `ISBN` —
-is read as an identifier in its own right, not as decoration. Most books never
-had a DOI minted at all, so a book is resolved through Open Library, the one
-registry in this tool organised around books rather than DOIs, exactly as a
-DOI-bearing entry is resolved through Crossref.
+An `isbn` field — BibTeX's `isbn`, Zotero's own ISBN field, CSL-JSON's `ISBN` — is read as an identifier in its own right, not as decoration. Most books never had a DOI minted at all, so a book is resolved through Open Library, the one registry in this tool organised around books rather than DOIs, exactly as a DOI-bearing entry is resolved through Crossref.
 
-Before anything is looked up, the ISBN is checked against its own check digit,
-per ISO 2108: the mod-11 weighted sum for a ten-character ISBN (where a trailing
-`X` stands for 10), the alternating-weight EAN-13 checksum for a thirteen-digit
-one. Hyphens and spaces are stripped first, so `0-201-63361-2` and `0201633612`
-are the same identifier. A valid ISBN-10 is converted to its ISBN-13 form by
-prefixing `978` to its first nine digits and computing a fresh check digit — a
-conversion only ever applied to a string that already validated, because
-converting a broken ISBN-10 would manufacture a plausible-looking ISBN-13 that
-resolves nowhere for a reason no report could explain.
+Before anything is looked up, the ISBN is checked against its own check digit, per ISO 2108: the mod-11 weighted sum for a ten-character ISBN (where a trailing `X` stands for 10), the alternating-weight EAN-13 checksum for a thirteen-digit one. Hyphens and spaces are stripped first, so `0-201-63361-2` and `0201633612` are the same identifier. A valid ISBN-10 is converted to its ISBN-13 form by prefixing `978` to its first nine digits and computing a fresh check digit — a conversion only ever applied to a string that already validated, because converting a broken ISBN-10 would manufacture a plausible-looking ISBN-13 that resolves nowhere for a reason no report could explain.
 
-An ISBN whose check digit fails is never sent to Open Library, and is not
-reported as a book Open Library does not have. It is reported as a malformed
-identifier, with a note saying it was not queried against any registry. That is
-a sibling of the distinction `BAD-ID` and `UNCHECKED` rest on (see
-[verdicts](verdicts.md)): a failed check digit is neither a fact about a
-registry's holdings nor ignorance about them — it is a defect in the
-bibliography's own data, provable without a network call.
+An ISBN whose check digit fails is never sent to Open Library, and is not reported as a book Open Library does not have. It is reported as a malformed identifier, with a note saying it was not queried against any registry. That is a sibling of the distinction `BAD-ID` and `UNCHECKED` rest on (see [verdicts](verdicts.md)): a failed check digit is neither a fact about a registry's holdings nor ignorance about them — it is a defect in the bibliography's own data, provable without a network call.
 
-The ISBN is consulted **only when neither a DOI nor a usable PMID is stored**.
-The order is `doi`, `pmid`, `isbn`, and an entry carrying more than one is
-resolved by the strongest of them, once — which also means
-a book matched by ISBN alone gets no retraction check, because Open Library
-mints no DOI for the retraction sources to be keyed on — so the entry carries a
-`status/not-asked` finding naming them. [Retraction](retraction.md) states that
-gap in full. `--no-isbn` skips Open Library entirely, at a cost
-worth knowing before you reach for it: a book stored with only an ISBN is then
-never looked up at all, and is reported `UNCHECKED` — nothing was verified about
-it. It does not fail the run, and it is not evidence against the book; it simply
-records that the one registry organised around books was not consulted.
+The ISBN is consulted **only when neither a DOI nor a usable PMID is stored**. The order is `doi`, `pmid`, `isbn`, and an entry carrying more than one is resolved by the strongest of them, once — which also means a book matched by ISBN alone gets no retraction check, because Open Library mints no DOI for the retraction sources to be keyed on — so the entry carries a `status/not-asked` finding naming them. [Retraction](retraction.md) states that gap in full. `--no-isbn` skips Open Library entirely, at a cost worth knowing before you reach for it: a book stored with only an ISBN is then never looked up at all, and is reported `UNCHECKED` — nothing was verified about it. It does not fail the run, and it is not evidence against the book; it simply records that the one registry organised around books was not consulted.
