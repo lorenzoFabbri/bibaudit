@@ -25,6 +25,7 @@ Two properties of the fixture database are deliberate traps and must not be
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import pathlib
 import re
@@ -2142,3 +2143,20 @@ class TestLocalApi:
         monkeypatch.setattr(urllib.request, "urlopen", fail)
         with pytest.raises(RuntimeError, match=r"HTTP 500"):
             read_zotero("local")
+
+    def test_the_error_response_is_closed(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """An ``HTTPError`` holds the server's open response, socket and all."""
+        body = io.BytesIO(b"server error")
+
+        def fail(request: urllib.request.Request, timeout: float | None = None) -> Any:
+            raise urllib.error.HTTPError(
+                request.full_url, 500, "Internal Server Error", {}, body  # type: ignore[arg-type]
+            )
+
+        monkeypatch.setattr(urllib.request, "urlopen", fail)
+        with pytest.raises(RuntimeError) as raised:
+            read_zotero("local")
+        # Held, so the garbage collector cannot close the body on our behalf.
+        error = raised.value.__cause__
+        assert isinstance(error, urllib.error.HTTPError)
+        assert body.closed

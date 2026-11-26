@@ -831,6 +831,8 @@ def _local_api_call(path: str, params: dict[str, str] | None = None) -> Any:
         with urllib.request.urlopen(request, timeout=_LOCAL_API_TIMEOUT_SECONDS) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
+        # The error holds the server's open response, which nothing reads.
+        exc.close()
         raise RuntimeError(
             f"the local Zotero API at {url} returned HTTP {exc.code} ({exc.reason})"
         ) from exc

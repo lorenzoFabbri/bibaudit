@@ -27,7 +27,7 @@ import time
 import urllib.error
 import urllib.request
 import warnings
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from datetime import UTC, datetime, timedelta
 from email.message import Message
 from pathlib import Path
@@ -134,6 +134,13 @@ class _Clock:
         self.now += seconds
 
 
+#: Every error :func:`_http_error` built during the current test. An
+#: ``HTTPError`` owns a response body, and Python 3.14 warns when one is
+#: collected unclosed; a test that scripts more errors than the client reaches
+#: leaves the rest for :func:`_close_scripted_errors`.
+_CREATED: list[urllib.error.HTTPError] = []
+
+
 def _http_error(
     code: int, *, retry_after: str | None = None, url: str = _URL
 ) -> urllib.error.HTTPError:
@@ -141,7 +148,16 @@ def _http_error(
     headers = Message()
     if retry_after is not None:
         headers["Retry-After"] = retry_after
-    return urllib.error.HTTPError(url, code, f"status {code}", headers, None)
+    error = urllib.error.HTTPError(url, code, f"status {code}", headers, None)
+    _CREATED.append(error)
+    return error
+
+
+@pytest.fixture(autouse=True)
+def _close_scripted_errors() -> Iterator[None]:
+    yield
+    while _CREATED:
+        _CREATED.pop().close()
 
 
 def _timeouts(count: int) -> list[TimeoutError]:
