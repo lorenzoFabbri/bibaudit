@@ -255,6 +255,13 @@ class Record:
     #: match against, and the corpus's one ``DISPUTED`` verdict was Crossref
     #: reported as disagreeing with PubMed about a title Crossref itself supplies.
     container_alternates: list[str] = field(default_factory=list)
+    #: The DOI of the work this one is part of, where the registry links one:
+    #: Crossref's ``relation.is-part-of``. A chapter's names its book, whose own
+    #: record holds the subtitle the chapter's ``container-title`` leaves out.
+    part_of: str | None = None
+    #: ISBN-13s the registry gives for the work, normalised. A chapter carries
+    #: its book's, which is how the book is found when no ``part_of`` is linked.
+    isbns: list[str] = field(default_factory=list)
     volume: str | None = None
     issue: str | None = None
     pages: str | None = None

@@ -76,6 +76,20 @@ fetched = 2026-08-10
 holds = "work"
 
 [[fixture]]
+file = "audit_crossref_book_with_subtitle.json"
+source = "crossref"
+id = "10.1007/978-1-4757-1229-2"
+url = "https://api.crossref.org/works/10.1007%2F978-1-4757-1229-2"
+fetched = 2026-11-26
+
+[[fixture]]
+file = "audit_crossref_chapter_container_without_subtitle.json"
+source = "crossref"
+id = "10.1007/978-1-4757-1229-2_14"
+url = "https://api.crossref.org/works/10.1007%2F978-1-4757-1229-2_14"
+fetched = 2026-11-26
+
+[[fixture]]
 file = "audit_crossref_sici_doi.json"
 source = "crossref"
 id = "10.1002/(sici)1099-1255(199611)11:6<619::aid-jae418>3.0.co;2-1"

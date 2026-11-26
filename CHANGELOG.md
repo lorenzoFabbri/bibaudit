@@ -12,6 +12,8 @@ A creator Crossref deposited malformed, where PubMed names that creator exactly 
 
 A book author missing from Open Library's linked author list, but named in the same record's transcription of the title page (`by_statement`), is no longer reported `authors/uncorroborated`. A warning that the two author counts differ remains. Tibshirani, on ISBN 0412042312, was failing the build.
 
+A chapter entry naming its book in full, subtitle included, matches. Crossref's `container-title` on a chapter omits the book's subtitle, so "AIDS Epidemiology: Methodological Issues" failed against "AIDS Epidemiology". When a chapter's container fails, bibaudit now fetches the book Crossref links to it (by `relation.is-part-of`, else by ISBN) and accepts the book's full title. It reports the match as `container/alternate-title` (info). That costs one more Crossref request per batch of such chapters, and none for the rest. A wrong subtitle still fails.
+
 ## [0.1.3] - 2026-11-26
 
 Two verdict changes, both towards reporting what was not checked and away from false mismatches.

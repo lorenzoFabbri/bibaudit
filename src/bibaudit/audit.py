@@ -632,103 +632,25 @@ def audit(refs: Sequence[Reference], options: AuditOptions | None = None) -> lis
     registries = _build(options)
     records, unreachable, inconclusive = resolve(refs, registries)
 
-    results: list[Result] = []
-    for ref in refs:
-        pmid = _pmid_key(ref)
-        isbn13 = normalize_isbn13(ref.isbn) if ref.isbn else None
-        if ref.doi:
-            found = records.get(normalize_doi(ref.doi), {})
-            result = compare(
-                ref,
-                found,
-                thresholds=options.thresholds,
-                unreachable=unreachable,
-                asked=_asked_registries(ref, found, unreachable, options),
-            )
-        elif pmid:
-            found = records.get(pmid, {})
-            result = compare(
-                ref,
-                found,
-                thresholds=options.thresholds,
-                unreachable=unreachable,
-                # PubMed alone, and only when there is a PubMed to ask.
-                # Crossref is not asked because a PMID is not a Crossref key,
-                # and ``--no-corroborate`` leaves nothing at all to ask, so
-                # naming it would claim an authoritative "no such record"
-                # nobody obtained — the same trap ``--no-isbn`` sets on a book
-                # below, and the empty set is what makes ``compare`` report
-                # UNCHECKED instead of accusing the entry.
-                asked={"pubmed"} if registries.pubmed is not None else set(),
-                # PubMed answering *around* this number is not PubMed saying
-                # it holds no such record, and only the latter may reach the
-                # BAD-ID branch — see ``PubMed.by_pmids``.
-                inconclusive=(
-                    {"pubmed": inconclusive[pmid]} if pmid in inconclusive else None
-                ),
-            )
-        elif isbn13:
-            found = records.get(isbn13, {})
-            result = compare(
-                ref,
-                found,
-                thresholds=options.thresholds,
-                unreachable=unreachable,
-                # Under ``--no-isbn`` there is no OpenLibrary to query, so
-                # naming it would claim it was asked and held nothing. The
-                # empty set is what makes ``compare`` report UNCHECKED instead
-                # of accusing a book whose ISBN nobody looked up.
-                asked={"openlibrary"} if registries.openlibrary is not None else set(),
-            )
-        elif ref.isbn:
-            # The ISBN is present but its check digit fails: a fact about the
-            # bibliography's own data, provable without asking a registry.
-            # `compare`'s ordinary "no record found" path assumes a registry
-            # was consulted and had nothing (see its `doi/unresolved` note);
-            # reusing it unmodified here would claim OpenLibrary was asked
-            # about this book and does not have it, when in truth nothing was
-            # ever queried — see `OpenLibrary.normalize_isbn13`.
-            result = compare(ref, {}, thresholds=options.thresholds, asked=set())
-            if result.issues:
-                result.issues[0].field = "isbn"
-                result.issues[0].kind = "malformed"
-                result.issues[0].severity = "error"
-                result.issues[0].note = (
-                    "ISBN fails its check digit; treated as a malformed "
-                    "identifier, not queried against any registry"
-                )
-            # Both this branch and `--no-isbn` hand `compare` an empty `asked`,
-            # and they must not share a verdict. There, a registry could have
-            # answered and was not consulted, so the entry is UNCHECKED. Here
-            # the check digit is arithmetic on the stored value and it failed:
-            # no registry's answer could change that, so it is a finding about
-            # the bibliography rather than a gap in coverage.
-            result.verdict = "BAD-ID"
-        elif options.search_unidentified:
-            # Offline runs take this path too. The search goes through the same
-            # Client, which either serves a cached response or raises Transient
-            # without touching the network, so an uncached entry ends up
-            # UNCHECKED — exactly what --offline promises. Skipping the search
-            # outright instead handed the entry to compare() with an empty
-            # `unreachable` set, and an offline run over a bibliography whose
-            # entries carry no DOIs reported every one of them as UNCONFIRMED,
-            # a *failing* verdict, having consulted nothing at all. Worse, the
-            # verdict was not even stable: adding one DOI-bearing entry to the
-            # same file turned those same entries into UNCHECKED, because that
-            # other entry's outage was what populated `unreachable`.
-            result = _audit_unidentified(ref, registries, options, unreachable)
-        else:
-            # ``--no-search`` on an entry with no identifier: nothing was looked
-            # up, and the empty set says so rather than leaving every registry
-            # to be inferred as "not asked" by accident.
-            result = compare(
-                ref,
-                {},
-                thresholds=options.thresholds,
-                unreachable=unreachable,
-                asked=set(),
-            )
+    def result_for(ref: Reference) -> Result:
+        return _result_for(ref, records, unreachable, inconclusive, registries, options)
 
+    results = [result_for(ref) for ref in refs]
+
+    # Registry records fetched only for the entries the first comparison could
+    # not clear, and the comparison then run again on what they add. Audit reads
+    # which issues were raised and never judges a field itself.
+    revisions = _add_parent_book_titles(refs, results, records, registries)
+    for index, ref in enumerate(refs):
+        doi = normalize_doi(ref.doi) if ref.doi else ""
+        if doi in revisions.revised:
+            results[index] = result_for(ref)
+        elif doi in revisions.unreachable:
+            for issue in results[index].issues:
+                if issue.field == "container" and issue.kind == "mismatch":
+                    issue.note = "the book's own record could not be reached"
+
+    for result in results:
         if options.suppressions and options.suppressions.apply(result):
             # Issues were adjudicated away, so the verdict must be re-derived by
             # the same rule that produced it, never patched up ad hoc.
@@ -745,8 +667,197 @@ def audit(refs: Sequence[Reference], options: AuditOptions | None = None) -> lis
                 # field must never change what the tool concludes about another.
                 authors_ok=result.verdict != "WRONG-WORK",
             )
-        results.append(result)
     return results
+
+
+@dataclass(slots=True)
+class _Revisions:
+    """DOIs whose records a second pass changed, and DOIs it could not reach for."""
+
+    revised: set[str] = field(default_factory=set)
+    unreachable: set[str] = field(default_factory=set)
+
+
+def _add_parent_book_titles(
+    refs: Sequence[Reference],
+    results: Sequence[Result],
+    records: dict[str, dict[str, Record]],
+    registries: _Registries,
+) -> _Revisions:
+    """Give a chapter's Crossref record its book's full title, where it failed on it.
+
+    Crossref's ``container-title`` on a chapter is its book's ``title`` without
+    the book's ``subtitle``, which Crossref holds in a separate field of the
+    book's own record: 10.1007/978-1-4757-1229-2_14 carries "AIDS
+    Epidemiology", and the book, 10.1007/978-1-4757-1229-2, "AIDS
+    Epidemiology" and "Methodological Issues". So a chapter entry naming the
+    book in full was a ``container/mismatch``.
+
+    Only for an entry whose comparison raised exactly that, and whose Crossref
+    record links a book: by ``relation.is-part-of`` (88 of 100 chapters sampled
+    on 2026-11-26), else by ISBN (7 more). The book's title, joined with its
+    subtitle as every Crossref title is, is added to the chapter's
+    ``container_alternates`` — a name Crossref itself holds for the container,
+    matched exactly like a second ``container-title``, so a wrong subtitle still
+    fails. A book that cannot be reached leaves the finding standing and says
+    so; it never clears it.
+    """
+    revisions = _Revisions()
+    by_part_of: dict[str, str] = {}
+    by_isbns: dict[str, list[str]] = {}
+    for ref, result in zip(refs, results, strict=True):
+        if not ref.doi or not any(
+            i.field == "container" and i.kind == "mismatch" for i in result.issues
+        ):
+            continue
+        doi = normalize_doi(ref.doi)
+        chapter = records.get(doi, {}).get("crossref")
+        if chapter is None:
+            continue
+        if chapter.part_of:
+            by_part_of[doi] = chapter.part_of
+        elif chapter.isbns:
+            by_isbns[doi] = chapter.isbns
+    if not by_part_of and not by_isbns:
+        return revisions
+
+    books_by_doi: dict[str, Record] = {}
+    books_by_isbn: dict[str, Record] = {}
+    if by_part_of:
+        try:
+            books_by_doi = registries.crossref.by_dois(sorted(set(by_part_of.values())))
+        except Transient:
+            revisions.unreachable.update(by_part_of)
+    if by_isbns:
+        try:
+            books_by_isbn = registries.crossref.books_by_isbns(
+                sorted({isbn for isbns in by_isbns.values() for isbn in isbns})
+            )
+        except Transient:
+            revisions.unreachable.update(by_isbns)
+
+    found: dict[str, Record] = {
+        doi: book for doi, parent in by_part_of.items() if (book := books_by_doi.get(parent))
+    }
+    for doi, isbns in by_isbns.items():
+        book = next((books_by_isbn[i] for i in isbns if i in books_by_isbn), None)
+        if book is not None:
+            found[doi] = book
+    for doi, book in found.items():
+        chapter = records[doi]["crossref"]
+        if not book.title or book.title in chapter.container_alternates:
+            continue
+        records[doi]["crossref"] = replace(
+            chapter, container_alternates=[*chapter.container_alternates, book.title]
+        )
+        revisions.revised.add(doi)
+    return revisions
+
+
+def _result_for(
+    ref: Reference,
+    records: dict[str, dict[str, Record]],
+    unreachable: set[str],
+    inconclusive: dict[str, tuple[str, ...]],
+    registries: _Registries,
+    options: AuditOptions,
+) -> Result:
+    """Compare one reference against whatever :func:`resolve` found for it."""
+    pmid = _pmid_key(ref)
+    isbn13 = normalize_isbn13(ref.isbn) if ref.isbn else None
+    if ref.doi:
+        found = records.get(normalize_doi(ref.doi), {})
+        result = compare(
+            ref,
+            found,
+            thresholds=options.thresholds,
+            unreachable=unreachable,
+            asked=_asked_registries(ref, found, unreachable, options),
+        )
+    elif pmid:
+        found = records.get(pmid, {})
+        result = compare(
+            ref,
+            found,
+            thresholds=options.thresholds,
+            unreachable=unreachable,
+            # PubMed alone, and only when there is a PubMed to ask.
+            # Crossref is not asked because a PMID is not a Crossref key,
+            # and ``--no-corroborate`` leaves nothing at all to ask, so
+            # naming it would claim an authoritative "no such record"
+            # nobody obtained — the same trap ``--no-isbn`` sets on a book
+            # below, and the empty set is what makes ``compare`` report
+            # UNCHECKED instead of accusing the entry.
+            asked={"pubmed"} if registries.pubmed is not None else set(),
+            # PubMed answering *around* this number is not PubMed saying
+            # it holds no such record, and only the latter may reach the
+            # BAD-ID branch — see ``PubMed.by_pmids``.
+            inconclusive=(
+                {"pubmed": inconclusive[pmid]} if pmid in inconclusive else None
+            ),
+        )
+    elif isbn13:
+        found = records.get(isbn13, {})
+        result = compare(
+            ref,
+            found,
+            thresholds=options.thresholds,
+            unreachable=unreachable,
+            # Under ``--no-isbn`` there is no OpenLibrary to query, so
+            # naming it would claim it was asked and held nothing. The
+            # empty set is what makes ``compare`` report UNCHECKED instead
+            # of accusing a book whose ISBN nobody looked up.
+            asked={"openlibrary"} if registries.openlibrary is not None else set(),
+        )
+    elif ref.isbn:
+        # The ISBN is present but its check digit fails: a fact about the
+        # bibliography's own data, provable without asking a registry.
+        # `compare`'s ordinary "no record found" path assumes a registry
+        # was consulted and had nothing (see its `doi/unresolved` note);
+        # reusing it unmodified here would claim OpenLibrary was asked
+        # about this book and does not have it, when in truth nothing was
+        # ever queried — see `OpenLibrary.normalize_isbn13`.
+        result = compare(ref, {}, thresholds=options.thresholds, asked=set())
+        if result.issues:
+            result.issues[0].field = "isbn"
+            result.issues[0].kind = "malformed"
+            result.issues[0].severity = "error"
+            result.issues[0].note = (
+                "ISBN fails its check digit; treated as a malformed "
+                "identifier, not queried against any registry"
+            )
+        # Both this branch and `--no-isbn` hand `compare` an empty `asked`,
+        # and they must not share a verdict. There, a registry could have
+        # answered and was not consulted, so the entry is UNCHECKED. Here
+        # the check digit is arithmetic on the stored value and it failed:
+        # no registry's answer could change that, so it is a finding about
+        # the bibliography rather than a gap in coverage.
+        result.verdict = "BAD-ID"
+    elif options.search_unidentified:
+        # Offline runs take this path too. The search goes through the same
+        # Client, which either serves a cached response or raises Transient
+        # without touching the network, so an uncached entry ends up
+        # UNCHECKED — exactly what --offline promises. Skipping the search
+        # outright instead handed the entry to compare() with an empty
+        # `unreachable` set, and an offline run over a bibliography whose
+        # entries carry no DOIs reported every one of them as UNCONFIRMED,
+        # a *failing* verdict, having consulted nothing at all. Worse, the
+        # verdict was not even stable: adding one DOI-bearing entry to the
+        # same file turned those same entries into UNCHECKED, because that
+        # other entry's outage was what populated `unreachable`.
+        result = _audit_unidentified(ref, registries, options, unreachable)
+    else:
+        # ``--no-search`` on an entry with no identifier: nothing was looked
+        # up, and the empty set says so rather than leaving every registry
+        # to be inferred as "not asked" by accident.
+        result = compare(
+            ref,
+            {},
+            thresholds=options.thresholds,
+            unreachable=unreachable,
+            asked=set(),
+        )
+    return result
 
 
 def _audit_unidentified(

@@ -495,6 +495,14 @@ The opposite direction is a real, repeatable false positive, and nothing here co
 
 **Handling.** Not a suppression: `Record.container_alternates` carries the rest of the array, and `compare._check_scalar` accepts a stored value matching any of them, on the same principle as "any year the registry itself carries is acceptable". A `container/alternate-title` note at `info` severity states which one matched, because the reader is looking at a landing page headed with the other title. A container matching neither is still reported.
 
+## A chapter's container without its book's subtitle
+
+**What happens.** Crossref's `container-title` on a book chapter is its book's `title` alone. The book's `subtitle` is a separate field of the book's own record and never reaches the chapter's, so a chapter entry naming its book in full fails as `container/mismatch`.
+
+**Observed.** `10.1007/978-1-4757-1229-2_14` (Robins and Rotnitzky, stored as `robins1992recovery`) carries `"container-title": ["AIDS Epidemiology"]`. Its book, `10.1007/978-1-4757-1229-2`, carries `"title": ["AIDS Epidemiology"]` and `"subtitle": ["Methodological Issues"]`. Both are recorded in `tests/data/audit_crossref_chapter_container_without_subtitle.json` and `audit_crossref_book_with_subtitle.json`. In a random sample of 100 Crossref chapters on 2026-11-26, 88 link their book by `relation.is-part-of`, 7 more carry only its ISBN, and 4 carry neither. Of 38 linked books fetched, 14 have a subtitle.
+
+**Handling.** Not a suppression. When an entry's comparison reports `container/mismatch` and its Crossref record links a book, `audit._add_parent_book_titles` fetches the book, by the linked DOI or else by ISBN with `Crossref.books_by_isbns`, which asks for whole-book types only. The book's title, joined with its subtitle as every Crossref title is, is added to the chapter's `container_alternates`, and the entry is compared again, so a match is the `container/alternate-title` note described in the section above. Only entries that failed on the container cost a request. A wrong subtitle still fails. A book that cannot be reached leaves the finding standing, with the note "the book's own record could not be reached". A chapter carrying neither link (4 in the sample) is not helped.
+
 ## Journal names versus ISO abbreviations
 
 **What happens.** `Int J Cancer` versus `International Journal of Cancer`.

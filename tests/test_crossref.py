@@ -72,6 +72,54 @@ def _work(**overrides: Any) -> dict[str, Any]:
     return base
 
 
+class TestTheBookAChapterBelongsTo:
+    """10.1007/978-1-4757-1229-2_14 and its book, both as Crossref returns them."""
+
+    def _record(self, work: dict[str, Any]) -> Any:
+        client = _FakeClient(lambda url: {"message": {"items": [work]}})
+        [record] = Crossref(client).by_dois([work["DOI"]]).values()  # type: ignore[arg-type]
+        return record, client
+
+    def test_the_chapter_names_its_book_and_its_isbns(self) -> None:
+        record, client = self._record(_recorded("audit_crossref_chapter_container_without_subtitle.json"))
+
+        assert record.part_of == "10.1007/978-1-4757-1229-2"
+        assert record.isbns == ["9781475712315", "9781475712292"]
+        assert "relation" in unquote(client.urls[0])
+        assert "ISBN" in unquote(client.urls[0])
+
+    def test_a_work_with_neither_has_neither(self) -> None:
+        record, _ = self._record(_work())
+
+        assert (record.part_of, record.isbns) == (None, [])
+
+    def test_the_book_s_title_carries_its_subtitle(self) -> None:
+        record, _ = self._record(_recorded("audit_crossref_book_with_subtitle.json"))
+
+        assert record.title == "AIDS Epidemiology: Methodological Issues"
+
+    def test_books_by_isbns_asks_for_whole_books_only(self) -> None:
+        book = _recorded("audit_crossref_book_with_subtitle.json")
+        client = _FakeClient(lambda url: {"message": {"items": [book]}})
+
+        found = Crossref(client).books_by_isbns(["978-1-4757-1229-2", "9780471087052"])  # type: ignore[arg-type]
+
+        [url] = [unquote(u) for u in client.urls]
+        assert "isbn:9781475712292,isbn:9780471087052," in url
+        for kind in ("type:book", "type:monograph", "type:edited-book", "type:reference-book"):
+            assert kind in url
+        assert "book-chapter" not in url
+        assert set(found) == {"9781475712292"}
+        assert found["9781475712292"].doi == "10.1007/978-1-4757-1229-2"
+
+    def test_books_by_isbns_propagates_an_outage(self) -> None:
+        def down(url: str) -> None:
+            raise Transient("simulated")
+
+        with pytest.raises(Transient):
+            Crossref(_FakeClient(down)).books_by_isbns(["9781475712292"])  # type: ignore[arg-type]
+
+
 class TestRetractionDirection:
     """`updated-by` on a record means *that record* was retracted.
 

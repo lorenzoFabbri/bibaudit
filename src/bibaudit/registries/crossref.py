@@ -57,6 +57,7 @@ from urllib.parse import quote
 from ..model import Name, Record, Reference
 from ..normalize import clean, fold, normalize_doi
 from .http import Client, Transient
+from .openlibrary import normalize_isbn13
 
 __all__ = ["Crossref"]
 
@@ -78,8 +79,15 @@ _API_ROOT = "https://api.crossref.org"
 _SELECT_FIELDS = (
     "DOI,title,subtitle,author,editor,issued,published-print,"
     "published-online,container-title,short-container-title,volume,issue,"
-    "page,type,publisher,ISSN,update-to,updated-by"
+    "page,type,publisher,ISSN,ISBN,relation,update-to,updated-by"
 )
+
+#: Crossref's types for a whole book, which :meth:`Crossref.books_by_isbns`
+#: filters on. A chapter, part or section carries its book's ISBN too and is
+#: not what that lookup is for; Rubin's *Multiple Imputation for Nonresponse in
+#: Surveys* (10.1002/9780470316696) is a ``monograph``, so ``book`` alone misses
+#: it. From Crossref's ``/types`` list on 2026-11-26.
+_BOOK_TYPES = ("book", "monograph", "edited-book", "reference-book", "book-set")
 
 #: Crossref update-notice types that mean a work has been pulled back in some
 #: way, most to least severe. When a record's ``updated-by`` carries more
@@ -154,6 +162,35 @@ class Crossref:
                 if record.doi:
                     results[record.doi] = record
 
+        return results
+
+    def books_by_isbns(self, isbns: Sequence[str]) -> dict[str, Record]:
+        """Whole books Crossref holds under *isbns*, keyed by each ISBN-13 they carry.
+
+        Repeating the ``isbn:`` filter ORs it and the ``type:`` filters AND with
+        it, so one request answers a batch with books alone; a chapter carrying
+        the same ISBN is excluded by type. Crossref matches the unhyphenated
+        form only, which :func:`~.openlibrary.normalize_isbn13` produces. An
+        ISBN no book answers for is absent from the result; an outage raises
+        :class:`~.http.Transient`.
+        """
+        wanted = list(dict.fromkeys(i for raw in isbns if (i := normalize_isbn13(raw))))
+        results: dict[str, Record] = {}
+        types = ",".join(f"type:{kind}" for kind in _BOOK_TYPES)
+        for start in range(0, len(wanted), _BATCH_SIZE):
+            batch = wanted[start : start + _BATCH_SIZE]
+            filter_value = ",".join(f"isbn:{isbn}" for isbn in batch) + f",{types}"
+            url = (
+                f"{_API_ROOT}/works?rows={_BATCH_ROWS}&select={_SELECT_FIELDS}"
+                f"&filter={filter_value}"
+            )
+            payload = self._client.get_json(url)
+            items = (payload or {}).get("message", {}).get("items", [])
+            for item in items:
+                record = self._record_from_work(item)
+                for isbn in record.isbns:
+                    if isbn in batch:
+                        results.setdefault(isbn, record)
         return results
 
     def search(self, ref: Reference, rows: int = 5) -> list[Record]:
@@ -245,6 +282,8 @@ class Crossref:
             years=_years(work),
             container=_first(work.get("container-title")),
             container_alternates=_rest(work.get("container-title")),
+            part_of=_part_of(work),
+            isbns=_isbns(work),
             container_short=_first(work.get("short-container-title")),
             volume=_text(work.get("volume")),
             issue=_text(work.get("issue")),
@@ -255,6 +294,32 @@ class Crossref:
             retraction_kind=retraction_kind,
             raw=raw,
         )
+
+
+def _part_of(work: dict[str, Any]) -> str | None:
+    """The DOI ``relation.is-part-of`` names, or ``None``.
+
+    The first DOI-typed entry. Crossref writes the id as a ``doi.org`` URL,
+    which :func:`~bibaudit.normalize.normalize_doi` reduces to the bare DOI.
+    """
+    relation = work.get("relation")
+    entries = relation.get("is-part-of") if isinstance(relation, dict) else None
+    for entry in entries if isinstance(entries, list) else []:
+        if isinstance(entry, dict) and entry.get("id-type") == "doi":
+            doi = normalize_doi(str(entry.get("id") or ""))
+            if doi:
+                return doi
+    return None
+
+
+def _isbns(work: dict[str, Any]) -> list[str]:
+    """The work's ``ISBN`` array as validated ISBN-13s, order kept."""
+    out: list[str] = []
+    for raw in work.get("ISBN") or []:
+        isbn = normalize_isbn13(raw)
+        if isbn and isbn not in out:
+            out.append(isbn)
+    return out
 
 
 def _dedupe_normalized(dois: Sequence[str]) -> list[str]:

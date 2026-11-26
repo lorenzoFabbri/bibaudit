@@ -16,11 +16,12 @@ tests exist to catch.
 from __future__ import annotations
 
 import io
+import json
 import socket
 import urllib.request
 from collections.abc import Sequence
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from importlib import import_module
 from pathlib import Path
 from typing import Any
@@ -29,9 +30,10 @@ import pytest
 
 from bibaudit.adapters.bibtex import read_bibtex
 from bibaudit.audit import AuditOptions, audit, resolve
-from bibaudit.model import ANSWERED, NOT_ASKED, UNREACHABLE, Name, Record, Reference
+from bibaudit.model import ANSWERED, NOT_ASKED, UNREACHABLE, Name, Record, Reference, Result
 from bibaudit.normalize import normalize_doi
 from bibaudit.registries import pubmed as pubmed_client
+from bibaudit.registries.crossref import Crossref
 from bibaudit.registries.http import Cache, Client, Transient
 from bibaudit.registries.pubmed import PmidAnswers
 from bibaudit.registries.retractions import (
@@ -141,6 +143,12 @@ class _StubRegistry:
         self.client: object = None
         self.by_dois_calls: list[list[str]] = []
         self.by_pmids_calls: list[list[str]] = []
+        #: Crossref's whole books by ISBN-13 — ``Crossref.books_by_isbns``.
+        self.books: dict[str, Record] = {}
+        self.books_by_isbns_calls: list[list[str]] = []
+        #: Raise on the second and later ``by_dois`` calls only: the first pass
+        #: answers, and the lookup that follows it is the one that fails.
+        self.transient_after_first = False
 
     def make(self, client: object) -> _StubRegistry:
         """Constructor stand-in, so a test can see whether it was built at all."""
@@ -148,9 +156,15 @@ class _StubRegistry:
         self.client = client
         return self
 
+    def books_by_isbns(self, isbns: Sequence[str]) -> dict[str, Record]:
+        self.books_by_isbns_calls.append(list(isbns))
+        if self.transient or self.transient_after_first:
+            raise Transient(f"{self.name}: simulated outage")
+        return {isbn: self.books[isbn] for isbn in isbns if isbn in self.books}
+
     def by_dois(self, dois: Sequence[str]) -> dict[str, Record]:
         self.by_dois_calls.append(list(dois))
-        if self.transient:
+        if self.transient or (self.transient_after_first and len(self.by_dois_calls) > 1):
             raise Transient(f"{self.name}: simulated outage")
         # Answer only for what was asked, exactly as the real clients do: a stub
         # that volunteered records nobody requested would hide a routing bug.
@@ -885,6 +899,110 @@ class TestAbsenceIsDistinguishableFromIgnorance:
         assert alongside[0].verdict == "UNCHECKED"
         # This entry's own evidence did not change between the two runs.
         assert alongside[1].verdict == "UNCONFIRMED"
+
+
+def _recorded_crossref(fixture: str) -> Record:
+    """The ``Record`` the Crossref client builds from a recorded ``/works/`` response."""
+    work = json.loads((Path(__file__).parent / "data" / fixture).read_text(encoding="utf-8"))
+    return Crossref(client=None)._record_from_work(work["message"])  # type: ignore[arg-type]
+
+
+class TestAChapterWhoseBookHasASubtitle:
+    """Robins and Rotnitzky (1992): Crossref's container is the book's title alone."""
+
+    CHAPTER = "10.1007/978-1-4757-1229-2_14"
+    BOOK = "10.1007/978-1-4757-1229-2"
+
+    def _ref(self, booktitle: str) -> Reference:
+        return make_ref(
+            key="robins1992recovery",
+            kind="chapter",
+            doi=self.CHAPTER,
+            title=(
+                "Recovery of information and adjustment for dependent censoring "
+                "using surrogate markers"
+            ),
+            authors=[Name(family="Robins", given="James M."), Name(family="Rotnitzky", given="Andrea")],
+            year=1992,
+            container=booktitle,
+            volume=None,
+            issue=None,
+            pages="297--331",
+            publisher="Birkhäuser Boston",
+        )
+
+    def _crossref(self, *, linked: bool = True) -> _StubRegistry:
+        chapter = _recorded_crossref("audit_crossref_chapter_container_without_subtitle.json")
+        if not linked:
+            chapter = replace(chapter, part_of=None)
+        book = _recorded_crossref("audit_crossref_book_with_subtitle.json")
+        stub = _StubRegistry("crossref", records={self.CHAPTER: chapter, self.BOOK: book})
+        stub.books = dict.fromkeys(book.isbns, book)
+        return stub
+
+    def _run(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, booktitle: str,
+        crossref: _StubRegistry,
+    ) -> Result:
+        _install(monkeypatch, crossref=crossref)
+        [result] = audit(
+            [self._ref(booktitle)],
+            _options(tmp_path, corroborate=False, retraction_check=False),
+        )
+        return result
+
+    @staticmethod
+    def _container(result: Result) -> list[tuple[str, str]]:
+        return [(i.kind, i.severity) for i in result.issues if i.field == "container"]
+
+    def test_the_book_s_full_title_is_accepted(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        crossref = self._crossref()
+        result = self._run(monkeypatch, tmp_path, "AIDS Epidemiology: Methodological Issues", crossref)
+
+        assert self._container(result) == [("alternate-title", "info")]
+        assert not result.fails
+        assert crossref.by_dois_calls[1:] == [[self.BOOK]]
+
+    def test_a_wrong_subtitle_still_fails(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        result = self._run(
+            monkeypatch, tmp_path, "AIDS Epidemiology: Clinical Issues", self._crossref()
+        )
+
+        assert self._container(result) == [("mismatch", "error")]
+        assert result.fails
+
+    def test_a_container_that_already_matches_fetches_nothing_more(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        crossref = self._crossref()
+        self._run(monkeypatch, tmp_path, "AIDS Epidemiology", crossref)
+
+        assert len(crossref.by_dois_calls) == 1
+        assert crossref.books_by_isbns_calls == []
+
+    def test_a_chapter_with_no_link_finds_its_book_by_isbn(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        crossref = self._crossref(linked=False)
+        result = self._run(monkeypatch, tmp_path, "AIDS Epidemiology: Methodological Issues", crossref)
+
+        assert self._container(result) == [("alternate-title", "info")]
+        assert crossref.books_by_isbns_calls == [["9781475712292", "9781475712315"]]
+
+    def test_an_unreachable_book_leaves_the_finding_and_says_so(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        crossref = self._crossref()
+        crossref.transient_after_first = True
+        result = self._run(monkeypatch, tmp_path, "AIDS Epidemiology: Methodological Issues", crossref)
+
+        [issue] = [i for i in result.issues if i.field == "container"]
+        assert (issue.kind, issue.severity) == ("mismatch", "error")
+        assert issue.note == "the book's own record could not be reached"
 
 
 class TestRegistryRouting:
