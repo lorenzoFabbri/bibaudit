@@ -21,7 +21,7 @@ jobs:
           # than whatever is newest that morning. It does not avoid the
           # version-manifest fetch setup-uv makes on every job regardless, and
           # that fetch has a short timeout that has aborted a job.
-          version: "0.12.14"
+          version: "0.13.10"
       # The tag is the claim; this checks the package agrees with it before
       # anything is uploaded, because a version cannot be re-uploaded to PyPI.
       - name: Check the tag matches the packaged version
