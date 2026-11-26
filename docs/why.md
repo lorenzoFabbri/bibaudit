@@ -1,15 +1,14 @@
 # Why field-level
 
-"The DOI resolves" is precisely the check a wrong citation passes. A resolver answers one question — is this identifier registered — and a citation can be wrong in ways that leave the identifier perfectly registered.
+"The DOI resolves" is precisely the check a wrong citation passes. A resolver answers one question — is this identifier registered — and a citation can be wrong in ways that leave the identifier registered.
 
 ## What one audit found
 
-Of confirmed fabricated references in one audit of 53 published papers, 66% were works that do not exist. A DOI check catches those. But 27% were **real works with corrupted fields**, and 4% were **valid, resolving DOIs attached to the wrong paper**.[^taxonomy]
+Of confirmed fabricated references in one audit of 53 published papers, 66% were works that do not exist. A DOI check catches those. But 27% were real works with corrupted fields, and 4% were valid, resolving DOIs attached to the wrong paper.[^taxonomy]
 
-[^taxonomy]: Ansari, S., *Compound Deception in Elite Peer Review: A Failure Mode
-Taxonomy of 100 Fabricated Citations at NeurIPS 2025*, arXiv:2602.05930. The 100 citations appeared in 53 published papers, about 1% of that year's accepted papers; the taxonomy's remaining 3% are placeholder and semantic hallucinations.
+[^taxonomy]: Ansari, S., *Compound Deception in Elite Peer Review: A Failure Mode Taxonomy of 100 Fabricated Citations at NeurIPS 2025*, arXiv:2602.05930. The 100 citations appeared in 53 published papers, about 1% of that year's accepted papers; the taxonomy's remaining 3% are placeholder and semantic hallucinations.
 
-Those last two classes are the ones that survive review, and they survive for a structural reason rather than an accidental one. A reviewer checking a reference follows the DOI. It resolves. A real paper loads. Nothing about that transaction compares the year, the journal, the volume or the author list against what the bibliography actually says — and in the 27% case the paper that loads is the right one with a wrong year or a wrong journal beside it, while in the 4% case it is a different paper entirely, wearing a title and author list the entry never checked it against.
+Those last two classes are the ones that survive review, and they survive for a structural reason rather than an accidental one. A reviewer checking a reference follows the DOI. It resolves. A real paper loads. Nothing about that transaction compares the year, the journal, the volume or the author list against what the bibliography says. In the 27% case the paper that loads is the right one with a wrong year or a wrong journal beside it; in the 4% case it is a different paper entirely, and nobody compared its title and author list with the entry's.
 
 Both are invisible to every tool whose test is "does the identifier resolve". The first class is the only one that check can see.
 
@@ -21,13 +20,13 @@ Both are invisible to every tool whose test is "does the identifier resolve". Th
 title, authors, year, container, volume, issue, pages, publisher, pmid
 ```
 
-A stored field outside that tuple is never adjudicated: the DOI and the entry's own type are inspected, but neither can produce a mismatch, and the rest are read and left alone. Being explicit about that boundary is part of being honest about what "verified" means.
+A stored field outside that tuple is never adjudicated: the DOI and the entry's own type are inspected, but neither can produce a mismatch, and the rest are read and left alone. "Verified" in a report covers these nine fields and nothing else.
 
-The DOI is not on the list, and its absence is the point of this page in miniature. The DOI is the lookup *key*, not a field with two independent opinions to weigh: the registry record is in hand *because* the stored DOI resolved to it. When the record's own DOI differs anyway, the cause is a redirect or an alias — `doi.org` content-negotiates the JSTOR DOI to the publisher's own — and that is reported as a `doi/alias` note so a reader who looks the entry up by hand is not surprised by a different identifier. It can never be a failure.
+The DOI is not on the list, because it is the lookup *key*, not a field with two independent opinions to weigh: the registry record is in hand *because* the stored DOI resolved to it. When the record's own DOI differs anyway, the cause is a redirect or an alias — `doi.org` content-negotiates the JSTOR DOI to the publisher's own — and that is reported as a `doi/alias` note so a reader who looks the entry up by hand is not surprised by a different identifier. It can never be a failure.
 
-The PMID is on the list, and the contrast is the reason it is worth stating. An entry storing a PMID *beside* a DOI looked nothing up with it: the DOI fetched the record, so the PMID is a second, independent claim about which work is being cited, and PubMed answering for that DOI under a different number means the two identifiers name two citations.
+The PMID is on the list because, unlike the DOI, it is not the lookup key. When an entry stores a PMID *beside* a DOI, bibaudit looks nothing up with the PMID: the DOI fetched the record, so the PMID is a second, independent claim about which work is being cited, and PubMed answering for that DOI under a different number means the two identifiers name two citations.
 
-That is reported as a warning — verdict `INCOMPLETE`, exit code 0 — and the reason is the shape of the evidence rather than the size of the mistake. Only one side of the comparison was looked up: nothing asks PubMed what the *stored* number names, so a bibliography carrying a PMID that has since stopped answering, beside the right DOI, would fail a build on an inference. Such a number cannot be seen from this side at all — what comes back is the citation the DOI resolves to, which says nothing about a number nobody asked about. `--fail-on INCOMPLETE` is there for a project that wants the finding to bite; naming a verdict there prints its group too, so the entry is in the report that exits 1 rather than only under `--verbose`. [Registry artifacts](registry-artifacts.md) records what it would take to earn `error` back.
+That is reported as a warning — verdict `INCOMPLETE`, exit code 0 — and the reason is the shape of the evidence rather than the size of the mistake. Only one side of the comparison was looked up: nothing asks PubMed what the *stored* number names, so a bibliography carrying a PMID that has since stopped answering, beside the right DOI, would fail a build on an inference. Such a number cannot be seen from this side at all: what comes back is the citation the DOI resolves to, which says nothing about a number nobody asked about. `--fail-on INCOMPLETE` is there for a project that wants the finding to fail the run; naming a verdict there prints its group too, so the entry is in the report that exits 1 rather than only under `--verbose`. [Registry artifacts](registry-artifacts.md) records the evidence that would justify reporting the mismatch at `error`.
 
 It is checked only when there is something to check it against — an entry with no DOI is *resolved* by its PMID, and that PMID gets the DOI's treatment above — and never when the registry offered no PMID at all, whether because it was not asked, because it had nothing, or because it answered under more than one. Silence from PubMed never reads as PubMed contradicting you.
 
@@ -43,7 +42,7 @@ An entry that stores a DOI and no title cannot be caught in the third class — 
 
 ## The title bands
 
-`WRONG-WORK` rests on a similarity score, so the cut-offs are published rather than tuned in private. They live in `compare.Thresholds` and every one of them is a score from `normalize.similarity`, which folds both strings — stripping case, accents and punctuation — and then takes a `difflib.SequenceMatcher` ratio. A token-set measure was rejected because word order carries meaning in titles: *Effect of A on B* and *Effect of B on A* are different papers, and a set-based measure scores them identically.
+`WRONG-WORK` rests on a similarity score, so the cut-offs are published rather than tuned in private. They live in `compare.Thresholds` and every one of them is a score from `normalize.similarity`, which folds both strings (stripping case, accents and punctuation) and then takes a `difflib.SequenceMatcher` ratio. The measure is sensitive to word order because word order carries meaning in titles: *Effect of A on B* and *Effect of B on A* are different papers, and a set-based measure scores them identically.
 
 The best score against *any* consulted registry is the one used. PubMed and Crossref differ systematically in case and markup, and an entry matching either of them is describing the right paper.
 
@@ -51,7 +50,7 @@ The best score against *any* consulted registry is the one used. PubMed and Cros
 |---|---|---|
 | drift, at `info` — markup, a lost subtitle, an en-dash | 0.97 and above | 0.97 and above |
 | drift, as a warning with the score printed beside it | 0.85 to 0.97 | 0.75 to 0.97 |
-| the titles genuinely disagree: an error, so `FIELD-MISMATCH` | 0.55 to 0.85 | 0.45 to 0.75 |
+| the titles disagree: an error, so `FIELD-MISMATCH` | 0.55 to 0.85 | 0.45 to 0.75 |
 | candidate `WRONG-WORK` — see below | below 0.55 | below 0.45 |
 
 Books get the lower bar because book titles are recorded with far more variation between registries: subtitles, edition statements and series names come and go.
@@ -60,22 +59,22 @@ Two titles that are identical once folded never reach the bands at all: a differ
 
 ## Why a low title score is not by itself `WRONG-WORK`
 
-A single fuzzy number is not enough evidence to accuse a bibliography of pointing at the wrong paper. So the finding is cross-checked against the author list, which is compared in full — every position, not just the first, because comparing only the first author cannot see an invented co-author. If the author lists agree cleanly, the likelier explanation is a registry title defect — Crossref sometimes registers a shortened title, and the catalogue of such defects is in [registry defects](registry-artifacts.md) — and the verdict is downgraded to `FIELD-MISMATCH`. `WRONG-WORK` is reported only when the title is below the band *and* the author lists do not corroborate.
+A single fuzzy number is not enough evidence to accuse a bibliography of pointing at the wrong paper. So the finding is cross-checked against the author list, which is compared in full: every position, not only the first, because comparing only the first author cannot see an invented co-author. If the author lists agree cleanly, the likelier explanation is a registry title defect (Crossref sometimes registers a shortened title, and the catalogue of such defects is in [registry defects](registry-artifacts.md)), and the verdict is downgraded to `FIELD-MISMATCH`. `WRONG-WORK` is reported only when the title is below the band *and* the author lists do not corroborate.
 
 That downgrade is the third rule of this project applied to its most consequential verdict: a false alarm costs more than a miss, and "this citation points at a different paper" is the accusation most likely to be wrong about a bibliography that is merely awkward.
 
-The same instinct runs through the quieter checks, each of which exists to keep the field matrix from generating noise that would make it unreadable:
+The same rule governs the smaller checks, each of which exists to keep the field-by-field comparison from producing so much noise that nobody reads the report:
 
-- **Any date the registry itself carries is accepted.** An entry citing the online-first year of a work printed the following February is not wrong, so a year finding prints every date slot the registries hold rather than naming one "correct" year.
-- **First page only.** Closing pages disagree constantly and harmlessly between registries.
-- **Every container title the registries carry is accepted.** Crossref deposits both a series and a volume title for a book chapter, and a chapter citing either is citing a container Crossref named.
-- **An entry type that contradicts the resolved work's type is a warning, not a failure.** A `@book` whose DOI resolves to a journal article is nearly always citing a *review* of the book — worth surfacing, not worth breaking a build.
+- Any date the registry itself carries is accepted. An entry citing the online-first year of a work printed the following February is not wrong, so a year finding prints every date slot the registries hold rather than naming one "correct" year.
+- Only the first page is compared. Closing pages disagree constantly and harmlessly between registries.
+- Every container title the registries carry is accepted. Crossref deposits both a series and a volume title for a book chapter, and a chapter citing either is citing a container Crossref named.
+- An entry type that contradicts the resolved work's type is a warning, not a failure. A `@book` whose DOI resolves to a journal article is nearly always citing a *review* of the book, which is worth reporting but not worth breaking a build.
 
 ## When there is no identifier to resolve
 
-An entry carrying no identifier at all — no DOI, no PMID, no ISBN — cannot be checked by any resolver, which is the case a DOI check does not merely miss but cannot address. Those three are the whole set. A preprint is reached through the DOI its repository minted, `10.48550/arXiv.1706.03762` for an arXiv one, which DataCite answers for; a bare arXiv id sitting on its own in an entry is not read as an identifier and does not keep it out of this paragraph.
+An entry carrying no identifier at all — no DOI, no PMID, no ISBN — cannot be checked by any resolver, so a DOI check has nothing to work with. Those three are the whole set of identifiers. A preprint is reached through the DOI its repository minted, `10.48550/arXiv.1706.03762` for an arXiv one, which DataCite answers for. A bare arXiv id on its own is not read as an identifier, so an entry carrying only that is treated as having none.
 
-bibaudit searches for such an entry, and then holds every candidate — whoever found it — to the same bar in `compare.confirm_without_id`: a title similarity of at least 0.90, a first author that does not disagree, and — where the entry and the candidate both carry a year at all — a year within one of it, plus a work-type screen because searching for a book by title reliably turns up reviews of it. A candidate with a matching title and no author or year data whatsoever is refused outright, since there would be nothing left to corroborate the title with.
+bibaudit searches for such an entry, and then holds every candidate, whoever found it, to the same bar in `compare.confirm_without_id`: a title similarity of at least 0.90, a first author that does not disagree, and — where the entry and the candidate both carry a year at all — a year within one of it, plus a work-type screen because searching for a book by title reliably turns up reviews of it. A candidate with a matching title and no author or year data whatsoever is refused outright, since there would be nothing left to corroborate the title with.
 
 If nothing clears that bar, nothing is confirmed. The entry reports `UNCONFIRMED`, which means *needs review* and never *fabricated* — registry coverage has real gaps, and [limits](limits.md) states which.
 

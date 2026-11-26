@@ -19,10 +19,11 @@ Writing a suggestion changes no verdict and no exit code. The report is the same
 
 ## The two things that can be proposed
 
-Only two kinds of finding reach the suggested copy:
+Only two kinds of finding reach the suggested copy.
 
-- **A field the entry has no value for at all**, where a consulted registry supplied one. This is filling a gap, never adjudicating a disagreement. The fields that can be filled this way are `title`, `year`, `volume`, `number` (BibTeX's field for an issue number), `pages`, `publisher`, and the container — `journal` for an article, `booktitle` for a chapter, chosen by the entry's own type.
-- **A DOI for an entry that had none**, where the work was found by search and the candidate corroborated the stored title, first author and year. A candidate carrying a matching title and no author or year data at all to check it against is refused outright, because a title-only match is how a plausible-but-wrong work gets adopted. Only an entry carrying no identifier at all is searched for, so this is the one entry a DOI is ever proposed for: one storing a PMID or an ISBN is resolved by it, and a lookup answers the question a search was standing in for.
+The first is a field the entry has no value for at all, where a consulted registry supplied one. This fills a gap and never adjudicates a disagreement. The fields that can be filled this way are `title`, `year`, `volume`, `number` (BibTeX's field for an issue number), `pages`, `publisher`, and the container: `journal` for an article, `booktitle` for a chapter, chosen by the entry's own type.
+
+The second is a DOI for an entry that had none, where the work was found by search and the candidate corroborated the stored title, first author and year. A candidate carrying a matching title and no author or year data at all to check it against is refused outright, because a title-only match is how a plausible-but-wrong work gets adopted. Only an entry carrying no identifier at all is searched for, so this is the one entry a DOI is ever proposed for: one storing a PMID or an ISBN is resolved by it, and a lookup answers the question a search was standing in for.
 
 Given an entry that stores a correct title, author and year and nothing else, against a Crossref record carrying the rest, the suggested copy contains:
 
@@ -39,17 +40,17 @@ Given an entry that stores a correct title, author and year and nothing else, ag
 }
 ```
 
-Every other byte of the entry is preserved. The new lines are spliced in immediately before the closing brace, indented to match the first field line of that entry, with a comma added after the previous field only if it did not have one. It is a text edit rather than a reparse-and-reserialise because a BibTeX writer does not promise to reproduce a file's formatting byte for byte, and a diff that reformats fields nobody asked to change is exactly the noise this tool's third rule is against.
+Every other byte of the entry is preserved. The new lines are spliced in immediately before the closing brace, indented to match the first field line of that entry, with a comma added after the previous field only if it did not have one. It is a text edit rather than a reparse-and-reserialise because a BibTeX writer does not promise to reproduce a file's formatting byte for byte, and a diff that reformats fields nobody asked to change is the noise this tool's third rule is against.
 
 ## What is never touched
 
-**A field where the stored and registry values disagree.** That is the finding the tool exists to put in front of a person, not to resolve on its own — and the registry is not automatically the correct side of it; see [registry defects](registry-artifacts.md). A disagreement is recorded under some other kind — `mismatch`, `cosmetic`, `drift` — never as a missing value, so it is not in the set `--suggest` reads from at all. This is exclusion by construction, not a second filter that could be got wrong separately.
+A field where the stored and registry values disagree is never touched. That is the finding the tool exists to put in front of a person, not to resolve on its own, and the registry is not automatically the correct side of it; see [registry defects](registry-artifacts.md). A disagreement is recorded under some other kind (`mismatch`, `cosmetic`, `drift`), never as a missing value, so it is not in the set `--suggest` reads from at all. This is exclusion by construction, not a second filter that could be got wrong separately.
 
-**Anything suppressed, or explained as a known registry defect.** Both a `.bibaudit.toml` [adjudication](suppressions.md) and a documented registry artifact move the difference out of the result's issue list before `--suggest` ever sees the result, so there is again no "is this suppressed" check here to disagree with the one the report uses.
+Nor is anything suppressed or explained as a known registry defect. Both a `.bibaudit.toml` [adjudication](suppressions.md) and a documented registry artifact move the difference out of the result's issue list before `--suggest` ever sees the result, so there is again no "is this suppressed" check here to disagree with the one the report uses.
 
-**An identifier the entry does not carry, other than that one DOI.** A PMID is never proposed, and neither is an ISBN. The gap-filling above works from a `missing` finding, which is raised when the registry holds a value the entry omits — and no check raises one for either identifier: an entry with no PMID is making no claim about which PubMed citation it means, and the comparison has nothing to disagree with. Adding the number PubMed happens to hold would be the tool putting a second identifier into a bibliography on its own initiative, which is a different act from completing a field somebody started.
+No identifier the entry does not carry is proposed, other than that one DOI: never a PMID, and never an ISBN. The gap-filling above works from a `missing` finding, which is raised when the registry holds a value the entry omits — and no check raises one for either identifier: an entry with no PMID is making no claim about which PubMed citation it means, and the comparison has nothing to disagree with. Adding the number PubMed happens to hold would be the tool putting a second identifier into a bibliography on its own initiative, which is a different act from completing a field somebody started.
 
-**The author list, even when it is entirely missing.** The report prints a missing author list as the first three creators, semicolon-joined, in display form — right for a report, wrong for a `.bib` field. Writing that string into `author = {...}` would silently drop every author past the third and hand back an incomplete list disguised as a complete one, which is worse than proposing nothing. Filling it correctly needs the full author list in a correctly delimited form, which the result does not currently carry, so authors are not suggested.
+The author list is never proposed, even when it is entirely missing. The report prints a missing author list as the first three creators, semicolon-joined, in display form — right for a report, wrong for a `.bib` field. Writing that string into `author = {...}` would silently drop every author past the third and hand back an incomplete list disguised as a complete one, which is worse than proposing nothing. Filling it correctly needs the full author list in a correctly delimited form, which the result does not currently carry, so authors are not suggested.
 
 ## The header the generated file opens with
 
@@ -72,11 +73,11 @@ Every other byte of the entry is preserved. The new lines are spliced in immedia
 % ---------------------------------------------------------------------
 ```
 
-The registry list is the set of sources the proposed values actually came from in that run. The header is part of the file, so it is also the first thing in the `.diff`, ahead of the added field lines.
+The registry list is the set of sources the proposed values came from in that run. The header is part of the file, so it is also the first thing in the `.diff`, ahead of the added field lines.
 
 ## Scope and housekeeping
 
-Suggestions are written only for the BibTeX files a run actually read: those named on the command line or found by expanding a directory (`.bib` and `.bibtex`), those passed with `--bibliography`, and those a Quarto or Obsidian document points at — its own front matter, or the project's `_quarto.yml`. A reference read from a Zotero library has no `.bib` for a suggestion to be written beside, and Zotero is opened read-only in any case.
+Suggestions are written only for the BibTeX files a run read: those named on the command line or found by expanding a directory (`.bib` and `.bibtex`), those passed with `--bibliography`, and those a Quarto or Obsidian document points at — its own front matter, or the project's `_quarto.yml`. A reference read from a Zotero library has no `.bib` for a suggestion to be written beside, and Zotero is opened read-only in any case.
 
 Within a file, an entry is matched by citekey and rewritten only at a position confirmed by an exact match against its own source text. An entry whose position cannot be confirmed that way is left alone rather than spliced at a guessed offset.
 
@@ -86,4 +87,4 @@ A run with nothing to propose writes nothing and deletes nothing, so a `.suggest
 
 ## Applying it
 
-Read the `.diff`. Apply by hand only what you have checked against the registry yourself. The suggested file is a proposal from a tool that was never given the authority to decide your bibliography is the wrong side of a disagreement — and a value that is merely absent from your entry is still a value someone should look at before it becomes a citation.
+Read the `.diff`. Apply by hand only what you have checked against the registry yourself. The suggested file is a proposal from a tool that was never given the authority to decide your bibliography is the wrong side of a disagreement, and a value proposed only because your entry lacked it still needs a person to look at it before it becomes a citation.

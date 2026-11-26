@@ -28,7 +28,7 @@ Four keys are allowed inside an `[[ignore]]` table: `key`, `field`, `kind` and `
 
 An unexplained suppression is a finding deleted by someone unknown. A rule without a `reason`, or with one that is only whitespace, is refused — and one bad entry voids the whole file rather than loading the rest, because a partially loaded suppression file is a bibliography checked under rules nobody wrote down.
 
-Every way this file can be wrong ends in a single sentence naming the file, never a traceback: broken TOML, `[ignore]` written for `[[ignore]]`, a scalar, an entry that is not a table, a file that is not UTF-8. A fault inside one entry names its position as well — `.bibaudit.toml: [[ignore]] #2 has no 'reason'`; the faults that make the file as a whole unreadable can only name the file. The run exits `2` — the tool could not run — before anything is checked against a registry. An empty file, or one with only comments, is valid and silences nothing.
+Every way this file can be wrong ends in a single sentence naming the file, never a traceback: broken TOML, `[ignore]` written for `[[ignore]]`, a scalar, an entry that is not a table, a file that is not UTF-8. A fault inside one entry names its position as well, as in `.bibaudit.toml: [[ignore]] #2 has no 'reason'`; the faults that make the file as a whole unreadable can only name the file. The run exits `2`, meaning the tool could not run, before anything is checked against a registry. An empty file, or one with only comments, is valid and silences nothing.
 
 Put the evidence in the `reason`, and date it. It is the only thing a reader — including you, two years on — has to judge the decision by.
 
@@ -44,9 +44,9 @@ All three default to `"*"` and all three are shell-style globs:
 
 Both halves are printed in the report as `field/kind` on the line above the two values, so the pair to write is the pair you can read off the finding — as it reads *before* it is suppressed. A rule is matched against the original `kind`; the `suppressed:` prefix in the listing below is stamped on afterwards, and is never what a rule names.
 
-`kind` is what narrows a rule to the difference you actually adjudicated: `field = "pages"` alone also silences an entry that has *no* pages, and "the registry's page range is wrong" is not the same claim as "this entry needs no pages". Add `kind = "mismatch"` when that is what you meant.
+`kind` narrows a rule to the difference you adjudicated: `field = "pages"` alone also silences an entry that has *no* pages, and "the registry's page range is wrong" is not the same claim as "this entry needs no pages". Add `kind = "mismatch"` when that is what you meant.
 
-Matching is case-sensitive on every platform. `fnmatch` folds case through `os.path.normcase`, which is a no-op on POSIX and `str.lower` on Windows, so a rule written for `Smith2020` would have silenced `smith2020` on one machine and not the other — and two machines that disagree about whether a bibliography passes is not a reproducible verdict. Rules are tried in file order, and the first one that matches a difference is the one whose `reason` is attached to it.
+Matching is case-sensitive on every platform, because a verdict that depends on the machine is not reproducible. `fnmatch` folds case through `os.path.normcase`, which is a no-op on POSIX and `str.lower` on Windows, so under `fnmatch` a rule written for `Smith2020` would silence `smith2020` on Windows and not on Linux or macOS. Rules are tried in file order, and the first one that matches a difference is the one whose `reason` is attached to it.
 
 ## What the report does with it
 
@@ -72,11 +72,11 @@ matches the publisher's record. It does not and cannot verify that a cited
 work supports the statement it is attached to — that requires reading the paper.
 ```
 
-Without that flag the entry is not printed — there is nothing to act on — but the count stays, as `suppressed         1  (1 adjudicated here)  (--show-suppressed to list)`. The summary line always splits the total into registry defects and adjudications made here, because those are different amounts of assurance and a single number let the second hide inside the first. The JSON report carries the same split as `registry_artifacts` and `adjudicated`, and every suppressed difference appears in full under its entry's `suppressed` list.
+Without that flag the entry is not printed — there is nothing to act on — but the count stays, as `suppressed         1  (1 adjudicated here)  (--show-suppressed to list)`. The summary line always splits the total into registry defects and adjudications made here, because those are different amounts of assurance and a single number would let the second hide inside the first. The JSON report carries the same split as `registry_artifacts` and `adjudicated`, and every suppressed difference appears in full under its entry's `suppressed` list.
 
 ## `ADJUDICATED`, never `REGISTRY-ARTIFACT`
 
-An entry silenced by `.bibaudit.toml` reports [`ADJUDICATED`](verdicts.md). A difference explained by a [documented registry defect](registry-artifacts.md) reports `REGISTRY-ARTIFACT`. These were one verdict, and merging them made two incompatible claims indistinguishable: "the registry is known to be wrong here, reproducibly, and here is the write-up" versus "somebody on this project wrote a rule saying not to care". The first needs no reader. The second rests on a person's say-so and can rot, so it ranks higher, prints first of the two, and is coloured amber where the registry defect is green.
+An entry silenced by `.bibaudit.toml` reports [`ADJUDICATED`](verdicts.md). A difference explained by a [documented registry defect](registry-artifacts.md) reports `REGISTRY-ARTIFACT`. They are two verdicts because one would make two incompatible claims indistinguishable: "the registry is known to be wrong here, reproducibly, and here is the write-up" versus "somebody on this project wrote a rule saying not to care". Anyone can check the first against its write-up. The second rests on a person's say-so and can rot, so it ranks higher, prints first of the two, and is coloured amber where the registry defect is green.
 
 Neither verdict is in the default failing set. `--fail-on` can name `ADJUDICATED` if you want a build to stop until the file is re-reviewed.
 
@@ -92,7 +92,7 @@ Findings on the same entry that the rule does not name also stand: silencing `vo
 
 ## A rule can go stale
 
-Rename a citekey, re-export the bibliography from Zotero with a different key scheme, or wait for the registry to fix its record, and a rule stops matching anything. The report looks exactly the same as the day the difference was adjudicated — the difference is simply no longer being found.
+Rename a citekey, re-export the bibliography from Zotero with a different key scheme, or wait for the registry to fix its record, and a rule stops matching anything. The report looks the same as it did on the day the difference was adjudicated, because the difference is no longer being found.
 
 bibaudit tracks which rules have silenced something and exposes the ones that have not, but `bibaudit check` does not currently print them, and the report does not name the `.bibaudit.toml` it loaded. So nothing in a run will tell you that a rule went stale. Treat the file as something to re-read, keep the rules narrow, and keep the date in every `reason`.
 

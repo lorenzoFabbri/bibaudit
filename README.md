@@ -6,7 +6,7 @@
 
 **Documentation: <https://lorenzofabbri.github.io/bibaudit/>**
 
-Checks that every reference in a bibliography **exists** and that **every stored field matches the publisher's record** — title, every author, year, journal, volume, issue, pages, publisher, and a PMID stored beside a DOI — against Crossref, DataCite, PubMed and, for books, Open Library. Every reference that resolves **to a DOI** is also checked for retraction status against Retraction Watch's own export and PubMed's expression-of-concern cross-reference, independently of whatever a publisher happened to deposit with Crossref.
+bibaudit checks that every reference in a bibliography exists and that every stored field matches the publisher's record in Crossref, DataCite, PubMed and, for books, Open Library: title, every author, year, journal, volume, issue, pages, publisher, and a PMID stored beside a DOI. Every reference that resolves to a DOI is also checked for retraction against Retraction Watch's own export and PubMed's expression-of-concern cross-reference, neither of which depends on what a publisher deposited with Crossref.
 
 No language model is involved at any point. Every verdict is reproducible from the cached registry response, and any of them can be re-derived by hand.
 
@@ -45,19 +45,18 @@ work supports the statement it is attached to — that requires reading the pape
 
 ## Why not just check that the DOI resolves
 
-Because that is exactly the check a wrong citation passes. Of confirmed fabricated references in one audit of 53 published papers, 66% were works that do not exist — a DOI check catches those — but 27% were **real works with corrupted fields** and 4% were **valid, resolving DOIs attached to the wrong paper**.[^taxonomy] Those two classes are invisible to every "does the DOI resolve" tool, and they are the ones that survive review.
+A wrong citation passes that check. In one audit of 53 published papers, 66% of the confirmed fabricated references were works that do not exist, which a DOI check catches. But 27% were real works with corrupted fields, and 4% were valid, resolving DOIs attached to the wrong paper.[^taxonomy] A tool that only asks whether the DOI resolves cannot see either of those two classes, and they are the ones that survive review.
 
-[^taxonomy]: Ansari, S., *Compound Deception in Elite Peer Review: A Failure Mode
-Taxonomy of 100 Fabricated Citations at NeurIPS 2025*, arXiv:2602.05930. The 100 citations appeared in 53 published papers, about 1% of that year's accepted papers; the taxonomy's remaining 3% are placeholder and semantic hallucinations.
+[^taxonomy]: Ansari, S., *Compound Deception in Elite Peer Review: A Failure Mode Taxonomy of 100 Fabricated Citations at NeurIPS 2025*, arXiv:2602.05930. The 100 citations appeared in 53 published papers, about 1% of that year's accepted papers; the taxonomy's remaining 3% are placeholder and semantic hallucinations.
 
 ## Why it never rewrites your bibliography
 
-Most tools in this space (`betterbib`, `bibcure`, `rebiber`, and the Zotero metadata plugins) fetch the registry record and **overwrite your entry with it**. That is not verification. It destroys the evidence that there was ever a disagreement, and it assumes the registry is right — which it frequently is not:
+Most tools in this space (`betterbib`, `bibcure`, `rebiber`, and the Zotero metadata plugins) fetch the registry record and overwrite your entry with it. That is not verification. It destroys the evidence that there was ever a disagreement, and it assumes the registry is right, which it frequently is not:
 
 - Crossref returns `GÃ³mez` for *Gómez* when a deposit was mis-decoded.
 - *Environmental Health Perspectives* zero-pads article numbers (`027004`).
 - Some deposits carry a doubled `do(x)do(x)` from mangled MathML.
-- JSTOR DOIs content-negotiate to the publisher's own DOI — same work.
+- JSTOR DOIs content-negotiate to the publisher's own DOI for the same work.
 - Crossref sometimes registers a shortened title (Rubin 1986 as bare "Comment").
 
 bibaudit reports the disagreement, names the likely cause where it recognises one, and leaves the decision to you. `--suggest` can write a corrected copy *beside* the original for you to diff, but the original is never touched.
@@ -99,7 +98,18 @@ bibaudit check library.json          # a CSL-JSON export
 bibaudit check references.bib --format json --output audit.json
 ```
 
-Useful flags: `--offline` (cache only — for reproducing an earlier run), `--refresh` (ignore the cache), `--no-corroborate` (drop PubMed's second opinion; an entry resolved by its PMID alone then has no registry left to ask and reports `UNCHECKED`), `--no-retraction-check` (skip the independent Retraction Watch / PubMed expression-of-concern check — see [Retraction](#retraction) below), `--no-isbn` (skip Open Library entirely), `--verbose` (show cosmetic and informational findings), `--mailto you@example.org` (puts Crossref requests in the polite pool; no account or key needed anywhere in this tool), `--suggest` (propose fixes for missing fields — see below). Run `bibaudit check --help` for the full list, including `--no-europepmc`/`--no-openalex` for the sources consulted when confirming an entry that carries no identifier.
+Useful flags:
+
+- `--offline` reads the cache only, to reproduce an earlier run.
+- `--refresh` ignores the cache.
+- `--no-corroborate` drops PubMed's second opinion; an entry resolved by its PMID alone then has no registry left to ask and reports `UNCHECKED`.
+- `--no-retraction-check` skips the independent Retraction Watch and PubMed expression-of-concern check (see [Retraction](#retraction) below).
+- `--no-isbn` skips Open Library entirely.
+- `--verbose` shows cosmetic and informational findings.
+- `--mailto you@example.org` puts Crossref requests in the polite pool; nothing in this tool needs an account or a key.
+- `--suggest` proposes fixes for missing fields (see below).
+
+Run `bibaudit check --help` for the full list, including `--no-europepmc` and `--no-openalex`, which turn off sources consulted when confirming an entry that carries no identifier.
 
 ### Inputs
 
@@ -111,13 +121,13 @@ Useful flags: `--offline` (cache only — for reproducing an earlier run), `--re
 | CSL-JSON | every item |
 | `local` | a running Zotero, through its read-only local API |
 
-A note's own `bibliography:` front matter is resolved against the note's directory (Quarto's rule) unless the note sits inside an Obsidian vault (a directory carrying `.obsidian` above it), in which case it resolves against the vault root instead — matching how Obsidian citation plugins such as obsidian-pandoc-reference-list interpret that path.
+A note's own `bibliography:` front matter is resolved against the note's directory (Quarto's rule) unless the note sits inside an Obsidian vault (a directory carrying `.obsidian` above it), in which case it resolves against the vault root instead, as Obsidian citation plugins such as obsidian-pandoc-reference-list interpret that path.
 
-An entry's PMID is read as an identifier in its own right, out of the fields a PMID is actually kept in: BibTeX's `pmid`, or an `eprint` whose `eprinttype` says `pubmed`; CSL's own `PMID` variable; and a line a `PMID:` label opens in a Zotero `Extra` block or a CSL `note`, which is how a PMID gets recorded in a schema that has no field for one. The label has to open the line at column zero: the same box holds free notes and pasted MEDLINE back-matter, where `Comment in: JAMA. 2003;289:2560. PMID: 12759325` names a correction rather than the work being cited, and where `efetch`'s 80-column wrapping puts a bare `PMID:` at the start of an indented continuation. An entry carrying a PMID and no DOI is fetched from PubMed by that number — a single `efetch`, where resolving a DOI costs an `esearch` and an `esummary` first — instead of being searched for by title and author, which is a guess standing in for the exact answer the entry already handed the tool.
+An entry's PMID is read as an identifier in its own right, out of the fields a PMID is kept in: BibTeX's `pmid`, or an `eprint` whose `eprinttype` says `pubmed`; CSL's own `PMID` variable; and a line a `PMID:` label opens in a Zotero `Extra` block or a CSL `note`, which is how a PMID gets recorded in a schema that has no field for one. The label has to open the line at column zero: the same box holds free notes and pasted MEDLINE back-matter, where `Comment in: JAMA. 2003;289:2560. PMID: 12759325` names a correction rather than the work being cited, and where `efetch`'s 80-column wrapping puts a bare `PMID:` at the start of an indented continuation. An entry carrying a PMID and no DOI is fetched from PubMed by that number with a single `efetch`, where resolving a DOI costs an `esearch` and an `esummary` first. It is not searched for by title and author, because a search is a guess and the PMID already names the work exactly.
 
-An entry carrying **both** is resolved through the DOI, and the PMID becomes a field to check rather than a key: it looked nothing up, so it is a second, independent claim about which work is cited. When PubMed answers for that DOI under a different number the two identifiers name two citations, and the entry is reported `INCOMPLETE` — a warning, not a failure, because only one side of that comparison was looked up. Nothing asks PubMed what the *stored* number names, and a number that has since stopped answering is invisible from this side. `--fail-on INCOMPLETE` makes it bite, and prints it with the citekey and the locator: naming a verdict there brings its references into the report as well as into the exit code.
+An entry carrying both is resolved through the DOI, and the PMID becomes a field to check rather than a key: it looked nothing up, so it is a second, independent claim about which work is cited. When PubMed answers for that DOI under a different number, the two identifiers name two citations, and the entry is reported `INCOMPLETE`. That is a warning rather than a failure, because only one side of the comparison was looked up. Nothing asks PubMed what the *stored* number names, so a stored PMID that PubMed no longer answers for goes unnoticed. `--fail-on INCOMPLETE` makes the finding fail the run and prints it with the citekey and the locator, because naming a verdict there brings its references into the report as well as into the exit code.
 
-An entry's `isbn` field (BibTeX's `isbn`, Zotero's own field, CSL-JSON's `ISBN`) is read as an identifier in its own right, checked against its ISO 2108 check digit and resolved through Open Library — the one registry in this tool organised around books rather than DOIs. It is only ever consulted when neither a DOI nor a usable PMID is stored. The order is `doi`, `pmid`, `isbn`, and a reference carrying more than one is resolved by the strongest, once.
+An entry's `isbn` field (BibTeX's `isbn`, Zotero's own field, CSL-JSON's `ISBN`) is read as an identifier in its own right, checked against its ISO 2108 check digit and resolved through Open Library — the one registry in this tool organised around books rather than DOIs. It is consulted only when neither a DOI nor a usable PMID is stored. The order is `doi`, `pmid`, `isbn`, and a reference carrying more than one is resolved by the strongest, once.
 
 ## Verdicts
 
@@ -137,32 +147,32 @@ An entry's `isbn` field (BibTeX's `isbn`, Zotero's own field, CSL-JSON's `ISBN`)
 | `UNCHECKED` | nothing was verified: nobody answered, nobody was asked, or the record held nothing to compare | no |
 | `OK` | every checked field agrees | no |
 
-`RETRACTED` means the *cited work* was retracted. A retraction **notice** — the editorial statement itself — is an ordinary citable document and is never reported as one; citing it deliberately, in a paper about a retraction, is correct and the tool says nothing.
+`RETRACTED` means the *cited work* was retracted. A retraction *notice*, the editorial statement itself, is an ordinary citable document and is never reported as retracted. A paper about a retraction cites the notice correctly, and the tool says nothing about it.
 
-`ADJUDICATED` and `REGISTRY-ARTIFACT` are both non-failing and are deliberately separate. The second says a registry defect documented in [`docs/registry-artifacts.md`](docs/registry-artifacts.md) explains the difference, and is settled for everybody. The first says somebody on *this* project wrote a rule in `.bibaudit.toml` saying not to care — which rests on a person's say-so and can go stale when a citekey is renamed or a bibliography is re-exported. The summary counts them apart for the same reason.
+`ADJUDICATED` and `REGISTRY-ARTIFACT` are both non-failing and are deliberately separate. The second says a registry defect documented in [`docs/registry-artifacts.md`](docs/registry-artifacts.md) explains the difference, and is settled for everybody. The first says somebody on *this* project wrote a rule in `.bibaudit.toml` accepting the difference. That rests on one person's judgement, and it can go stale when a citekey is renamed or a bibliography is re-exported. The summary counts them apart for the same reason.
 
 Change what fails with `--fail-on RETRACTED,BAD-ID,WRONG-WORK`.
 
-A registry outage is `UNCHECKED`, never a failure. A check that breaks the build when Crossref has a bad afternoon is a check people learn to bypass.
+A registry outage is `UNCHECKED`, never a failure. A check that breaks the build whenever Crossref is briefly down is a check people learn to bypass.
 
 ### Retraction
 
-Retraction status is the **union over every registry that answered**, not the primary registry's opinion. Four sources carry it, the first two by whatever a publisher chose to deposit and the second two independently of it:
+Retraction status is the union over every registry that answered, not the primary registry's opinion. Four sources carry it. The first two depend on what a publisher chose to deposit, and the last two do not:
 
-- **Crossref**, through the `updated-by` relation, which includes whatever Retraction Watch linkage a publisher's own deposit agreed with closely enough for Crossref's pipeline to attach;
-- **PubMed**, through MEDLINE's `PT - Retracted Publication`, curated by NLM independently of the publisher;
-- **Retraction Watch's own export**, read directly rather than only as far as Crossref happens to surface it — a retraction Retraction Watch has logged but no publisher deposit ever linked is caught here, and would not be by the first bullet alone;
-- **PubMed's `ECI` cross-reference** ("Expression of Concern In:"), which MEDLINE records on the *concerning* paper's own entry and never as the `PT` value the second bullet reads, so a concern NLM knows about reaches the report only from here.
+- Crossref, through the `updated-by` relation, which includes any Retraction Watch linkage that a publisher's own deposit matched closely enough for Crossref's pipeline to attach;
+- PubMed, through MEDLINE's `PT - Retracted Publication`, which NLM curates independently of the publisher;
+- Retraction Watch's own export, read directly rather than only where Crossref surfaces it, so a retraction Retraction Watch has logged but no publisher deposit ever linked is caught here, where Crossref alone would miss it;
+- PubMed's `ECI` cross-reference ("Expression of Concern In:"), which MEDLINE records on the entry of the paper the concern is about and never as the `PT` value PubMed's retraction flag reads, so a concern NLM knows about reaches the report only from here.
 
-All four are checked for every reference that resolves to a DOI — one stored in the entry, or one carried by a candidate a title/author search confirmed, which is new to the run and gets checked on the spot. Two of them are keyed on a DOI; the other two are lines on the MEDLINE record itself. So an entry resolved by some other identifier reaches fewer of them, and not by anybody's discretion.
+All four are checked for every reference that resolves to a DOI, whether the DOI is stored in the entry or comes from a candidate that a title and author search confirmed during the run, in which case it is checked as soon as it is confirmed. Two of the sources are keyed on a DOI, and the other two are lines on the MEDLINE record itself, so an entry resolved by another identifier necessarily reaches fewer of them.
 
 A reference resolved by its **PMID** keeps both of PubMed's, because both arrive on the citation the lookup already returned: a retraction NLM indexed reports `RETRACTED`, and a concern NLM recorded reports as a concern. What it loses is Crossref's `updated-by` and Retraction Watch's export, each of which takes a DOI it does not carry. A book resolved through its **ISBN** alone loses all four, because Open Library mints no DOI for them to be keyed on. Neither entry reports a clean retraction result: both carry a `status/not-asked` finding naming the retraction sources the run did not ask — `crossref, retraction-watch` on the first, `crossref, pubmed, retraction-watch` on the second — and the run states it beside the banner.
 
-A retraction **either one source records alone is still reported**, and the finding names which one — "recorded by pubmed and not by crossref, which answered for this work and carries no retraction linkage" is a different message from "recorded by crossref, pubmed", and the first is also a bug report for the publisher. An expression of concern is reported too, under its own heading and never under the word *retracted*: the work stands, and citing it is legitimate once the notice has been read. A **correction** gets a third heading and does not fail the build at all — the work stands and has been amended, and the finding is there so a reader takes the numbers off the corrected version.
+A retraction that only one source records is still reported, and the finding names that source. "recorded by pubmed and not by crossref, which answered for this work and carries no retraction linkage" says something different from "recorded by crossref, pubmed", and the first is also a bug report for the publisher. An expression of concern is reported too, under its own heading and never under the word *retracted*: the work stands, and citing it is legitimate once the notice has been read. A correction gets a third heading and does not fail the build at all. The work stands and has been amended, and the finding tells a reader to take the numbers from the corrected version.
 
 If a registry that carries the signal could not be reached, or was never asked, the report says so beside the banner — *retraction status not corroborated for N reference(s)*, on one line per reason. Silence from a registry nobody could reach is not a clean bill of health, and neither is silence from one nobody asked. The second line goes on to say why nobody asked: a source that takes an identifier the entry does not carry will not be asked by any rerun, while one that had a key and was left out was left out by a flag.
 
-**Coverage is still not complete**, and reading a clean result as proof nothing here was ever retracted overstates what was checked. Crossref's and PubMed's own flags depend on a linkage having been deposited at all. Retraction Watch's database is community-maintained, not exhaustive, and its export is refetched at most every seven days, so a retraction logged there in the last few days may not yet be reflected. `--no-retraction-check` turns the independent pair off; a Crossref or PubMed record that itself carries a retraction linkage still fails regardless.
+Coverage is still incomplete, so a clean result does not prove that nothing here was ever retracted. Crossref's and PubMed's own flags depend on a linkage having been deposited at all. Retraction Watch's database is community-maintained, not exhaustive, and its export is refetched at most every seven days, so a retraction logged there in the last few days may not yet be reflected. `--no-retraction-check` turns off the Retraction Watch export and the PubMed expression-of-concern check; a Crossref or PubMed record that itself carries a retraction linkage still fails.
 
 ### What `consulted` records
 
@@ -176,7 +186,7 @@ Each result's `consulted` map says what each registry contributed, in three stat
 
 `crossref`, `datacite`, `pubmed` and `retraction-watch` are named on every reference whatever happened to them, so a source nobody asked reads as `not-asked` rather than as a key that is not there. Where the unasked source carries a retraction signal the reference also gets a `status/not-asked` finding, and the run states it beside the banner.
 
-`unreachable` is run-wide rather than per-reference: a registry that fell over while a *different* entry was being resolved is reported `unreachable` here too. That is pessimistic on purpose — it is the same set the `UNCHECKED` verdict is derived from, so the map always explains the verdict beside it.
+`unreachable` is run-wide rather than per-reference: a registry that fell over while a *different* entry was being resolved is reported `unreachable` here too. That is pessimistic on purpose: it is the same set the `UNCHECKED` verdict is derived from, so the map always explains the verdict beside it.
 
 ## Suppressing an adjudicated difference
 
@@ -189,7 +199,7 @@ field  = "authors"
 reason = "Crossref returns mojibake surnames; checked against the PDF 2026-07-30"
 ```
 
-A `reason` is required, and suppressed differences are still counted in the summary — the report always states how much is being taken on trust. An entry silenced this way reports `ADJUDICATED`, not `REGISTRY-ARTIFACT`: the tool will not let one project's decision read as a documented defect of the registry.
+A `reason` is required, and suppressed differences are still counted in the summary, so the report always states how much is being taken on trust. An entry silenced this way reports `ADJUDICATED`, not `REGISTRY-ARTIFACT`: the tool will not let one project's decision read as a documented defect of the registry.
 
 ## Proposing fixes with `--suggest`
 
@@ -202,7 +212,7 @@ For every `.bib` that has at least one fillable gap, this writes two files *besi
 - a field the entry has **no value for at all**, where a consulted registry supplied one (an `INCOMPLETE` entry's `missing` fields);
 - a proposed DOI for an entry that had none, confirmed by title, author and year corroboration.
 
-A field where the stored and registry values *disagree* is never touched — that is exactly the case this tool exists to surface to a human, not resolve on its own — and neither is anything suppressed or explained as a known registry defect (`REGISTRY-ARTIFACT`); both are excluded before `--suggest` ever sees them. The author list is also never filled in, even when it is entirely missing: the report's own `authors` value is truncated to the first three creators for display, and writing that into a `.bib` file would present an incomplete list as a complete one.
+A field where the stored and registry values *disagree* is never touched, because that disagreement is what this tool exists to show a person rather than settle itself. Neither is anything suppressed or explained as a known registry defect (`REGISTRY-ARTIFACT`); both are excluded before `--suggest` sees them. The author list is also never filled in, even when it is entirely missing: the report's own `authors` value is truncated to the first three creators for display, and writing that into a `.bib` file would present an incomplete list as a complete one.
 
 The suggested file opens with a comment stating it is generated, which registry each value came from, and that it must be reviewed before use. Read the diff; apply by hand only what you have checked against the registry yourself.
 
@@ -222,23 +232,23 @@ verify-refs:
 
 ## Reporting a wrong verdict
 
-Open an issue with the entry as stored, the DOI or ISBN, and what the tool said. Because every verdict is derived from a cached registry response, the cache file is usually enough to settle it: `bibaudit cache info` will tell you where it lives.
+Open an issue with the entry as stored, the DOI or ISBN, and what the tool said. Because every verdict is derived from a cached registry response, the cache file is usually enough to settle it: `bibaudit cache info` prints where it lives.
 
 ## What this does not do
 
 **bibaudit cannot tell you whether a cited work supports the claim it is attached to.** That is the failure mode no metadata check can reach, and it requires reading the paper. Every report says so.
 
-It also cannot prove a work does not exist — registry coverage has real gaps, particularly for pre-1990 work, grey literature and non-English publishing. Nor does resolving an identifier make a citation apt: a PMID that resolves establishes that NLM indexed a work under that number, and nothing whatever about whether that work says what the sentence citing it claims. A book with an ISBN is resolved through Open Library, whose catalogue is crowd-sourced and noticeably patchier than Crossref's: many records carry a title and nothing else, which is why a thin record can never *by itself* confirm a book that has no identifier at all — see `docs/registry-artifacts.md`. An entry nothing can confirm is reported as `UNCONFIRMED`, meaning *needs review*, never *fabricated*.
+It also cannot prove a work does not exist: registry coverage has real gaps, particularly for pre-1990 work, grey literature and non-English publishing. Nor does resolving an identifier make a citation apt: a PMID that resolves establishes that NLM indexed a work under that number, and nothing whatever about whether that work says what the sentence citing it claims. A book with an ISBN is resolved through Open Library, whose catalogue is crowd-sourced and noticeably patchier than Crossref's: many records carry a title and nothing else, which is why a thin record can never *by itself* confirm a book that has no identifier at all — see `docs/registry-artifacts.md`. An entry nothing can confirm is reported as `UNCONFIRMED`, meaning *needs review*, never *fabricated*.
 
 ## How this was built
 
-bibaudit was written with [Claude Code](https://claude.com/claude-code) — the implementation, the 1,894-test suite, and the adversarial review passes that found most of the defects it now guards against, including the ones described above.
+bibaudit was written with [Claude Code](https://claude.com/claude-code): the implementation, the 1,951-test suite, and the adversarial review passes that found most of the defects it now guards against, including the ones described above.
 
-That is worth stating precisely, because this tool's first rule is that **no language model is in the verdict path**. Those are different claims: a model helped write the comparison rules, and no model evaluates one.
+That needs stating precisely, because this tool's first rule is that **no language model is in the verdict path**. The two are different claims: a model helped write the comparison rules, and no model evaluates one.
 
 Every registry answer is saved to the cache verbatim — the URL that was asked, the timestamp, and the response body exactly as it arrived. The verdict is then computed from that stored response alone: fold the two titles, compare the first page, walk the author lists. Nothing in that path opens a socket or calls a model, which is what `CLAUDE.md`'s *comparison never performs I/O* enforces.
 
-So "re-derivable" is meant literally. If bibaudit reports a page mismatch, you can open the cache file, read the `page` field Crossref actually returned, and check the conclusion yourself — today, or in ten years, with no API key and nothing to run. That property is what the rule protects, and it does not depend on how the code was written.
+So "re-derivable" is meant literally. If bibaudit reports a page mismatch, you can open the cache file, read the `page` field as Crossref returned it, and check the conclusion yourself — today, or in ten years, with no API key and nothing to run. That property is what the rule protects, and it does not depend on how the code was written.
 
 The rules the work was held to are in [`CLAUDE.md`](CLAUDE.md).
 

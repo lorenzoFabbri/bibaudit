@@ -1,10 +1,10 @@
 # Home
 
-bibaudit checks that every reference in a bibliography **exists**, and that **every field stored for it matches the publisher's record** — title, every author, year, journal, volume, issue, pages, publisher, and a PMID stored beside a DOI — against Crossref, DataCite, PubMed and, for books, Open Library. Every reference that resolves **to a DOI** is also checked for retraction, against Retraction Watch's own export and PubMed's expression-of-concern cross-reference, independently of whatever a publisher happened to deposit with Crossref. Half the retraction sources are keyed on a DOI, so an entry resolved by a PMID or by an ISBN reaches fewer of them, and [limits](limits.md) says which. It reads `.bib` files, Quarto and Obsidian notes, Zotero libraries and CSL-JSON.
+bibaudit checks that every reference in a bibliography exists, and that every field stored for it matches the publisher's record in Crossref, DataCite, PubMed and, for books, Open Library: title, every author, year, journal, volume, issue, pages, publisher, and a PMID stored beside a DOI. Every reference that resolves to a DOI is also checked for retraction against Retraction Watch's own export and PubMed's expression-of-concern cross-reference, neither of which depends on what a publisher deposited with Crossref. Half the retraction sources are keyed on a DOI, so an entry resolved by a PMID or by an ISBN reaches fewer of them, and [limits](limits.md) says which. It reads `.bib` files, Quarto and Obsidian notes, Zotero libraries and CSL-JSON.
 
-**No language model is involved at any point.** Every verdict is reproducible from the cached registry response, and any single finding can be checked by hand against the record it came from. `--offline` never touches the network: a cached answer is replayed, and anything uncached or past its cache lifetime is reported `UNCHECKED` rather than guessed at. Registry answers are cached for `--cache-ttl` days — 90 by default — and the Retraction Watch index for seven, so a replay inside those windows re-derives the original report exactly, and one outside them re-derives an honestly narrower one.
+**No language model is involved at any point.** Every verdict is reproducible from the cached registry response, and any single finding can be checked by hand against the record it came from. `--offline` never touches the network: a cached answer is replayed, and anything uncached or past its cache lifetime is reported `UNCHECKED` rather than guessed at. Registry answers are cached for `--cache-ttl` days (90 by default) and the Retraction Watch index for seven. A replay inside those windows re-derives the original report exactly; one outside them re-derives a narrower report, in which whatever has expired reads `UNCHECKED`.
 
-**Nothing is ever written to your bibliography.** Not the `.bib`, not the `.qmd` or `.md`, not the Zotero database — which is opened read-only, because it is your live library and Zotero may be writing to it. bibaudit reports the disagreement and leaves the decision to you.
+**Nothing is ever written to your bibliography.** bibaudit never writes to the `.bib`, the `.qmd` or `.md`, or the Zotero database, which it opens read-only because it is your live library and Zotero may be writing to it. bibaudit reports the disagreement and leaves the decision to you.
 
 ## A run
 
@@ -41,10 +41,10 @@ work supports the statement it is attached to — that requires reading the pape
 
 What is in that report, and why:
 
-- `beral2003breast` is the **right work** — the DOI resolves, the title agrees — and the stored year is one no registry carries. Every date slot every registry does carry is printed rather than a single "correct" year, because an entry citing the online-first date when Crossref also holds a print date is right, and reporting it would be a false alarm.
-- `jones2020method` is `BAD-ID`: the DOI is well-formed and no registry that answered holds it. That is a fact about an answer, not a network failure. A registry that could not be reached leaves the reference `UNCHECKED`, never `BAD-ID` — confusing ignorance with absence is the one way this tool could accuse a real paper of not existing.
-- The third entry is `INCOMPLETE` and appears only in the summary: PubMed holds a volume the entry omits. Nothing to decide, so nothing is printed by default. Run with `--verbose` to see it.
-- `suppressed 1` is the Million Women Study entry, which stores the consortium as one collective author while Crossref splits the byline into people. That is a representation difference, not a defect, so it does not fail — but it is still counted, because a report that quietly drops what it decided not to tell you is not an audit. `--show-suppressed` prints it with both values.
+- `beral2003breast` is the right work (the DOI resolves and the title agrees), and the stored year is one no registry carries. The report prints every date slot the registries do carry rather than a single "correct" year, because an entry citing the online-first date when Crossref also holds a print date is right, and reporting it would be a false alarm.
+- `jones2020method` is `BAD-ID`: the DOI is well-formed and no registry that answered holds it. That is a fact about an answer, not a network failure. A registry that could not be reached leaves the reference `UNCHECKED`, never `BAD-ID`, because confusing ignorance with absence is the one way this tool could accuse a real paper of not existing.
+- The third entry is `INCOMPLETE` and appears only in the summary: PubMed holds a volume the entry omits. There is nothing to decide, so it is not printed by default. Run with `--verbose` to see it.
+- `suppressed 1` is the Million Women Study entry, which stores the consortium as one collective author while Crossref splits the byline into people. That is a difference in representation, not a defect, so it does not fail. It is still counted, because a report that silently drops what it chose not to show you is not an audit. `--show-suppressed` prints it with both values.
 - Every report ends with the sentence about what was *not* checked. It is not boilerplate to be skipped; see [what it cannot tell you](#what-it-cannot-tell-you).
 
 The run exits `1`, as it does when a bibliography entry cannot be read and so goes unaudited. Exit `2` means the tool could not run at all — bad arguments, an unreadable input, a broken config. A registry outage is neither: see [in CI](ci.md).
@@ -87,7 +87,7 @@ It also cannot prove that a work does not exist. Registry coverage has real gaps
 
 ## Start here
 
-- [Why field-level](why.md) — why "the DOI resolves" is precisely the check a wrong citation passes.
+- [Why field-level](why.md) — why "the DOI resolves" is the check a wrong citation passes.
 - [Inputs](inputs.md) — what is read out of `.bib`, Quarto and Obsidian notes, Zotero and CSL-JSON, and what is deliberately not read as a citation.
 - [Verdicts](verdicts.md) — all thirteen, and which ones break a build.
 - [Command line](cli.md) — every flag and what it costs to turn off.
@@ -98,10 +98,10 @@ The rest: [in CI](ci.md), [registry defects](registry-artifacts.md), [adjudicati
 
 ## The three rules
 
-1. **No model in the verdict path.** Not as a fallback, not for the hard cases, not behind a flag. A verdict must be reproducible from the cached registry response by anyone, indefinitely. Where a check cannot be made deterministic, the tool reports the uncertainty instead of resolving it.
+1. No model is in the verdict path: not as a fallback, not for the hard cases, not behind a flag. A verdict must be reproducible from the cached registry response by anyone, indefinitely. Where a check cannot be made deterministic, the tool reports the uncertainty instead of resolving it.
 
-2. **Report, never rewrite.** `betterbib`, `bibcure`, `rebiber` and the Zotero metadata plugins fetch the registry record and overwrite your entry with it. That is not verification: it destroys the evidence that there was ever a disagreement, and it assumes the registry is right, which it often is not — see [registry defects](registry-artifacts.md). bibaudit has no authority to decide which side is wrong. [`--suggest`](suggest.md) writes a *separate* file for you to diff; the original is never opened for writing.
+2. The tool reports and never rewrites. `betterbib`, `bibcure`, `rebiber` and the Zotero metadata plugins fetch the registry record and overwrite your entry with it. That is not verification: it destroys the evidence that there was ever a disagreement, and it assumes the registry is right, which it often is not (see [registry defects](registry-artifacts.md)). bibaudit has no authority to decide which side is wrong. [`--suggest`](suggest.md) writes a *separate* file for you to diff; the original is never opened for writing.
 
-3. **A false alarm costs more than a miss.** A report full of noise stops being read, and an unread report still looks like assurance. Every check ships with its known-benign exceptions — the collective author above is one — or it does not ship.
+3. A false alarm costs more than a miss. A report full of noise stops being read, and an unread report still looks like assurance. Every check ships with its known-benign exceptions, such as the collective author above, or it does not ship.
 
 Licensed MIT.
