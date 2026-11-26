@@ -40,6 +40,7 @@ command somebody has to run, never a file nobody knew to look at.
 from __future__ import annotations
 
 import csv
+import inspect
 import io
 import json
 import re
@@ -53,8 +54,9 @@ from urllib.parse import quote, urlencode
 import pytest
 
 from bibaudit.normalize import normalize_doi
-from bibaudit.registries import crossref, datacite, pubmed, retractions
+from bibaudit.registries import crossref, datacite, openlibrary, pubmed, retractions, search
 from bibaudit.registries.http import Client
+from bibaudit.registries.openlibrary import normalize_isbn13
 
 DATA = Path(__file__).parent / "data"
 MANIFEST = DATA / "PROVENANCE.toml"
@@ -69,7 +71,9 @@ _ALLOWED_KEYS = frozenset({"file", "source", "id", "url", "fetched", "holds", "s
 
 #: ``source`` values. ``"none"`` is a bibliography the tool *reads*: no
 #: registry answers for it, so nothing can re-fetch it.
-_SOURCES = frozenset({"pubmed", "crossref", "datacite", "retraction-watch", "none"})
+_SOURCES = frozenset(
+    {"pubmed", "crossref", "datacite", "openalex", "openlibrary", "retraction-watch", "none"}
+)
 
 _REGISTRIES = _SOURCES - {"none"}
 
@@ -147,6 +151,15 @@ _VOLATILE_DATACITE = frozenset(
 #: unchanged. Only the relationship witnessed moving is here; the rest are
 #: compared.
 _VOLATILE_DATACITE_RELATIONSHIPS = frozenset({"citations"})
+
+#: OpenAlex's timing of the request itself, under ``meta``: 37 ms and then
+#: 26 ms for one title search issued twice three seconds apart.
+_VOLATILE_OPENALEX_META = frozenset({"db_response_time_ms"})
+
+#: The search engine's score for each result, which moves with OpenAlex's
+#: index rather than with the work: 205.8494 and then 205.98607 for Borgan and
+#: Liestøl's 1990 note a day apart, every other field of the work unchanged.
+_VOLATILE_OPENALEX_WORK = frozenset({"relevance_score"})
 
 
 def _entries() -> list[dict[str, Any]]:
@@ -234,6 +247,41 @@ def datacite_doi(payload: object) -> str | None:
     return None
 
 
+def openalex_query(payload: object) -> str | None:
+    """The title an OpenAlex ``title.search`` response was asked for, or None.
+
+    OpenAlex echoes the parsed query under ``meta.x_query``, so the file names
+    its own request and a fixture filed under another title is caught offline.
+    """
+    if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
+        return None
+    meta = payload.get("meta")
+    query = meta.get("x_query") if isinstance(meta, dict) else None
+    oqo = query.get("oqo") if isinstance(query, dict) else None
+    rows = oqo.get("filter_rows") if isinstance(oqo, dict) else None
+    for row in rows if isinstance(rows, list) else []:
+        if isinstance(row, dict) and row.get("column_id") == "display_name.search":
+            value = row.get("value")
+            return value if isinstance(value, str) else None
+    return None
+
+
+def openlibrary_isbn(payload: object) -> str | None:
+    """The ISBN of a one-book Open Library ``/api/books`` response, or None.
+
+    One key, ``ISBN:<isbn>``, holding an edition (``/books/...``). A batch of
+    several books is not a fixture this manifest can name by one identifier.
+    """
+    if not isinstance(payload, dict) or len(payload) != 1:
+        return None
+    ((key, book),) = payload.items()
+    if not key.startswith("ISBN:") or not isinstance(book, dict):
+        return None
+    if not str(book.get("key") or "").startswith("/books/"):
+        return None
+    return key.removeprefix("ISBN:")
+
+
 def described_by(path: Path) -> tuple[str, str | None, str | None]:
     """``(source, identifier, holds)`` as the file itself shows them.
 
@@ -255,6 +303,10 @@ def described_by(path: Path) -> tuple[str, str | None, str | None]:
         return "datacite", doi, None
     if (found := crossref_doi(payload)) is not None:
         return "crossref", found[0], found[1]
+    if (title := openalex_query(payload)) is not None:
+        return "openalex", title, None
+    if (isbn := openlibrary_isbn(payload)) is not None:
+        return "openlibrary", isbn, None
     return "none", None, None
 
 
@@ -274,13 +326,24 @@ def expected_url(source: str, identifier: str | None) -> str:
         return f"{crossref._API_ROOT}/works/{quote(identifier or '', safe='')}"
     if source == "datacite":
         return f"{datacite._DOIS_URL}{quote(identifier or '', safe='/')}"
+    if source == "openalex":
+        rows = inspect.signature(search.Search.candidates).parameters["rows"].default
+        return (
+            f"{search._OPENALEX_URL}?filter=title.search:"
+            f"{quote(identifier or '', safe='')}&per_page={rows}"
+        )
+    if source == "openlibrary":
+        bibkeys = quote(f"ISBN:{identifier or ''}", safe=",:")
+        return f"{openlibrary._BOOKS_URL}?bibkeys={bibkeys}&format=json&jscmd=data"
     return retractions._RW_CSV_URL
 
 
 def same_identifier(source: str, claimed: str, found: str) -> bool:
     """Whether two identifiers name the same record, per *source*'s own rules."""
-    if source == "pubmed":
+    if source in {"pubmed", "openalex"}:
         return claimed == found
+    if source == "openlibrary":
+        return normalize_isbn13(claimed) is not None and normalize_isbn13(claimed) == normalize_isbn13(found)
     return normalize_doi(claimed) == normalize_doi(found)
 
 
@@ -576,7 +639,13 @@ def test_every_ignored_field_is_written_up_for_a_contributor() -> None:
     prose = RULES.read_text(encoding="utf-8")
     missing = sorted(
         field
-        for field in _VOLATILE_CROSSREF | _VOLATILE_DATACITE | _VOLATILE_DATACITE_RELATIONSHIPS
+        for field in (
+            _VOLATILE_CROSSREF
+            | _VOLATILE_DATACITE
+            | _VOLATILE_DATACITE_RELATIONSHIPS
+            | _VOLATILE_OPENALEX_META
+            | _VOLATILE_OPENALEX_WORK
+        )
         if f"`{field}`" not in prose
     )
 
@@ -805,6 +874,32 @@ class TestReadingAFixturesOwnAccountOfItself:
 
         assert datacite_doi(payload) == "10.24377/dteij.article3641"
 
+    def test_an_openalex_search_yields_the_title_it_was_asked_for(self) -> None:
+        payload = json.loads(
+            (DATA / "openalex_repository_venue_only.json").read_text(encoding="utf-8")
+        )
+
+        assert openalex_query(payload) == (
+            "The behavior of maximum likelihood estimates under nonstandard conditions"
+        )
+
+    def test_an_open_library_book_yields_its_isbn(self) -> None:
+        payload = json.loads(
+            (DATA / "openlibrary_by_statement_second_author.json").read_text(encoding="utf-8")
+        )
+
+        assert openlibrary_isbn(payload) == "9780412042317"
+
+    def test_an_open_library_batch_is_not_one_fixture(self) -> None:
+        """Two books under one request have no single identifier to file them by."""
+        book = {"key": "/books/OL1M"}
+
+        assert openlibrary_isbn({"ISBN:9780412042317": book, "ISBN:9780471829218": book}) is None
+
+    def test_an_isbn_written_in_the_other_length_is_the_same_isbn(self) -> None:
+        assert same_identifier("openlibrary", "0412042312", "9780412042317")
+        assert not same_identifier("openlibrary", "0412042313", "9780412042317")
+
     @pytest.mark.parametrize(
         "name", ["sample.bib", "zotero_native_items.json", "markdown_obsidian_note.md"]
     )
@@ -919,6 +1014,48 @@ def test_a_datacite_fixture_is_what_the_api_returns_today(
         f"{entry['file']}: "
         f"{_differing_keys(comparable_stored['data']['attributes'], comparable_answer['data']['attributes'])}"
     )
+
+
+def _openalex_comparable(payload: dict[str, Any]) -> dict[str, Any]:
+    """*payload* with OpenAlex's request timing and result scores taken out."""
+    return {
+        **payload,
+        "meta": _strip(dict(payload.get("meta") or {}), _VOLATILE_OPENALEX_META),
+        "results": [
+            _strip(dict(work), _VOLATILE_OPENALEX_WORK) for work in payload.get("results") or []
+        ],
+    }
+
+
+@pytest.mark.network
+@pytest.mark.parametrize("entry", _of_source("openalex"), ids=_ids(_of_source("openalex")))
+def test_an_openalex_fixture_is_what_the_api_returns_today(
+    entry: dict[str, Any], live: Client
+) -> None:
+    """The whole search answer, results in order, so a re-ranking is a difference."""
+    answer = live.get_json(str(entry["url"]))
+    assert answer is not None, f"{entry['file']}: OpenAlex answered nothing for {entry['id']!r}"
+
+    stored = json.loads((DATA / str(entry["file"])).read_text(encoding="utf-8"))
+    comparable_stored, comparable_answer = _openalex_comparable(stored), _openalex_comparable(answer)
+
+    assert comparable_stored == comparable_answer, (
+        f"{entry['file']}: {_differing_keys(comparable_stored, comparable_answer)}"
+    )
+
+
+@pytest.mark.network
+@pytest.mark.parametrize("entry", _of_source("openlibrary"), ids=_ids(_of_source("openlibrary")))
+def test_an_open_library_fixture_is_what_the_api_returns_today(
+    entry: dict[str, Any], live: Client
+) -> None:
+    """Compared whole: nothing in an edition record has been seen to move by itself."""
+    answer = live.get_json(str(entry["url"]))
+    assert answer, f"{entry['file']}: Open Library has no edition for ISBN {entry['id']}"
+
+    stored = json.loads((DATA / str(entry["file"])).read_text(encoding="utf-8"))
+
+    assert stored == answer, f"{entry['file']}: {_differing_keys(stored, answer)}"
 
 
 @pytest.mark.network

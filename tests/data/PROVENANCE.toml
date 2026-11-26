@@ -30,11 +30,13 @@
 # FIELDS
 #
 # file       basename in this directory.
-# source     "pubmed", "crossref", "datacite", "retraction-watch" — or "none"
-#            for a bibliography the tool reads rather than a registry answer.
-#            A "none" entry carries `note` in place of the fetch fields, and
-#            its file must not look like a registry response.
-# id         the PMID or DOI the response was requested under.
+# source     "pubmed", "crossref", "datacite", "openalex", "openlibrary",
+#            "retraction-watch" — or "none" for a bibliography the tool reads
+#            rather than a registry answer. A "none" entry carries `note` in
+#            place of the fetch fields, and its file must not look like a
+#            registry response.
+# id         the PMID, DOI or ISBN-13 the response was requested under, or for
+#            "openalex" the title its `title.search` asked for.
 # url        the exact GET that returns it, in the form built by the client in
 #            src/bibaudit/registries/. Checked against that code, so a URL
 #            pointing anywhere else fails.
@@ -181,6 +183,27 @@ source = "datacite"
 id = "10.24377/dteij.article3641"
 url = "https://api.datacite.org/dois/10.24377/dteij.article3641"
 fetched = 2026-08-10
+
+[[fixture]]
+file = "openalex_repository_venue_journal_elsewhere.json"
+source = "openalex"
+id = "A note on confidence intervals and bands for the survival function based on transformations"
+url = "https://api.openalex.org/works?filter=title.search:A%20note%20on%20confidence%20intervals%20and%20bands%20for%20the%20survival%20function%20based%20on%20transformations&per_page=5"
+fetched = 2026-11-26
+
+[[fixture]]
+file = "openalex_repository_venue_only.json"
+source = "openalex"
+id = "The behavior of maximum likelihood estimates under nonstandard conditions"
+url = "https://api.openalex.org/works?filter=title.search:The%20behavior%20of%20maximum%20likelihood%20estimates%20under%20nonstandard%20conditions&per_page=5"
+fetched = 2026-11-26
+
+[[fixture]]
+file = "openlibrary_by_statement_second_author.json"
+source = "openlibrary"
+id = "9780412042317"
+url = "https://openlibrary.org/api/books?bibkeys=ISBN:9780412042317&format=json&jscmd=data"
+fetched = 2026-11-26
 
 [[fixture]]
 file = "datacite_organizational_creator.json"

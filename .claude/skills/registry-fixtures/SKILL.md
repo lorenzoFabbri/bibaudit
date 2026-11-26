@@ -17,10 +17,13 @@ An entry is a claim by whoever wrote it. The offline suite establishes only that
 
 ## What the networked comparison ignores
 
-MEDLINE and the Retraction Watch rows are compared with nothing ignored. Two registries stamp their own record-keeping into the payload, and comparing on those would redden the check every week over values no deposit carries, until nobody ran it:
+MEDLINE and the Retraction Watch rows are compared with nothing ignored. Three registries stamp their own record-keeping into the payload, and comparing on those would redden the check every week over values no deposit carries, until nobody ran it:
 
 - Crossref: `indexed` and `deposited`, the index and last-deposit timestamps; `is-referenced-by-count`, a citation counter; and `link`, whose URL follows the publisher's hosting rather than the deposit.
 - DataCite: `updated`, and the aggregates `viewCount`, `downloadCount`, `citationCount`, `citationsOverTime`, `referenceCount`, `partCount`, `partOfCount`, `versionCount` and `versionOfCount`. One level over, under `data.relationships`, the same goes for `citations`, the list of citing records that `citationCount` counts, because comparing the list while ignoring the count would leave the check red for the same reason. Every other relationship is compared.
+- OpenAlex: `db_response_time_ms` under `meta`, the time OpenAlex took to answer this request; and `relevance_score` on each result, its search engine's score, which moves with the index rather than the work. The results are compared in order, so a re-ranking is reported.
+
+Open Library edition records are compared with nothing ignored.
 
 Everything else is compared, and a difference means the record was revised — re-fetch, read the diff, commit it — or the file was never that record. Widening this list hides a fabricated value, so it grows only for a field that is demonstrably the registry's own bookkeeping, and each addition is named here: `tests/test_fixture_provenance.py` fails the build for one that is not.
 
