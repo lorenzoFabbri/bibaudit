@@ -16,7 +16,9 @@ retry loop, and on the paths that give up.
 from __future__ import annotations
 
 import ast
+import contextlib
 import http.client
+import io
 import json
 import random
 import shutil
@@ -1783,3 +1785,21 @@ def test_a_network_marked_test_runs_only_when_selected(
     an empty set and the guarantee is untested as well as unenforced.
     """
     assert pytestconfig.getoption("markexpr") != "not network"
+
+
+class TestAnErrorResponseIsClosed:
+    """An ``HTTPError`` holds the server's open response, socket and all."""
+
+    @pytest.mark.parametrize("code", [404, 500])
+    def test_the_response_inside_the_error_is_closed(
+        self, code: int, transport: Callable[..., _Transport], sleeps: list[float]
+    ) -> None:
+        body = io.BytesIO(b"not found")
+        error = urllib.error.HTTPError(_URL, code, f"status {code}", Message(), body)
+        transport(error, *[_http_error(code) for _ in range(5)])
+
+        # A 404 is a fact and returns; a 500 retries and then gives up.
+        with contextlib.suppress(Transient):
+            _client().get_json(_URL)
+
+        assert body.closed

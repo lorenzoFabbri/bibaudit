@@ -479,6 +479,9 @@ class Client:
                     # `bytes | None` this method promises its callers.
                     return bytes(response.read())
             except urllib.error.HTTPError as exc:
+                # The error carries the server's open response; nothing reads
+                # its body, and left open its socket outlives the request.
+                exc.close()
                 if exc.code == 404:
                     return None
                 last_error = exc
