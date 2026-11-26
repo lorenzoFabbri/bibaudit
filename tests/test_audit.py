@@ -2270,6 +2270,12 @@ class TestResultShape:
         assert stubs.pubmed.by_dois_calls == []
 
 
+#: The warning a cold offline run issues once it holds a DOI: the Retraction
+#: Watch export is a network fetch like any other, and its absence is a gap
+#: in the retraction signal the run must state.
+_RW_OFFLINE = r"Retraction Watch data could not be fetched this run .*offline mode"
+
+
 class TestOfflineMode:
     """The real clients, offline, against an empty cache — not a mock of them.
 
@@ -2320,7 +2326,8 @@ class TestOfflineMode:
             make_ref(key="no_doi", doi=None),
         ]
 
-        results = audit(refs, _options(tmp_path, offline=True))
+        with pytest.warns(RuntimeWarning, match=_RW_OFFLINE):
+            results = audit(refs, _options(tmp_path, offline=True))
 
         assert [r.verdict for r in results] == ["UNCHECKED"] * 3
         assert Summary(results).exit_code() == 0
@@ -2332,7 +2339,10 @@ class TestOfflineMode:
         pins that a cold offline run leaves the cache exactly as it found it, so
         re-running it cannot produce a different answer the second time.
         """
-        results = audit([make_ref(), make_ref(key="b", doi=None)], _options(tmp_path, offline=True))
+        with pytest.warns(RuntimeWarning, match=_RW_OFFLINE):
+            results = audit(
+                [make_ref(), make_ref(key="b", doi=None)], _options(tmp_path, offline=True)
+            )
 
         assert all(r.verdict == "UNCHECKED" for r in results)
         assert list((tmp_path / "cache").rglob("*.json")) == []

@@ -675,7 +675,8 @@ class TestOffline:
         fixture makes any socket use raise. Everything uncached is therefore
         UNCHECKED, which is not a failure.
         """
-        assert main(check(tmp_path, str(bib), "--offline")) == 0
+        with pytest.warns(RuntimeWarning, match=r"Retraction Watch data could not be fetched"):
+            assert main(check(tmp_path, str(bib), "--offline")) == 0
         assert "UNCHECKED" in capsys.readouterr().out
 
     @pytest.fixture

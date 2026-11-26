@@ -102,6 +102,10 @@ testpaths = ["tests"]
 # written. Overriding it is `uv run pytest -m network` (or `-m ""` for both),
 # because a later -m wins.
 addopts = "-q --strict-markers -m 'not network'"
+# The tool's warnings are how it reports a defect it cannot turn into a
+# verdict, so a test that triggers one without asserting it has left a
+# reported defect unchecked. Erroring makes every warning part of a test.
+filterwarnings = ["error"]
 markers = [
     # Anything touching the network is opt-in: the default test run must pass
     # on a laptop with no connection, or people stop running it.

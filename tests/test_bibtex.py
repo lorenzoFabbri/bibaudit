@@ -12,6 +12,7 @@ anything a user will actually hand it.
 from __future__ import annotations
 
 import pathlib
+import re
 import warnings
 
 import pytest
@@ -261,13 +262,22 @@ class TestFailedBlocks:
         assert len(matches) == 1
         assert matches[0].title == "The entry that should survive"
 
-    def test_duplicate_citekey_raises_a_warning_naming_key_and_line(self) -> None:
-        with pytest.warns(RuntimeWarning, match=r"sample\.bib:68.*duplicate citekey 'dupkey2022'"):
+    @staticmethod
+    def _messages() -> list[str]:
+        with pytest.warns(RuntimeWarning) as caught:
             read_bibtex(_FIXTURE)
+        return [str(w.message) for w in caught]
+
+    def test_duplicate_citekey_raises_a_warning_naming_key_and_line(self) -> None:
+        assert any(
+            re.search(r"sample\.bib:68.*duplicate citekey 'dupkey2022'", m) for m in self._messages()
+        )
 
     def test_unterminated_block_raises_a_warning_naming_its_line(self) -> None:
-        with pytest.warns(RuntimeWarning, match=r"sample\.bib:74.*block failed to parse"):
-            read_bibtex(_FIXTURE)
+        assert any(re.search(r"sample\.bib:74.*block failed to parse", m) for m in self._messages())
+
+    def test_the_fixture_raises_exactly_those_two_warnings(self) -> None:
+        assert len(self._messages()) == 2
 
     def test_unterminated_block_produces_no_reference(self, refs: list[Reference]) -> None:
         assert not any(r.key == "malformed2023" for r in refs)

@@ -457,11 +457,8 @@ def check_declared_synthetic_rows_are_in_the_file(
         path = DATA / str(entry.get("file"))
         if not path.exists():
             continue
-        rows = {
-            row["Record ID"]
-            for row in csv.DictReader(path.open(newline="", encoding="utf-8"))
-            if row.get("Record ID")
-        }
+        with path.open(newline="", encoding="utf-8") as handle:
+            rows = {row["Record ID"] for row in csv.DictReader(handle) if row.get("Record ID")}
         complaints += [
             f"{path.name}: Record ID {rid!r} is declared synthetic and is not a row"
             for rid in declared
@@ -948,7 +945,8 @@ def test_the_retraction_watch_extract_is_rows_of_the_live_export(
 
     export = {row["Record ID"]: row for row in csv.DictReader(io.StringIO(text))}
     written = set(entry.get("synthetic") or [])
-    stored = list(csv.DictReader((DATA / str(entry["file"])).open(newline="", encoding="utf-8")))
+    with (DATA / str(entry["file"])).open(newline="", encoding="utf-8") as handle:
+        stored = list(csv.DictReader(handle))
     assert stored, f"{entry['file']}: no rows"
 
     copied = [row for row in stored if row["Record ID"] not in written]
