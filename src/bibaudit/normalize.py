@@ -20,12 +20,14 @@ from __future__ import annotations
 import html
 import re
 import unicodedata
+import urllib.parse
 from difflib import SequenceMatcher
 from functools import lru_cache
 
 __all__ = [
     "DOI_PATTERN",
     "clean",
+    "doi_from_match",
     "extract_dois",
     "extract_pmid",
     "first_page",
@@ -45,12 +47,22 @@ __all__ = [
 #: mistake produced 12 false "does not exist" hits on a clean bibliography.
 #: Trailing punctuation is stripped afterwards rather than excluded here, so a
 #: DOI ending in a bracket is not cut short.
-DOI_PATTERN = re.compile(r"10\.\d{4,9}/[^\s\"<>]+", re.IGNORECASE)
+#:
+#: Angle brackets end a DOI in running text, where they are markup — an HTML
+#: tag, a markdown autolink ``<https://doi.org/...>`` — except as one segment
+#: shaped ``<digits:...>``. That is the SICI form Wiley and the American
+#: Meteorological Society deposited for 1990s articles,
+#: ``10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1``, and no
+#: tag or autolink opens with digits and a colon.
+DOI_PATTERN = re.compile(r"10\.\d{4,9}/(?:[^\s\"<>]|<\d+:[^\s\"<>/]*>)+", re.IGNORECASE)
 
 #: Closing punctuation that is nearly always sentence furniture rather than part
 #: of the DOI. A DOI legitimately ending in ``)`` keeps it, because we only strip
 #: an unbalanced trailing bracket.
 _DOI_TRAILING = ".,;:'\"]}>"
+
+_DOI_RESOLVER_RE = re.compile(r"^https?://(?:dx\.)?doi\.org/", re.IGNORECASE)
+_DOI_SCHEME_RE = re.compile(r"^doi:\s*", re.IGNORECASE)
 
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
@@ -64,11 +76,50 @@ _YEAR_RE = re.compile(r"(1[5-9]\d\d|20\d\d)")
 #: it is what says it is an article number at all.
 _PAGE_RE = re.compile(r"\s*([A-Za-z]?)(0*)(\d+)")
 
-#: LaTeX accent commands, as they appear in hand-written or exported .bib files:
-#: ``{\'e}``, ``\"{o}``, ``\c{c}``. Mapping them to the bare letter is enough for
-#: a comparison key — ``fold()`` would strip the diacritic anyway — and it avoids
-#: a dependency on a full LaTeX decoder.
-_LATEX_ACCENT_RE = re.compile(r"\\[`'^\"~=.uvHtcdbkr]\s*\{?([A-Za-z])\}?|\{\\[a-zA-Z]+\s+([A-Za-z])\}")
+#: The combining mark each LaTeX accent command puts on the letter after it, as
+#: in ``{\'e}``, ``\"{o}``, ``\c{c}`` or ``{\v s}``. :func:`clean` composes the
+#: pair, so a report shows the glyph the entry encodes; :func:`fold` then drops
+#: the mark as it does for any accented letter.
+_LATEX_ACCENTS = {
+    "`": "\u0300", "'": "\u0301", "^": "\u0302", "~": "\u0303", "=": "\u0304",
+    "u": "\u0306", ".": "\u0307", '"': "\u0308", "r": "\u030a", "H": "\u030b",
+    "v": "\u030c", "d": "\u0323", "c": "\u0327", "k": "\u0328", "b": "\u0331",
+}
+
+#: An accent command and the letter it takes. A symbol-named accent may touch
+#: its letter (``\'e``); a letter-named one needs braces or a space (``\v{s}``,
+#: ``\v s``), because ``\vs`` would be a control word of its own. The letter may
+#: be ``\i`` or ``\j``, the dotless forms LaTeX accents ``i`` and ``j`` through:
+#: ``Mart{\'\i}nez`` is Martínez.
+_LATEX_ACCENT_RE = re.compile(
+    r"\\(?:([`'^\"~=.])\s*|([uvHrdckb])(?=[\s{]))"
+    r"(?:\{\s*(\\[ij](?![A-Za-z])|[A-Za-z])\s*\}|\s*(?:(\\[ij])(?![A-Za-z])[ \t]*|([A-Za-z])))"
+)
+
+#: The tie accent spans two letters: ``\t{oo}``.
+_LATEX_TIE_RE = re.compile(r"\\t\s*\{([A-Za-z])([A-Za-z])\}")
+
+#: Letters LaTeX writes as a command of their own rather than as a base letter
+#: and an accent. Without this table each became a space or nothing, so
+#: ``{\O}rnulf`` read as ``rnulf``. ``\SS`` is LaTeX's capital of ``ß`` and
+#: prints as two letters.
+_LATEX_LETTERS = {
+    "o": "\u00f8", "O": "\u00d8", "aa": "\u00e5", "AA": "\u00c5", "ae": "\u00e6",
+    "AE": "\u00c6", "oe": "\u0153", "OE": "\u0152", "ss": "\u00df", "SS": "SS",
+    "l": "\u0142", "L": "\u0141", "i": "\u0131", "j": "\u0237", "dh": "\u00f0",
+    "DH": "\u00d0", "th": "\u00fe", "TH": "\u00de", "ng": "\u014b", "NG": "\u014a",
+    "dj": "\u0111", "DJ": "\u0110",
+}
+
+#: A letter command ends at the first non-letter, and a control word swallows
+#: the spaces after it, so ``Gro\ss e`` is Große.
+_LATEX_LETTER_RE = re.compile(
+    r"\\(" + "|".join(sorted(_LATEX_LETTERS, key=len, reverse=True)) + r")(?![A-Za-z])[ \t]*"
+)
+
+#: Characters BibTeX escapes because they are special to TeX: ``Chapman \& Hall``,
+#: ``50\%``, ``10.1000/abc\_def``.
+_LATEX_ESCAPE_RE = re.compile(r"\\([&%$#_])")
 
 #: Remaining LaTeX control words, e.g. ``\emph``, ``\&``, ``\ldots``.
 _LATEX_CMD_RE = re.compile(r"\\([a-zA-Z]+)\s*")
@@ -134,6 +185,7 @@ _ROMANISED_MAP = {
     "\u0111": "d",  # Croatian, Serbian, Vietnamese. Đorđević / Dordevic
     "\u0127": "h",  # Maltese
     "\u0131": "i",  # Turkish dotless i
+    "\u0237": "j",  # dotless j, which a BibTeX \j decodes to
     "\u0142": "l",  # Polish. Łukszo / Lukszo, Łapińska / Lapinska
     "\u0153": "oe",  # French
     "\u014b": "n",  # Northern Sami
@@ -324,13 +376,34 @@ def clean(value: object) -> str:
     """
     if value is None:
         return ""
-    text = html.unescape(str(value))
-    text = _TAG_RE.sub("", text)
-    text = _LATEX_ACCENT_RE.sub(lambda m: m.group(1) or m.group(2) or "", text)
+    return _decode(_TAG_RE.sub("", html.unescape(str(value))))
+
+
+def _latex_accent(match: re.Match[str]) -> str:
+    accent = match.group(1) or match.group(2)
+    letter = match.group(3) or match.group(4) or match.group(5)
+    # An accented dotless letter is the dotted one with its accent: LaTeX
+    # needs the dotless form only so that the dot and the accent do not stack.
+    base = {"\\i": "i", "\\j": "j"}.get(letter, letter)
+    return base + _LATEX_ACCENTS[accent]
+
+
+def _decode(text: str) -> str:
+    """LaTeX markup, brace armour and typographic variants out of *text*.
+
+    Everything :func:`clean` does after HTML, kept apart because
+    :func:`normalize_doi` needs it without the tag stripping: in a SICI DOI,
+    ``<619::AID-JAE418>`` is part of the identifier.
+    """
+    text = _LATEX_TIE_RE.sub(lambda m: m.group(1) + "\u0361" + m.group(2), text)
+    text = _LATEX_ACCENT_RE.sub(_latex_accent, text)
+    text = _LATEX_LETTER_RE.sub(lambda m: _LATEX_LETTERS[m.group(1)], text)
+    text = _LATEX_ESCAPE_RE.sub(lambda m: m.group(1), text)
     text = _LATEX_CMD_RE.sub(lambda m: "&" if m.group(1) == "amp" else " ", text)
     text = _BRACE_RE.sub("", text)
     text = text.translate(_PUNCT_TABLE)
-    # NFKC folds ligatures and full-width forms, which registries use inconsistently.
+    # NFKC folds ligatures and full-width forms, which registries use
+    # inconsistently, and composes each letter with the accent decoded above.
     text = unicodedata.normalize("NFKC", text)
     return _WS_RE.sub(" ", text).strip()
 
@@ -399,11 +472,19 @@ def normalize_doi(value: object) -> str:
     DOIs are case-insensitive by specification, and the same work turns up as
     ``10.1158/1055-9965.EPI-20-0378`` in a URL field and
     ``10.1158/1055-9965.epi-20-0378`` in a DOI field of the very same entry.
+
+    HTML tags are not stripped, because a SICI DOI's ``<…>`` segment is part
+    of it (see :data:`DOI_PATTERN`); LaTeX escapes are, so ``\\_`` reads as
+    ``_``. What follows a ``doi.org/`` resolver is a URL path and is
+    percent-decoded, so ``%3C`` is the ``<`` the registry holds.
     """
-    text = clean(value).strip()
+    text = _decode(html.unescape(str(value))) if value is not None else ""
     # A DOI quoted in prose arrives wrapped: "(10.1234/abc)", "[10.1234/abc]".
     text = text.lstrip("([{<\"'")
-    text = re.sub(r"^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)", "", text, flags=re.IGNORECASE)
+    resolved = _DOI_RESOLVER_RE.sub("", text)
+    if resolved != text:
+        text = urllib.parse.unquote(resolved)
+    text = _DOI_SCHEME_RE.sub("", text)
     text = text.strip().rstrip(_DOI_TRAILING)
     # Only an *unbalanced* closing bracket is punctuation; 10.1016/S0140-6736(03)14065-2
     # ends in a digit, but a DOI cited as "(10.1234/x)" would not.
@@ -416,10 +497,22 @@ def extract_dois(text: str) -> list[str]:
     """Every DOI in *text*, normalised, in order of appearance, deduplicated."""
     seen: dict[str, None] = {}
     for match in DOI_PATTERN.finditer(text):
-        doi = normalize_doi(match.group(0))
+        doi = doi_from_match(text, match)
         if doi:
             seen.setdefault(doi, None)
     return list(seen)
+
+
+def doi_from_match(text: str, match: re.Match[str]) -> str:
+    """The normalised DOI a :data:`DOI_PATTERN` *match* in *text* names.
+
+    A match that sits right after ``doi.org/`` is the path of a resolver URL
+    and is percent-decoded, as :func:`normalize_doi` does for a whole URL.
+    """
+    found = match.group(0)
+    if text[: match.start()].lower().endswith("doi.org/"):
+        found = urllib.parse.unquote(found)
+    return normalize_doi(found)
 
 
 #: Digits in the widest PMID PubMed has assigned. PMIDs come out of one

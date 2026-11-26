@@ -17,6 +17,10 @@ The JSON report gains an `unread` array and an `unresolved_citekeys` object, and
 
 Warnings print as one `bibaudit: warning: …` line on stderr instead of Python's source-file line and quoted code, and bibtexparser's own log line about an abandoned block is no longer printed beside bibaudit's.
 
+A SICI DOI such as `10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1` is checked whole. It was cut at the `<` and reported `BAD-ID`, although Crossref resolves it; the same DOI read from Crossref's record lost its `<…>` segment too. A percent-encoded DOI in a `doi.org` link is decoded, and `\_` in a DOI field reads as `_`.
+
+LaTeX letter commands decode to their letter: `{\O}rnulf`, `St{\o}er` and `{\AA}nestad` were compared as "rnulf", "St er" and "nestad" and reported `FIELD-MISMATCH`, and `Mart{\'\i}nez` as "Mart\' nez". Accented letters now display with their accent (`Löhr`, not `Lohr`), and `\&`, `\%`, `\$`, `\#` and `\_` without the backslash.
+
 `bibaudit.adapters.bibtex.parse_bibtex` returns the references and the left-out blocks, as `bibaudit.Unread`; `read_bibtex` is unchanged.
 
 ## [0.1.2] - 2026-09-15

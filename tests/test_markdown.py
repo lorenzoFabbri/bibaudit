@@ -1417,3 +1417,17 @@ class TestTheModulesPublicNames:
         }
         for name in md.__all__:
             assert hasattr(md, name)
+
+
+class TestASiciDoiInACodeChunk:
+    def test_a_percent_encoded_resolver_url_yields_the_whole_doi(self, tmp_path: pathlib.Path) -> None:
+        """A chunk's DOI sweep decodes a resolver URL as prose extraction does."""
+        note = tmp_path / "page.qmd"
+        note.write_text(
+            "```{r}\n"
+            "# https://doi.org/10.1002/(SICI)1099-1255(199611)11:6%3C619::AID-JAE418%3E3.0.CO;2-1\n"
+            "```\n",
+            encoding="utf-8",
+        )
+        dois = [r.doi for r in md.scan_markdown([note]).references]
+        assert dois == ["10.1002/(sici)1099-1255(199611)11:6<619::aid-jae418>3.0.co;2-1"]

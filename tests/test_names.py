@@ -2014,3 +2014,21 @@ class TestForenameDifferencesRegistriesProduce:
             Name(family="Bernal", given="Lopez Miguel"),
         )
         assert not agreed, reason
+
+
+class TestLatexLetterCommandsInABibtexByline:
+    """``{\\O}``, ``{\\o}`` and ``{\\AA}`` are letters, compared as the registry's."""
+
+    @pytest.mark.parametrize(
+        ("bibtex", "registry"),
+        [
+            (r"Borgan, {\O}rnulf", Name(family="Borgan", given="Ørnulf")),
+            (r"St{\o}er, Nathalie C.", Name(family="Støer", given="Nathalie C.")),
+            (r"{\AA}nestad, Hallvard", Name(family="ÅNESTAD", given="HALLVARD")),
+            (r"Mart{\'\i}nez, Mar{\'\i}a", Name(family="Martínez", given="María")),
+        ],
+    )
+    def test_the_decoded_name_agrees_with_the_registry(self, bibtex: str, registry: Name) -> None:
+        (stored,) = parse_name_list(bibtex)
+        assert not stored.collective
+        assert compare_author_lists([stored], [registry]).clean

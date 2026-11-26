@@ -790,3 +790,42 @@ class TestSeriesAndBookContainer:
         result = _compare_chapter("Methods in Enzymology")
 
         assert [i.field for i in result.issues if i.field == "container"] != []
+
+
+class TestASiciDoi:
+    """``10.1002/(SICI)…11:6<619::AID-JAE418>3.0.CO;2-1`` is checked whole.
+
+    The angle-bracket segment is part of the DOI. Cut at ``<``, the entry was
+    looked up under a prefix of its own DOI and reported ``BAD-ID`` although
+    Crossref resolves it.
+    """
+
+    _BIB = """\
+@article{papke1996fractional,
+  author  = {Papke, Leslie E. and Wooldridge, Jeffrey M.},
+  title   = {Econometric methods for fractional response variables with an application to 401(k) plan participation rates},
+  journal = {Journal of Applied Econometrics},
+  year    = {1996},
+  volume  = {11},
+  number  = {6},
+  pages   = {619--632},
+  doi     = {10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1}
+}
+"""
+
+    def test_the_entry_and_the_registry_name_the_same_doi(self, tmp_path: Path) -> None:
+        from bibaudit.adapters.bibtex import parse_bibtex
+
+        path = tmp_path / "references.bib"
+        path.write_text(self._BIB, encoding="utf-8")
+        (ref,), unread = parse_bibtex(path)
+        record = Crossref(client=None)._record_from_work(  # type: ignore[arg-type]
+            _load("audit_crossref_sici_doi.json")
+        )
+
+        assert unread == []
+        assert ref.doi == "10.1002/(sici)1099-1255(199611)11:6<619::aid-jae418>3.0.co;2-1"
+        assert record.doi == ref.doi
+        result = compare(ref, {"crossref": record})
+        assert not result.fails, result.issues
+        assert [i for i in result.issues if i.field == "doi"] == []

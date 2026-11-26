@@ -47,7 +47,7 @@ from typing import Any
 
 from ..model import Reference
 from ..names import parse_name_list
-from ..normalize import DOI_PATTERN, clean, extract_dois, normalize_doi, parse_year
+from ..normalize import DOI_PATTERN, clean, doi_from_match, extract_dois, normalize_doi, parse_year
 
 __all__ = [
     "MarkdownScan",
@@ -901,7 +901,7 @@ def _references_from_code_chunk(chunk_text: str, chunk_first_line: int, locator_
         consumed.update(r.doi for r in vector_refs if r.doi)
 
     for match in DOI_PATTERN.finditer(chunk_text):
-        doi = normalize_doi(match.group(0))
+        doi = doi_from_match(chunk_text, match)
         if not doi or doi in consumed:
             continue
         consumed.add(doi)

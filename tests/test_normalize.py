@@ -74,6 +74,43 @@ class TestDoi:
         text = "10.1038/ng.3341 10.1002/ijc.29590 10.1038/ng.3341"
         assert extract_dois(text) == ["10.1038/ng.3341", "10.1002/ijc.29590"]
 
+    _SICI = "10.1002/(sici)1099-1255(199611)11:6<619::aid-jae418>3.0.co;2-1"
+
+    @pytest.mark.parametrize(
+        "raw",
+        [
+            "10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1",
+            "https://doi.org/10.1002/(SICI)1099-1255(199611)11:6%3C619::AID-JAE418%3E3.0.CO;2-1",
+            "10.1002/(SICI)1099-1255(199611)11:6&lt;619::AID-JAE418&gt;3.0.CO;2-1",
+        ],
+    )
+    def test_a_sici_doi_survives_normalisation_whole(self, raw: str) -> None:
+        """The ``<…>`` segment is DOI content, not an HTML tag."""
+        assert normalize_doi(raw) == self._SICI
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "doi = {10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1}",
+            "see https://doi.org/10.1002/(SICI)1099-1255(199611)11:6%3C619::AID-JAE418%3E3.0.CO;2-1 here",
+        ],
+    )
+    def test_a_sici_doi_is_extracted_whole(self, text: str) -> None:
+        assert extract_dois(text) == [self._SICI]
+
+    def test_angle_brackets_that_are_markup_still_end_a_doi(self) -> None:
+        """A markdown autolink and an HTML closing tag are not SICI segments."""
+        assert extract_dois("<https://doi.org/10.1038/ng.3341>") == ["10.1038/ng.3341"]
+        assert extract_dois('<a href="x">10.1038/ng.3341</a>') == ["10.1038/ng.3341"]
+
+    def test_a_percent_escape_outside_a_resolver_url_is_left_alone(self) -> None:
+        """Only a URL path is percent-encoded; a DOI may hold a literal ``%``."""
+        assert normalize_doi("10.1234/a%3Cb") == "10.1234/a%3cb"
+        assert extract_dois("10.1234/a%3Cb") == ["10.1234/a%3cb"]
+
+    def test_a_latex_escaped_underscore_is_an_underscore(self) -> None:
+        assert normalize_doi(r"10.1175/jcli\_d-12-00001.1") == "10.1175/jcli_d-12-00001.1"
+
     def test_a_registrant_prefix_needs_at_least_four_digits(self) -> None:
         """``10.1/x`` is not a DOI; the shortest real prefix is ``10.1000``."""
         assert extract_dois("see 10.1/b for details") == []
@@ -92,10 +129,61 @@ class TestClean:
     def test_bibtex_brace_armour_is_removed(self) -> None:
         assert clean("{PanGenEU} study") == "PanGenEU study"
 
-    def test_latex_accents_reduce_to_the_base_letter(self) -> None:
-        """Enough for a comparison key; fold() would drop the diacritic anyway."""
-        assert clean(r"L{\"o}hr") == "Lohr"
-        assert clean(r"Tard\'on") == "Tardon"
+    def test_latex_accents_compose_with_their_letter(self) -> None:
+        """A report shows the glyph the entry encodes; fold() drops the mark."""
+        assert clean(r"L{\"o}hr") == "Löhr"
+        assert clean(r"Tard\'on") == "Tardón"
+        assert clean(r"\v{S}imon \c{C}elik {\v s}") == "Šimon Çelik š"
+        assert fold(r"L{\"o}hr") == "lohr"
+
+    @pytest.mark.parametrize(
+        ("latex", "decoded"),
+        [
+            (r"Mart{\'\i}nez", "Martínez"),
+            (r"Mart\'{\i}nez", "Martínez"),
+            (r"Mart\'\i nez", "Martínez"),
+            (r"Ru{\"\i}z", "Ruïz"),
+            (r"\t{oo}", "o\u0361o"),
+            (r"\k{a}", "ą"),
+            (r"\r{u}", "ů"),
+            (r"\H{o}", "ő"),
+        ],
+    )
+    def test_an_accent_on_any_letter_including_dotless_i(self, latex: str, decoded: str) -> None:
+        assert clean(latex) == decoded
+
+    @pytest.mark.parametrize(
+        ("latex", "decoded", "folded"),
+        [
+            (r"Borgan, {\O}rnulf", "Borgan, Ørnulf", "borgan ornulf"),
+            (r"St{\o}er", "Støer", "stoer"),
+            (r"{\AA}nestad", "Ånestad", "anestad"),
+            (r"{\aa}", "å", "a"),
+            (r"Kj{\ae}r", "Kjær", "kjaer"),
+            (r"{\AE}", "Æ", "ae"),
+            (r"{\oe}uvre", "œuvre", "oeuvre"),
+            (r"{\OE}", "Œ", "oe"),
+            (r"Gro{\ss}", "Groß", "gross"),
+            (r"Gro\ss e", "Große", "grosse"),
+            (r"\SS", "SS", "ss"),
+            (r"{\L}ukasz {\l}", "Łukasz ł", "lukasz l"),
+            (r"{\i}{\j}", "ıȷ", "ij"),
+            (r"Gu{\dh}mundsd{\'o}ttir {\DH}", "Guðmundsdóttir Ð", "gudmundsdottir d"),
+            (r"{\TH}{\'o}rsson {\th}", "Þórsson þ", "thorsson th"),
+            (r"{\NG}{\ng}", "Ŋŋ", "nn"),
+            (r"{\DJ}or{\dj}evi{\'c}", "Đorđević", "dordevic"),
+        ],
+    )
+    def test_latex_letter_commands_decode_to_the_letter(
+        self, latex: str, decoded: str, folded: str
+    ) -> None:
+        """Each one used to become a space or nothing: {\\O}rnulf read as rnulf."""
+        assert clean(latex) == decoded
+        assert fold(latex) == folded
+
+    def test_tex_special_characters_lose_their_escape(self) -> None:
+        assert clean(r"Chapman \& Hall/CRC") == "Chapman & Hall/CRC"
+        assert clean(r"50\% of \$5 \#1 a\_b") == "50% of $5 #1 a_b"
 
     def test_unicode_punctuation_is_regularised(self) -> None:
         """A curly apostrophe is the single commonest cosmetic title difference."""

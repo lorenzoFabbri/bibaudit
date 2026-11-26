@@ -48,6 +48,8 @@ report can show you what was actually written.
   `TBD`, a pair of braces that survives as whitespace — is recognised as
   not-a-DOI and the `url` is tried instead, rather than being normalised into a
   confident-looking fake that a registry would then report as a bad identifier.
+- **SICI DOIs.** A DOI may contain angle brackets: Wiley and the American Meteorological Society deposited 1990s articles as `10.1002/(SICI)1099-1255(199611)11:6<619::AID-JAE418>3.0.CO;2-1`. The `<…>` segment is kept, in a `doi` field, in a `doi.org` link whose brackets are percent-encoded as `%3C` and `%3E`, and in Crossref's own record of the DOI. In running text a `<` still ends a DOI unless it opens a segment shaped `<digits:…>`, so an HTML tag or a markdown autolink is not swallowed. BibTeX's `\_` in a DOI reads as `_`.
+- **LaTeX.** Accent commands compose with their letter, so `{\'e}` reads as é and `Mart{\'\i}nez` as Martínez, and letter commands decode to the letter: `{\O}rnulf` is Ørnulf, and `\o`, `\aa`, `\AA`, `\ae`, `\oe`, `\ss`, `\l`, `\L`, `\dh`, `\th`, `\ng` and `\dj` and their capitals likewise. `\&`, `\%`, `\$`, `\#` and `\_` lose the backslash. Comparison then folds the result as it folds the registry's spelling, so `{\AA}nestad` agrees with Crossref's `ÅNESTAD`. Any other control word is dropped.
 - **PMIDs.** BibTeX has no standard field for one, so two spellings are read.
   The dedicated `pmid = {28520842}` most exporters write wins; failing that,
   BibLaTeX's `eprint`, and only when `eprinttype` (or the older

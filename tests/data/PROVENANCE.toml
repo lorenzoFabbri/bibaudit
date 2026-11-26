@@ -74,6 +74,14 @@ fetched = 2026-08-10
 holds = "work"
 
 [[fixture]]
+file = "audit_crossref_sici_doi.json"
+source = "crossref"
+id = "10.1002/(sici)1099-1255(199611)11:6<619::aid-jae418>3.0.co;2-1"
+url = "https://api.crossref.org/works/10.1002%2F%28sici%291099-1255%28199611%2911%3A6%3C619%3A%3Aaid-jae418%3E3.0.co%3B2-1"
+fetched = 2026-11-26
+holds = "work"
+
+[[fixture]]
 file = "audit_crossref_series_and_book_container.json"
 source = "crossref"
 id = "10.1007/978-1-59745-423-0_7"
