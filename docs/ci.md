@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.1.0
+      - uses: astral-sh/setup-uv@v10.4.0
       - run: uv tool install bibaudit
       - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
@@ -103,7 +103,7 @@ jobs:
           --cache-dir .bibaudit-cache
           --format json --output audit.json
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: bibaudit-report
