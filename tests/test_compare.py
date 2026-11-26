@@ -552,6 +552,95 @@ def pubmed_record(fixture: str) -> Record:
     return pubmed_client._record_from_medline(fields)
 
 
+class TestACreatorTheTwoRegistriesDisagreeAbout:
+    """Crossref deposits one creator malformed; PubMed names them as the entry does.
+
+    Both works and both MEDLINE records are recorded verbatim. The bylines are
+    the matchatr entries' own.
+    """
+
+    PIKE = (
+        "Bias and efficiency in logistic analyses of stratified case-control studies",
+        [
+            Name(family="Pike", given="Malcolm C."),
+            Name(family="Hill", given="Adrian P."),
+            Name(family="Smith", given="Peter G."),
+        ],
+        "names_crossref_conjunction_in_given_name.json",
+        "names_pubmed_conjunction_in_given_name.txt",
+    )
+    SOFER = (
+        "Control function assisted IPW estimation with a secondary outcome in case-control studies",
+        [
+            Name(family="Sofer", given="Tamar"),
+            Name(family="Cornelis", given="Marilyn C."),
+            Name(family="Kraft", given="Peter"),
+            Name(family="Tchetgen Tchetgen", given="Eric J."),
+        ],
+        "names_crossref_compound_surname_split_into_given.json",
+        "names_pubmed_compound_surname_split_into_given.txt",
+    )
+
+    @staticmethod
+    def _audit(
+        case: tuple[str, list[Name], str, str], *, authors: list[Name] | None = None,
+        with_pubmed: bool = True,
+    ) -> Result:
+        title, byline, crossref_fixture, pubmed_fixture = case
+        crossref = crossref_record(crossref_fixture)
+        records = {"crossref": crossref}
+        if with_pubmed:
+            records["pubmed"] = pubmed_record(pubmed_fixture)
+        ref = make_ref(
+            doi=crossref.doi, title=title, authors=authors or byline,
+            year=next(iter(crossref.years.values())), container=crossref.container,
+            volume=crossref.volume, issue=crossref.issue, pages=crossref.pages,
+        )
+        return compare(ref, records)
+
+    @pytest.mark.parametrize("case", [PIKE, SOFER], ids=["pike1980bias", "sofer2017control"])
+    def test_the_correct_byline_is_disputed_and_does_not_fail(
+        self, case: tuple[str, list[Name], str, str]
+    ) -> None:
+        result = self._audit(case)
+        authors = [i for i in result.issues if i.field == "authors"]
+
+        assert [(i.kind, i.severity) for i in authors] == [("disputed", "info")]
+        assert authors[0].note == "stored value matches the corroborating registry"
+        assert not result.fails
+
+    def test_the_report_names_both_registries_values(self) -> None:
+        [issue] = [i for i in self._audit(self.SOFER).issues if i.field == "authors"]
+
+        assert issue.stored == "#4 Tchetgen Tchetgen, Eric J."
+        assert issue.registry == (
+            "crossref=#4 'Tchetgen, Tchetgen, Eric' vs pubmed=#4 'Tchetgen Tchetgen, Eric J'"
+        )
+
+    @pytest.mark.parametrize("case", [PIKE, SOFER], ids=["pike1980bias", "sofer2017control"])
+    def test_without_pubmed_the_finding_stands(
+        self, case: tuple[str, list[Name], str, str]
+    ) -> None:
+        assert self._audit(case, with_pubmed=False).verdict == "FIELD-MISMATCH"
+
+    def test_a_name_neither_registry_carries_still_fails(self) -> None:
+        invented = [*self.PIKE[1][:2], Name(family="Smythe", given="Peter G.")]
+        result = self._audit(self.PIKE, authors=invented)
+
+        assert ("authors", "mismatch", "error") in {
+            (i.field, i.kind, i.severity) for i in result.issues
+        }
+        assert result.verdict == "FIELD-MISMATCH"
+
+    def test_a_name_pubmed_carries_at_another_position_still_fails(self) -> None:
+        """Pike credited again at #3: PubMed names Pike, at #1, and Smith at #3."""
+        repeated = [*self.PIKE[1][:2], Name(family="Pike", given="Malcolm C.")]
+        result = self._audit(self.PIKE, authors=repeated)
+
+        assert result.verdict == "FIELD-MISMATCH"
+        assert not [i for i in result.issues if i.field == "authors" and i.kind == "disputed"]
+
+
 def wakefield_paper_ref(**overrides: object) -> Reference:
     """The retracted paper, cited correctly.
 

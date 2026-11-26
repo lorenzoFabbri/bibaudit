@@ -30,7 +30,7 @@ from .model import (
     Result,
     is_registry_artifact,
 )
-from .names import AuthorDiff, compare_author_lists, family_key
+from .names import AuthorDiff, compare_author_lists, family_key, names_agree
 from .normalize import (
     clean,
     first_page,
@@ -494,6 +494,7 @@ def _check_authors(ctx: _Context) -> bool:
 
     diff = compare_author_lists(stored, registry)
     _drop_creators_the_corroborator_names(ctx, diff)
+    _dispute_creators_the_corroborator_agrees_with(ctx, diff)
 
     for position, reason in sorted(diff.reasons.items()):
         ctx.add_artifact(
@@ -573,6 +574,52 @@ def _drop_creators_the_corroborator_names(ctx: _Context, diff: AuthorDiff) -> No
         for position, name in diff.uncorroborated
         if family_key(ctx.ref.authors[position - 1]) not in corroborated
     ]
+
+
+def _dispute_creators_the_corroborator_agrees_with(ctx: _Context, diff: AuthorDiff) -> None:
+    """Report a creator the two registries disagree about as disputed, not wrong.
+
+    The byline compared is the primary's, so a creator the primary deposited
+    malformed was a ``mismatch`` or a ``forename`` finding even where PubMed,
+    already fetched, names that creator exactly as the entry does. Crossref's
+    deposit for 10.1093/ije/9.1.89 gives its third author the forename
+    "and P G", and its deposit for 10.5705/ss.202015.0116 splits "Tchetgen
+    Tchetgen, Eric" into family "Tchetgen" and given "Tchetgen, Eric"; MEDLINE
+    has ``Smith, P G`` and ``Tchetgen Tchetgen, Eric J``. It is the rule
+    :func:`_check_scalar` applies to every text field: a stored value matching
+    the corroborating registry is ``disputed``, stated with both registries'
+    values, and does not fail.
+
+    Same position only, and by :func:`~bibaudit.names.names_agree`, the test
+    the byline walk itself uses. An invented creator matches neither registry,
+    and a name PubMed carries at some other position is a reordering that
+    ``compare_author_lists`` already judged, so neither reaches here. Where the
+    primary deposited no byline the compared list is the corroborator's own,
+    and nothing is disputed against itself.
+    """
+    corroborator = ctx.corroborator
+    if corroborator is None or not ctx.primary.authors or not corroborator.authors:
+        return
+    stored, witness = ctx.ref.authors, corroborator.authors
+
+    def agrees(position: int) -> bool:
+        index = position - 1
+        return index < len(witness) and names_agree(stored[index], witness[index])[0]
+
+    for findings in (diff.mismatches, diff.miscredited):
+        kept: list[tuple[int, str, str]] = []
+        for position, left, right in findings:
+            if not agrees(position):
+                kept.append((position, left, right))
+                continue
+            ctx.add(
+                "authors", "disputed", "info", f"#{position} {left}",
+                f"{ctx.primary.source}=#{position} {right!r} vs "
+                f"{corroborator.source}=#{position} {str(witness[position - 1])!r}",
+                source="both",
+                note="stored value matches the corroborating registry",
+            )
+        findings[:] = kept
 
 
 def _check_year(ctx: _Context) -> None:

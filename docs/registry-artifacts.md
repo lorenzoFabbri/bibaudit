@@ -236,6 +236,14 @@ A forename substituted at a position the two bylines order differently is not se
 
 Two forenames sharing an initial are accepted (`Kenneth` against `Karl`), which is the direct cost of the first exception above.
 
+## A creator the primary deposited malformed and PubMed did not
+
+Handled in `compare._dispute_creators_the_corroborator_agrees_with`, not suppressed. The byline compared is the primary registry's, so a creator Crossref deposited malformed fails as `authors/mismatch` or `authors/forename` even when PubMed, fetched for the same DOI, names that creator exactly as the entry does. Crossref's deposit for 10.1093/ije/9.1.89 gives its third author the forename "and P G", the conjunction of a byline string split at the wrong place. Its deposit for 10.5705/ss.202015.0116 splits "Tchetgen Tchetgen, Eric" into family "Tchetgen" and given "Tchetgen, Eric". MEDLINE has `Smith, P G` and `Tchetgen Tchetgen, Eric J`. The cache's 33,520 Crossref creators on 2026-11-26 show further shapes of the same kind (a comma inside a family name, "Anne,Lyngholm" as a forename), so the handling reads PubMed rather than repairing one shape at a time.
+
+At a position where the primary's creator disagrees with the entry and PubMed's creator at the same position agrees with it by the same name test the byline walk uses, the entry reports `authors/disputed` (info, verdict `DISPUTED`) with both registries' values, and does not fail. That is what *Registries disagreeing with each other* below describes for every text field. Same position only: an invented creator matches neither registry and still fails, and a name PubMed carries at some other position is left to the reordering rule. A DOI PubMed does not index gets no help.
+
+Observed: `tests/data/names_crossref_conjunction_in_given_name.json` with `names_pubmed_conjunction_in_given_name.txt`, and `names_crossref_compound_surname_split_into_given.json` with `names_pubmed_compound_surname_split_into_given.txt`.
+
 ## Author comparisons with nothing to compare
 
 **What happens.** In four situations a position passes without either side being evidence that the two creators are the same person: one side has no surname; a surname is written outside the comparison alphabet, so `family_key` returns nothing usable; the registry truncated a surname to a single character; or the list carries an et-al marker in place of a creator.

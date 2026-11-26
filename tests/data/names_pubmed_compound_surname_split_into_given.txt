@@ -1,0 +1,75 @@
+
+PMID- 28649172
+OWN - NLM
+STAT- PubMed-not-MEDLINE
+LR  - 20201001
+IS  - 1017-0405 (Print)
+IS  - 1996-8507 (Electronic)
+IS  - 1017-0405 (Linking)
+VI  - 27
+IP  - 2
+DP  - 2017 Apr
+TI  - CONTROL FUNCTION ASSISTED IPW ESTIMATION WITH A SECONDARY OUTCOME IN CASE-CONTROL 
+      STUDIES.
+PG  - 785-804
+LID - 10.5705/ss.202015.0116 [doi]
+AB  - Case-control studies are designed towards studying associations between risk 
+      factors and a single, primary outcome. Information about additional, secondary 
+      outcomes is also collected, but association studies targeting such secondary 
+      outcomes should account for the case-control sampling scheme, or otherwise 
+      results may be biased. Often, one uses inverse probability weighted (IPW) 
+      estimators to estimate population effects in such studies. IPW estimators are 
+      robust, as they only require correct specification of the mean regression model 
+      of the secondary outcome on covariates, and knowledge of the disease prevalence. 
+      However, IPW estimators are inefficient relative to estimators that make 
+      additional assumptions about the data generating mechanism. We propose a class of 
+      estimators for the effect of risk factors on a secondary outcome in case-control 
+      studies that combine IPW with an additional modeling assumption: specification of 
+      the disease outcome probability model. We incorporate this model via a mean zero 
+      control function. We derive the class of all regular and asymptotically linear 
+      estimators corresponding to our modeling assumption, when the secondary outcome 
+      mean is modeled using either the identity or the log link. We find the efficient 
+      estimator in our class of estimators and show that it reduces to standard IPW 
+      when the model for the primary disease outcome is unrestricted, and is more 
+      efficient than standard IPW when the model is either parametric or 
+      semiparametric.
+FAU - Sofer, Tamar
+AU  - Sofer T
+AD  - University of Washington and Harvard T.H. Chan School of Public Health.
+FAU - Cornelis, Marilyn C
+AU  - Cornelis MC
+AD  - University of Washington and Harvard T.H. Chan School of Public Health.
+FAU - Kraft, Peter
+AU  - Kraft P
+AD  - University of Washington and Harvard T.H. Chan School of Public Health.
+FAU - Tchetgen Tchetgen, Eric J
+AU  - Tchetgen Tchetgen EJ
+AD  - University of Washington and Harvard T.H. Chan School of Public Health.
+LA  - eng
+GR  - R01 AI104459/AI/NIAID NIH HHS/United States
+GR  - R01 ES020337/ES/NIEHS NIH HHS/United States
+GR  - R21 AI113251/AI/NIAID NIH HHS/United States
+GR  - R21 ES019712/ES/NIEHS NIH HHS/United States
+PT  - Journal Article
+PL  - China (Republic : 1949- )
+TA  - Stat Sin
+JT  - Statistica Sinica
+JID - 101473244
+PMC - PMC5477998
+MID - NIHMS864419
+OTO - NOTNLM
+OT  - Case-control study
+OT  - Genetic association studies
+OT  - Inverse probability weighting
+OT  - Semiparametric inference
+EDAT- 2017/06/27 06:00
+MHDA- 2017/06/27 06:01
+PMCR- 2018/04/01
+CRDT- 2017/06/27 06:00
+PHST- 2017/06/27 06:00 [entrez]
+PHST- 2017/06/27 06:00 [pubmed]
+PHST- 2017/06/27 06:01 [medline]
+PHST- 2018/04/01 00:00 [pmc-release]
+AID - 10.5705/ss.202015.0116 [doi]
+PST - ppublish
+SO  - Stat Sin. 2017 Apr;27(2):785-804. doi: 10.5705/ss.202015.0116.

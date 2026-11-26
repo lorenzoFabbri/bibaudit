@@ -242,6 +242,34 @@ A Quarto page carrying its DOIs in a data.frame(DOI = c(...)) vector, the \
 second of the two shapes that catalog uses. Audited side."""
 
 [[fixture]]
+file = "names_crossref_compound_surname_split_into_given.json"
+source = "crossref"
+id = "10.5705/ss.202015.0116"
+url = "https://api.crossref.org/works/10.5705%2Fss.202015.0116"
+fetched = 2026-11-26
+
+[[fixture]]
+file = "names_crossref_conjunction_in_given_name.json"
+source = "crossref"
+id = "10.1093/ije/9.1.89"
+url = "https://api.crossref.org/works/10.1093%2Fije%2F9.1.89"
+fetched = 2026-11-26
+
+[[fixture]]
+file = "names_pubmed_compound_surname_split_into_given.txt"
+source = "pubmed"
+id = "28649172"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=28649172&rettype=medline&retmode=text"
+fetched = 2026-11-26
+
+[[fixture]]
+file = "names_pubmed_conjunction_in_given_name.txt"
+source = "pubmed"
+id = "7419334"
+url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=7419334&rettype=medline&retmode=text"
+fetched = 2026-11-26
+
+[[fixture]]
 file = "names_crossref_first_author_omitted.json"
 source = "crossref"
 id = "10.1097/00008469-199710000-00007"

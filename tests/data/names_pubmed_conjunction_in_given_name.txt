@@ -1,0 +1,55 @@
+
+PMID- 7419334
+OWN - NLM
+STAT- MEDLINE
+DCOM- 19801216
+LR  - 20190512
+IS  - 0300-5771 (Print)
+IS  - 0300-5771 (Linking)
+VI  - 9
+IP  - 1
+DP  - 1980 Mar
+TI  - Bias and efficiency in logistic analyses of stratified case-control studies.
+PG  - 89-95
+AB  - Two approaches to the estimation of the parameters in the logistic model applied 
+      to the analysis of stratum matched case-control studies are compared. It is shown 
+      that the "unconditional likelihood method' gives estimates of odds ratios which 
+      may be severely exaggerated if the stratum sizes are not large; however, if 
+      stratum sizes are not small the "conditional likelihood method' is 
+      computationally prohibitive. The use of small stratum sizes (e.g., 1-to-1 
+      matching) leads to some loss of efficiency if the matching is irrelevant but it 
+      is shown that the loss is small for odds ratios up to at least 3. There would 
+      seem to be strong arguments for the routine use of matched designs as the 
+      reduction in confounding bias produced by such matching may be considerable 
+      whereas there is only a small loss in efficiency compared with unmatched designs.
+FAU - Pike, M C
+AU  - Pike MC
+FAU - Hill, A P
+AU  - Hill AP
+FAU - Smith, P G
+AU  - Smith PG
+LA  - eng
+GR  - IP30-CA-14089/CA/NCI NIH HHS/United States
+GR  - P01-CA-17054/CA/NCI NIH HHS/United States
+PT  - Comparative Study
+PT  - Journal Article
+PT  - Research Support, U.S. Gov't, P.H.S.
+PL  - England
+TA  - Int J Epidemiol
+JT  - International journal of epidemiology
+JID - 7802871
+SB  - IM
+MH  - Humans
+MH  - *Models, Biological
+MH  - *Morbidity
+MH  - Probability
+MH  - Risk
+EDAT- 1980/03/01 00:00
+MHDA- 1980/03/01 00:01
+CRDT- 1980/03/01 00:00
+PHST- 1980/03/01 00:00 [pubmed]
+PHST- 1980/03/01 00:01 [medline]
+PHST- 1980/03/01 00:00 [entrez]
+AID - 10.1093/ije/9.1.89 [doi]
+PST - ppublish
+SO  - Int J Epidemiol. 1980 Mar;9(1):89-95. doi: 10.1093/ije/9.1.89.
