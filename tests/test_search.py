@@ -19,14 +19,19 @@ interchangeable.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import pytest
 
+from bibaudit.compare import compare, confirm_without_id
 from bibaudit.model import Name, Reference
 from bibaudit.registries.http import Transient
-from bibaudit.registries.search import Search
+from bibaudit.registries.search import Search, _record_from_openalex
+
+DATA = Path(__file__).parent / "data"
 
 _CROSSREF_HOST = "api.crossref.org"
 _EUROPEPMC_HOST = "europepmc"
@@ -124,7 +129,9 @@ def _openalex_work(doi: str, **overrides: Any) -> dict[str, Any]:
         "publication_year": 2020,
         "type": "article",
         "authorships": [{"author": {"display_name": "J Smith"}}],
-        "primary_location": {"source": {"display_name": "Journal of Occupational Epidemiology"}},
+        "primary_location": {
+            "source": {"display_name": "Journal of Occupational Epidemiology", "type": "journal"}
+        },
         "biblio": {"volume": "12", "issue": "3", "first_page": "101", "last_page": "110"},
     }
     base.update(overrides)
@@ -224,6 +231,95 @@ class TestOpenAlexOnlyHit:
         assert record.years == {"issued": 2020}
         assert record.container == "Journal of Occupational Epidemiology"
         assert record.pages == "101-110"
+
+
+def _recorded_openalex(name: str) -> dict[str, Any]:
+    """The first result of a recorded OpenAlex search, as the client parses it."""
+    payload = json.loads((DATA / name).read_text(encoding="utf-8"))
+    work: dict[str, Any] = payload["results"][0]
+    return work
+
+
+class TestOpenAlexVenue:
+    """The container is where the work was published, never where a copy sits."""
+
+    def test_a_journal_listed_after_a_repository_is_the_venue(self) -> None:
+        """Borgan and Liestøl (1990): NVA first, the journal second."""
+        work = _recorded_openalex("openalex_repository_venue_journal_elsewhere.json")
+
+        assert work["primary_location"]["source"]["type"] == "repository"
+        assert _record_from_openalex(work).container == "Scandinavian Journal of Statistics"
+
+    def test_a_work_hosted_only_in_a_repository_has_no_container(self) -> None:
+        """Huber (1967): Project Euclid is the only source OpenAlex records."""
+        work = _recorded_openalex("openalex_repository_venue_only.json")
+
+        assert _record_from_openalex(work).container is None
+
+    def test_an_ebook_platform_is_not_a_venue(self) -> None:
+        work = _openalex_work(
+            "10.1007/x",
+            primary_location={"source": {"display_name": "Springer eBooks", "type": "ebook platform"}},
+            locations=[],
+        )
+
+        assert _record_from_openalex(work).container is None
+
+    @pytest.mark.parametrize("kind", ["journal", "conference", "book series"])
+    def test_each_venue_type_is_read(self, kind: str) -> None:
+        work = _openalex_work(
+            "10.1/x", primary_location={"source": {"display_name": "The Venue", "type": kind}}
+        )
+
+        assert _record_from_openalex(work).container == "The Venue"
+
+    def test_a_journal_primary_wins_over_a_later_one(self) -> None:
+        work = _openalex_work(
+            "10.1/x",
+            primary_location={"source": {"display_name": "First", "type": "journal"}},
+            locations=[{"source": {"display_name": "Second", "type": "journal"}}],
+        )
+
+        assert _record_from_openalex(work).container == "First"
+
+
+class TestOpenAlexVenueReachesTheComparison:
+    """The candidate is accepted on the same bar, and its venue is then compared."""
+
+    @staticmethod
+    def _borgan(journal: str) -> Reference:
+        return Reference(
+            key="borgan1990note",
+            locator="references.bib:1",
+            kind="article",
+            title=(
+                "A note on confidence intervals and bands for the survival "
+                "function based on transformations"
+            ),
+            authors=[Name(family="Borgan", given="Ørnulf"), Name(family="Liestøl", given="Knut")],
+            year=1990,
+            container=journal,
+            volume="17",
+            issue="1",
+            pages="35--41",
+        )
+
+    def _fields(self, journal: str) -> dict[tuple[str, str], str]:
+        """What ``audit._audit_unidentified`` reports: accept, then compare."""
+        ref = self._borgan(journal)
+        candidate = _record_from_openalex(
+            _recorded_openalex("openalex_repository_venue_journal_elsewhere.json")
+        )
+        accepted, explanation = confirm_without_id(ref, [candidate])
+        assert accepted is candidate, explanation
+        result = compare(ref, {accepted.source: accepted})
+        return {(i.field, i.kind): i.severity for i in result.issues}
+
+    def test_the_right_journal_passes(self) -> None:
+        assert ("container", "mismatch") not in self._fields("Scandinavian Journal of Statistics")
+
+    def test_a_wrong_journal_still_fails(self) -> None:
+        assert self._fields("Journal of the Royal Statistical Society")[("container", "mismatch")] == "error"
 
 
 class TestDeduplication:

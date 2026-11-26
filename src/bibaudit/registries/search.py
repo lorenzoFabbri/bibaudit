@@ -331,9 +331,7 @@ def _record_from_openalex(work: dict[str, Any]) -> Record:
     if year is not None:
         years["issued"] = year
 
-    primary_location = work.get("primary_location")
-    source = primary_location.get("source") if isinstance(primary_location, dict) else None
-    container = clean(source.get("display_name")) if isinstance(source, dict) else ""
+    container = _openalex_venue(work)
 
     biblio = work.get("biblio")
     biblio = biblio if isinstance(biblio, dict) else {}
@@ -358,6 +356,36 @@ def _record_from_openalex(work: dict[str, Any]) -> Record:
         kind=work.get("type"),
         raw=dict(work),
     )
+
+
+#: OpenAlex source types that name where a work was published. The others it
+#: assigns — ``repository``, ``ebook platform``, ``metadata``, ``other`` — name
+#: where a copy is hosted: Project Euclid for Huber's 1967 Berkeley Symposium
+#: paper, NVA (Nasjonalt vitenarkiv) for a 1990 *Scandinavian Journal of
+#: Statistics* note, "Springer eBooks" for a monograph.
+_OPENALEX_VENUE_TYPES = frozenset({"journal", "conference", "book series"})
+
+
+def _openalex_venue(work: dict[str, Any]) -> str:
+    """The first venue OpenAlex records for *work*, or ``""`` if it records none.
+
+    ``primary_location`` is OpenAlex's choice of the copy to show, and it is a
+    repository on 44 of 239 works the cache held on 2026-11-26. So the primary
+    location is read first and every other location after it, and the first
+    source whose type is a venue wins. A work hosted only in a repository has
+    no container on its :class:`Record`, so the container is compared against
+    nothing rather than against the name of an archive.
+    """
+    primary = work.get("primary_location")
+    locations = work.get("locations")
+    ordered = [primary, *(locations if isinstance(locations, list) else [])]
+    for location in ordered:
+        source = location.get("source") if isinstance(location, dict) else None
+        if isinstance(source, dict) and source.get("type") in _OPENALEX_VENUE_TYPES:
+            name = clean(source.get("display_name"))
+            if name:
+                return name
+    return ""
 
 
 def _openalex_authors(authorships: object) -> list[Name]:

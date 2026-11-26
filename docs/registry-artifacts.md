@@ -2,7 +2,7 @@
 
 This page lists the cases where the registry record is wrong and the stored reference is right. Most are checks in `src/bibaudit/benign.py`. An entry a check matches is reported as `REGISTRY-ARTIFACT` instead of as a defect, and no check ever adopts the registry's value.
 
-A few sections describe defects handled outside `benign.py` (in `names.py`, `normalize.py`, `registries/crossref.py`, `registries/pubmed.py` or `compare.py`), because they concern the shape of a list, the direction of a relation or the spelling of a number, where the other checks compare two strings. Each says where it lives. *Online-first versus print year* and *Container titles* are not suppressions: nothing there is defective, and the entry stays `OK` with an `info` note saying which of the registry's own values matched.
+A few sections describe defects handled outside `benign.py` (in `names.py`, `normalize.py`, `registries/crossref.py`, `registries/pubmed.py`, `registries/search.py` or `compare.py`), because they concern the shape of a list, the direction of a relation or the spelling of a number, where the other checks compare two strings. Each says where it lives. *Online-first versus print year* and *Container titles* are not suppressions: nothing there is defective, and the entry stays `OK` with an `info` note saying which of the registry's own values matched.
 
 The list is kept short. A tolerance whose only justification is that a check is noisy belongs in a threshold or in a project's own `.bibaudit.toml`.
 
@@ -579,6 +579,14 @@ The second case needs care, because a book differs from a serial on the point th
 **Observed.** `10.1016/S0140-6736(20)31324-6`, the Lancet's retraction notice for the Surgisphere hydroxychloroquine paper, carries `update-to: [retraction -> 31180-6, source retraction-watch]` and `updated-by: [retraction <- 31180-6, source publisher]`. Read literally, the notice has itself been retracted, so any manuscript about the scandal that cites the notice would be failed as `RETRACTED`: a false factual claim about a named work, made with the tool's full authority.
 
 **Detection.** `registries/crossref._reciprocal_updates`. The obvious version of this rule clears a retracted paper. The retracted paper `10.1016/S0140-6736(20)31180-6` carries the mirror image (`updated-by: retraction <- 31324-6` and `update-to: retraction -> 31324-6`), so a rule that discounted every reciprocated `updated-by` would clear the retracted paper itself, which is the worst miss this tool can make. What separates the two records is that Retraction Watch recorded the notice side on the notice and the retracted side on the paper. A relation is therefore discounted only when Retraction Watch names this record as the notice and does not also name it as retracted; every other case, including a tie, keeps the finding. `10.29328/journal.jcmhs.1001023` is the tie: its real `partial_retraction` points at itself in both arrays, both with source `publisher`, and it is still reported. All three payloads are recorded under `tests/data/`.
+
+## OpenAlex naming a repository as the venue
+
+Handled in `registries/search.py`, not suppressed. OpenAlex reaches an entry only when the entry carries no identifier. Its `primary_location` is the copy OpenAlex chooses to show, which is not necessarily where the work was published: on 44 of the 239 OpenAlex works in the cache on 2026-11-26 it was a repository. Huber's 1967 paper in the *Proceedings of the Fifth Berkeley Symposium* has "Project Euclid (Cornell University)" there, and Borgan and Liestøl's 1990 note in the *Scandinavian Journal of Statistics* has "NVA (Nasjonalt vitenarkiv)". Two more works name an ebook platform ("Springer eBooks", "Chapman & Hall/CRC eBooks"). Read as the venue, each of these reports a correct entry `container/mismatch` against the name of an archive.
+
+`_openalex_venue` reads the primary location and then every other location OpenAlex lists, and takes the first source whose type is `journal`, `conference` or `book series`. Borgan's journal is OpenAlex's second location, so the entry is compared against it, and a wrong journal still fails. A work that OpenAlex records only in a repository, Huber's among them (27 of the 44), gets no container, so the entry's container is compared against nothing. That is a gap, and the alternative is a false alarm on every such work.
+
+Observed: `tests/data/openalex_repository_venue_journal_elsewhere.json` and `tests/data/openalex_repository_venue_only.json`.
 
 ## Registries disagreeing with each other
 

@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 A change to what the tool *reports* is a user-visible change even when no signature moved, so verdict and wording changes are listed here alongside API ones. That is the point of the file: somebody deciding whether to re-run an audit needs to know whether the answer could differ.
 
+## [Unreleased]
+
+An entry with no identifier that OpenAlex found is compared against the venue OpenAlex records for the work, and never against the repository or ebook platform hosting a copy. It was reported `FIELD-MISMATCH` against "Project Euclid (Cornell University)" or "NVA (Nasjonalt vitenarkiv)". Where OpenAlex lists a journal, conference or book series in any location, that is the container compared. Where it lists none, the container is not compared.
+
 ## [0.1.3] - 2026-11-26
 
 Two verdict changes, both towards reporting what was not checked and away from false mismatches.
