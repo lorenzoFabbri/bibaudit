@@ -10,9 +10,9 @@ bibaudit is built to be run by a machine: it reads the files you point it at —
 | `1` | At least one is, or a bibliography entry could not be read and so was not audited, or a `[@citekey]` used in a document has no entry in any bibliography that was read. |
 | `2` | The tool could not run at all. |
 
-Exit codes `0` and `1` come from one comparison: `Summary.exit_code` returns `1` when any result's verdict is in the set `--fail-on` resolved to, and `0` otherwise. Nothing else about the run enters it — not how many fields differed, not how many registries answered.
+`Summary.exit_code` decides between `0` and `1`. It returns `1` when any result's verdict is in the set `--fail-on` resolved to, and for the two failures below; otherwise `0`. Nothing else about the run enters it: not how many fields differed, not how many registries answered.
 
-Two failures sit outside the verdict policy. Each exits `1` regardless of `--fail-on`, including `--fail-on ''`, because neither is a metadata disagreement a policy could choose to tolerate.
+Those two failures sit outside the verdict policy. Each exits `1` regardless of `--fail-on`, including `--fail-on ''`, because neither is a metadata disagreement a policy could choose to tolerate.
 
 An entry bibtexparser could not read is one the audit never checked: a block with a syntax error, such as a comma inside a citekey, or the second of two entries sharing a citekey, which bibtexparser discards. The report lists each under `entries not audited` with its file, line and reason, and the banner reads `FAIL — 1 entry not audited` even when every reference it did check passed. A bibliography in which no entry could be read is reported the same way, not as exit `2`.
 
@@ -102,7 +102,7 @@ The value replaces the default outright rather than adding to it, so widening me
 
     Narrowing changes the exit code and only the exit code. The excluded references are still listed under their verdicts, and the report adds a line counting them: `2 reference(s) need attention but are outside the failing set`. That count is computed against the *default* failing set, not against yours: it is how many references the default policy would have failed and yours does not, so narrowing the policy makes it larger, never smaller.
 
-    Whenever `--fail-on` differs from the default, the report also names the policy in force — `failing set (--fail-on): BAD-ID`, or `empty — nothing fails this run`. Verdict names are not validated against the list of verdicts, so a misspelt one matches nothing and the build passes; that line is where you will see it.
+    Whenever `--fail-on` differs from the default, the report also names the policy in force — `failing set (--fail-on): BAD-ID`, or `empty — no verdict fails this run`. Verdict names are not validated against the list of verdicts, so a misspelt one matches nothing and the build passes; that line is where you will see it.
 
     Under a narrowed policy, `PASS — no reference in the failing set` says only that no reference has a verdict in the narrowed set. A run with a retracted citation and `--fail-on ''` prints `PASS`, exits `0`, and still shows the `RETRACTED` entry and the count of what was excluded.
 

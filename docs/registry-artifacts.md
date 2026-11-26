@@ -24,7 +24,7 @@ Not every section documents a defect, and those that do not say so in their open
 
 **Observed.** Crossref record for **`10.5271/sjweh.3626`** (Papantoniou et al., *Shift work and colorectal cancer risk in the MCC-Spain case–control study*, *Scand J Work Environ Health* 2017, stored as `papantoniou2017colorectal`) returns mojibake for several Spanish surnames. The recorded response is `tests/data/names_crossref_mojibake_author_list.json`.
 
-`10.1093/aje/kwx137` is not an instance: it is Kim et al., *Alcohol Consumption and Breast Cancer Risk in Younger Women*, with a clean American byline.
+`10.1093/aje/kwx137`, cited below for its PubMed Central accession, is not an instance of this defect: it is Kim et al., *Alcohol Consumption and Breast Cancer Risk in Younger Women*, with a clean American byline.
 
 **Reported as.** `registry mojibake`.
 
@@ -369,7 +369,7 @@ The search did find a bracketed label: PMID 42535368, `10.3892/mmr.2026.13976`, 
 
 **Observed.** PMID 42550479, `10.1093/jnci/djag268`, `JT - Journal of the National Cancer Institute` with `TA - J Natl Cancer Inst`, in `tests/data/pubmed_acronym_prefix.txt`; and PMID 42522049, `10.1002/jac5.70263`, `JT - Journal of the American College of Clinical Pharmacy : JACCP` against a stored `JACCP: JOURNAL OF THE AMERICAN COLLEGE OF CLINICAL PHARMACY`, in `pubmed_acronym_prefix_subtitle.txt`. Four entries in a 386-entry live sample take this shape: PMIDs 42550479, 42544784 and 42528271, all *JNCI*, and 42522049.
 
-Two entries from the same sample look similar and have a different shape. PMID 42550905 stores *Proceedings of the National Academy of Sciences* against a `JT` that continues `of the United States of America`; PMID 42546077 stores *Revista da Escola de Enfermagem da USP* against `JT - Revista da Escola de Enfermagem da U S P`. Neither has an acronym before a colon, the rule reaches neither, and both still report `container/mismatch`. `benign._container_abbreviation` reaches neither either: it needs the stored tokens to be in-order prefixes of the registry's, and the acronym is a token the registry's name does not contain.
+Two entries from the same sample look similar and have a different shape. PMID 42550905 stores *Proceedings of the National Academy of Sciences* against a `JT` that continues `of the United States of America`; PMID 42546077 stores *Revista da Escola de Enfermagem da USP* against `JT - Revista da Escola de Enfermagem da U S P`. Neither has an acronym before a colon, the rule reaches neither, and both still report `container/mismatch`. `benign._container_abbreviation` does not reach them either: it needs the stored tokens to be in-order prefixes of the registry's, and the acronym is a token the registry's name does not contain.
 
 **Reported as.** `stored name prefixes the journal's own acronym`, followed, where the registry's value had to be reduced to reach the match, by the clause that says so: `, and the registry adds its own subtitle` or `, and the registry adds a parenthetical qualifier`. A comparison can make two edits, and the sentence names both: PMID 42522049 loses an acronym from the stored side and ` : JACCP` from the registry side.
 

@@ -1,6 +1,6 @@
 # Why field-level
 
-"The DOI resolves" is precisely the check a wrong citation passes. A resolver answers one question — is this identifier registered — and a citation can be wrong in ways that leave the identifier registered.
+"The DOI resolves" is the check a wrong citation passes. A resolver answers one question — is this identifier registered — and a citation can be wrong in ways that leave the identifier registered.
 
 ## What one audit found
 
