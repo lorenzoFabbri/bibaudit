@@ -6,6 +6,8 @@ A change to what the tool *reports* is a user-visible change even when no signat
 
 ## [Unreleased]
 
+Registry certificates are checked against Mozilla's list of certificate authorities, which bibaudit now installs through the `certifi` package, instead of the list the operating system ships. macOS's list, which Python reads, lacks the authority behind api.zbmath.org, so zbMATH Open would have been unreachable on every Mac. The same list now applies on every machine.
+
 An entry with no identifier that OpenAlex found is compared against the venue OpenAlex records for the work, and never against the repository or ebook platform hosting a copy. It was reported `FIELD-MISMATCH` against "Project Euclid (Cornell University)" or "NVA (Nasjonalt vitenarkiv)". Where OpenAlex lists a journal, conference or book series in any location, that is the container compared. Where it lists none, the container is not compared.
 
 A creator Crossref deposited malformed, where PubMed names that creator exactly as the entry does at the same position, is reported `authors/disputed` with both registries' values and the verdict `DISPUTED`, which does not fail. It was `authors/mismatch` or `authors/forename` and `FIELD-MISMATCH`: Crossref gives Smith the forename "and P G" on 10.1093/ije/9.1.89 and splits Tchetgen Tchetgen on 10.5705/ss.202015.0116. A name neither registry carries at that position still fails.

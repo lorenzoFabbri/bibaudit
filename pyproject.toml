@@ -49,6 +49,11 @@ dependencies = [
     "bibtexparser>=2.0.0,<3",
 
     "rapidfuzz>=3.0",        # fuzzy matching that stays fast on thousands of entries
+    # Mozilla's certificate authorities, so a registry is reachable whatever
+    # list the operating system ships: see `http._tls_context`. The floor is
+    # the oldest release checked to carry HARICA TLS ECC Root CA 2021, the
+    # authority behind api.zbmath.org.
+    "certifi>=2021.10.8",
 ]
 
 [project.optional-dependencies]

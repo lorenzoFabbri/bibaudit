@@ -6,7 +6,7 @@ That needs stating precisely, because this tool's first rule is that **no langua
 
 The first is a fact about who wrote this repository, and you have only the author's word for it. The second is a property of every run, and unlike the first it is something you can check for yourself.
 
-Nothing of the first survives into what you install. The package declares two runtime dependencies, `bibtexparser` and `rapidfuzz`; the wheel ships `src/bibaudit` and nothing else; and no module under it names an Anthropic, OpenAI or other model client, in an import or anywhere else. What Claude Code left behind is in the repository rather than in the tool: 13 comments across 9 modules cite `CLAUDE.md` as the authority for a rule they implement, and 10 test modules mention it, two of them reading a file as a build gate. Counted 2026-11-26.
+Nothing of the first survives into what you install. The package declares three runtime dependencies, `bibtexparser`, `rapidfuzz` and `certifi`; the wheel ships `src/bibaudit` and nothing else; and no module under it names an Anthropic, OpenAI or other model client, in an import or anywhere else. What Claude Code left behind is in the repository rather than in the tool: 13 comments across 9 modules cite `CLAUDE.md` as the authority for a rule they implement, and 10 test modules mention it, two of them reading a file as a build gate. Counted 2026-11-26.
 
 ## What the second claim rests on
 

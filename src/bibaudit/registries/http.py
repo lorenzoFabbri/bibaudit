@@ -36,6 +36,7 @@ import http.client
 import json
 import os
 import shutil
+import ssl
 import sys
 import tempfile
 import threading
@@ -51,6 +52,8 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _installed_version
 from pathlib import Path
 from typing import Any
+
+import certifi
 
 __all__ = ["Cache", "Client", "Transient", "default_cache_dir"]
 
@@ -359,6 +362,19 @@ def _package_version() -> str:
         return "0.0.0"
 
 
+def _tls_context() -> ssl.SSLContext:
+    """Verify every registry's certificate against Mozilla's list, as certifi ships it.
+
+    The operating system's list is not the same everywhere, and a registry
+    whose authority is missing from it is unreachable on that machine alone:
+    macOS's ``/etc/ssl/cert.pem``, the file Python's ``ssl`` reads there, lacks
+    HARICA TLS ECC Root CA 2021, which vouches for api.zbmath.org. One list for
+    every user keeps which registries answered a property of the run, not of
+    the computer it ran on.
+    """
+    return ssl.create_default_context(cafile=certifi.where())
+
+
 def _default_user_agent(mailto: str | None) -> str:
     """The default User-Agent, with ``mailto`` appended when supplied.
 
@@ -414,6 +430,9 @@ class Client:
         # module-level state) so two Client objects never throttle each other.
         self._last_request_at: dict[str, float] = {}
         self._lock = threading.Lock()
+        #: Built on the first request that reaches the network, so a run served
+        #: from the cache never reads a certificate file.
+        self._tls: ssl.SSLContext | None = None
 
     def _headers(self, extra: dict[str, str] | None) -> dict[str, str]:
         """Merge caller headers onto the client defaults, caller wins.
@@ -473,7 +492,11 @@ class Client:
             retry_after: float | None = None
             try:
                 request = urllib.request.Request(url, headers=headers, method="GET")
-                with urllib.request.urlopen(request, timeout=self._timeout) as response:
+                if self._tls is None:
+                    self._tls = _tls_context()
+                with urllib.request.urlopen(
+                    request, timeout=self._timeout, context=self._tls
+                ) as response:
                     # `.read()` is typed `Any` by typeshed (urlopen's return type
                     # is a broad union); wrapping it pins the value to the
                     # `bytes | None` this method promises its callers.

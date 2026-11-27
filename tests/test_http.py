@@ -22,6 +22,7 @@ import io
 import json
 import random
 import shutil
+import ssl
 import sys
 import time
 import urllib.error
@@ -88,6 +89,7 @@ class _Transport:
         self._outcomes = list(outcomes)
         self.requests: list[urllib.request.Request] = []
         self.timeouts: list[float | None] = []
+        self.contexts: list[ssl.SSLContext | None] = []
 
     @property
     def calls(self) -> int:
@@ -98,11 +100,15 @@ class _Transport:
         return [request.full_url for request in self.requests]
 
     def __call__(
-        self, request: urllib.request.Request, timeout: float | None = None
+        self,
+        request: urllib.request.Request,
+        timeout: float | None = None,
+        context: ssl.SSLContext | None = None,
     ) -> _Response:
         index = len(self.requests)
         self.requests.append(request)
         self.timeouts.append(timeout)
+        self.contexts.append(context)
         if index >= len(self._outcomes):
             raise AssertionError(
                 f"unexpected request #{index + 1} to {request.full_url}: "
@@ -242,6 +248,54 @@ def no_network(monkeypatch: pytest.MonkeyPatch) -> None:
     a path never opening a socket, and naming the fixture is what says so.
     """
     monkeypatch.setattr(urllib.request, "urlopen", _forbid_urlopen)
+
+
+class TestWhomTheClientTrusts:
+    """Certificates are checked against certifi's list, never the machine's own."""
+
+    def test_every_request_carries_the_certifi_context(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        transport = _Transport([b"{}"])
+        monkeypatch.setattr(urllib.request, "urlopen", transport)
+        client = _client()
+        client.get_json("https://api.zbmath.org/v1/document/_search?search_string=x")
+
+        [context] = transport.contexts
+        assert context is client._tls
+
+    def test_the_context_loads_certifi_s_file(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        loaded: list[str | None] = []
+
+        def create_default_context(*, cafile: str | None = None) -> ssl.SSLContext:
+            loaded.append(cafile)
+            return ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+
+        monkeypatch.setattr(http_module.ssl, "create_default_context", create_default_context)
+        monkeypatch.setattr(http_module.certifi, "where", lambda: "/certifi/cacert.pem")
+        http_module._tls_context()
+
+        assert loaded == ["/certifi/cacert.pem"]
+
+    def test_a_run_served_from_the_cache_reads_no_certificate_file(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        def refuse() -> ssl.SSLContext:
+            raise AssertionError("a cache hit built a TLS context")
+
+        monkeypatch.setattr(http_module, "_tls_context", refuse)
+        cache = Cache(tmp_path / "c")
+        cache.put(_URL, {"url": _URL, "payload": _PAYLOAD})
+
+        assert _client(cache).get_json(_URL) == _PAYLOAD
+
+    def test_certifi_s_list_carries_the_authority_behind_zbmath(self) -> None:
+        names = {
+            dict(pair[0] for pair in cert["subject"]).get("commonName")
+            for cert in http_module._tls_context().get_ca_certs()
+        }
+
+        assert "HARICA TLS ECC Root CA 2021" in names
 
 
 class TestFourOhFourIsAFact:
