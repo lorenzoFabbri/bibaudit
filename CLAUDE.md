@@ -98,7 +98,7 @@ The documentation site builds with `uv run --group docs mkdocs build --strict`, 
 rm -rf /tmp/iso && mkdir -p /tmp/iso
 git archive HEAD | tar -x -C /tmp/iso
 cd /tmp/iso && uv sync --all-extras -q
-uv run python -c "import bibaudit.compare as m; print(m.__file__)"   # must be /tmp/iso
+uv run python -c "import bibaudit; print(bibaudit.__file__)"   # must be /tmp/iso
 ```
 
 In a copy, run `uv run python -m pytest` rather than `uv run pytest` — the latter executes the venv's console script, whose shebang points back at the original. Checks that read files by *path* are unaffected; anything that imports the package is not, and the tell is a modification that changes no behaviour at all.
