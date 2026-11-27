@@ -54,7 +54,15 @@ from urllib.parse import quote, urlencode
 import pytest
 
 from bibaudit.normalize import normalize_doi
-from bibaudit.registries import crossref, datacite, openlibrary, pubmed, retractions, search
+from bibaudit.registries import (
+    crossref,
+    datacite,
+    openlibrary,
+    pubmed,
+    retractions,
+    search,
+    zbmath,
+)
 from bibaudit.registries.http import Client
 from bibaudit.registries.openlibrary import normalize_isbn13
 
@@ -72,7 +80,16 @@ _ALLOWED_KEYS = frozenset({"file", "source", "id", "url", "fetched", "holds", "s
 #: ``source`` values. ``"none"`` is a bibliography the tool *reads*: no
 #: registry answers for it, so nothing can re-fetch it.
 _SOURCES = frozenset(
-    {"pubmed", "crossref", "datacite", "openalex", "openlibrary", "retraction-watch", "none"}
+    {
+        "pubmed",
+        "crossref",
+        "datacite",
+        "openalex",
+        "openlibrary",
+        "zbmath",
+        "retraction-watch",
+        "none",
+    }
 )
 
 _REGISTRIES = _SOURCES - {"none"}
@@ -164,6 +181,11 @@ _VOLATILE_OPENALEX_META = frozenset({"db_response_time_ms"})
 #: ``citation_normalized_percentile`` from 0.79571458 to 0.79562955 on that
 #: same note between 2026-11-26 and 2026-11-27.
 _VOLATILE_OPENALEX_WORK = frozenset({"relevance_score", "fwci", "citation_normalized_percentile"})
+
+#: zbMATH Open's account of the request itself, under ``status``: when it was
+#: answered, and how long the query took (0.064 s and then 0.098 s for one
+#: search issued twice three seconds apart, every result unchanged).
+_VOLATILE_ZBMATH_STATUS = frozenset({"time_stamp", "query_execution_time_in_seconds"})
 
 
 def _entries() -> list[dict[str, Any]]:
@@ -286,6 +308,25 @@ def openlibrary_isbn(payload: object) -> str | None:
     return key.removeprefix("ISBN:")
 
 
+def zbmath_doi(payload: object) -> str | None:
+    """The one DOI a zbMATH Open search response's results link, or None.
+
+    The response does not echo its query, so the file is named by the DOI its
+    results carry; a response linking no DOI, or several, names no one work.
+    """
+    if not isinstance(payload, dict) or not isinstance(payload.get("status"), dict):
+        return None
+    results = payload.get("result")
+    found = {
+        normalize_doi(link.get("identifier"))
+        for document in (results if isinstance(results, list) else [])
+        if isinstance(document, dict)
+        for link in document.get("links") or []
+        if isinstance(link, dict) and link.get("type") == "doi"
+    }
+    return found.pop() if len(found) == 1 else None
+
+
 def described_by(path: Path) -> tuple[str, str | None, str | None]:
     """``(source, identifier, holds)`` as the file itself shows them.
 
@@ -311,6 +352,8 @@ def described_by(path: Path) -> tuple[str, str | None, str | None]:
         return "openalex", title, None
     if (isbn := openlibrary_isbn(payload)) is not None:
         return "openlibrary", isbn, None
+    if (doi := zbmath_doi(payload)) is not None:
+        return "zbmath", doi, None
     return "none", None, None
 
 
@@ -339,6 +382,8 @@ def expected_url(source: str, identifier: str | None) -> str:
     if source == "openlibrary":
         bibkeys = quote(f"ISBN:{identifier or ''}", safe=",:")
         return f"{openlibrary._BOOKS_URL}?bibkeys={bibkeys}&format=json&jscmd=data"
+    if source == "zbmath":
+        return zbmath.search_url(identifier or "")
     return retractions._RW_CSV_URL
 
 
@@ -649,6 +694,7 @@ def test_every_ignored_field_is_written_up_for_a_contributor() -> None:
             | _VOLATILE_DATACITE_RELATIONSHIPS
             | _VOLATILE_OPENALEX_META
             | _VOLATILE_OPENALEX_WORK
+            | _VOLATILE_ZBMATH_STATUS
         )
         if f"`{field}`" not in prose
     )
@@ -900,6 +946,22 @@ class TestReadingAFixturesOwnAccountOfItself:
 
         assert openlibrary_isbn({"ISBN:9780412042317": book, "ISBN:9780471829218": book}) is None
 
+    def test_a_zbmath_search_yields_the_doi_its_result_links(self) -> None:
+        payload = json.loads(
+            (DATA / "zbmath_byline_withheld.json").read_text(encoding="utf-8")
+        )
+
+        assert zbmath_doi(payload) == "10.1080/01621459.2017.1422737"
+
+    def test_a_zbmath_search_linking_two_works_names_neither(self) -> None:
+        payload = json.loads(
+            (DATA / "zbmath_byline_past_crossref.json").read_text(encoding="utf-8")
+        )
+        (document,) = payload["result"]
+        other = {**document, "links": [{"type": "doi", "identifier": "10.1093/biomet/70.1.41"}]}
+
+        assert zbmath_doi({**payload, "result": [document, other]}) is None
+
     def test_an_isbn_written_in_the_other_length_is_the_same_isbn(self) -> None:
         assert same_identifier("openlibrary", "0412042312", "9780412042317")
         assert not same_identifier("openlibrary", "0412042313", "9780412042317")
@@ -1060,6 +1122,28 @@ def test_an_open_library_fixture_is_what_the_api_returns_today(
     stored = json.loads((DATA / str(entry["file"])).read_text(encoding="utf-8"))
 
     assert stored == answer, f"{entry['file']}: {_differing_keys(stored, answer)}"
+
+
+@pytest.mark.network
+@pytest.mark.parametrize("entry", _of_source("zbmath"), ids=_ids(_of_source("zbmath")))
+def test_a_zbmath_fixture_is_what_the_api_returns_today(
+    entry: dict[str, Any], live: Client
+) -> None:
+    """Compared whole but for the request's own timestamp and timing."""
+    answer = live.get_json(str(entry["url"]))
+    assert answer is not None, f"{entry['file']}: zbMATH Open holds nothing for {entry['id']}"
+
+    stored = json.loads((DATA / str(entry["file"])).read_text(encoding="utf-8"))
+
+    def comparable(payload: dict[str, Any]) -> dict[str, Any]:
+        return {
+            **payload,
+            "status": _strip(dict(payload.get("status") or {}), _VOLATILE_ZBMATH_STATUS),
+        }
+
+    assert comparable(stored) == comparable(answer), (
+        f"{entry['file']}: {_differing_keys(comparable(stored), comparable(answer))}"
+    )
 
 
 @pytest.mark.network

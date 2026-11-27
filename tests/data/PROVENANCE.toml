@@ -31,7 +31,7 @@
 #
 # file       basename in this directory.
 # source     "pubmed", "crossref", "datacite", "openalex", "openlibrary",
-#            "retraction-watch" — or "none" for a bibliography the tool reads
+#            "zbmath", "retraction-watch" — or "none" for a bibliography the tool reads
 #            rather than a registry answer. A "none" entry carries `note` in
 #            place of the fetch fields, and its file must not look like a
 #            registry response.
@@ -81,6 +81,13 @@ source = "crossref"
 id = "10.1007/978-1-4757-1229-2"
 url = "https://api.crossref.org/works/10.1007%2F978-1-4757-1229-2"
 fetched = 2026-11-26
+
+[[fixture]]
+file = "audit_crossref_short_byline.json"
+source = "crossref"
+id = "10.1093/biomet/86.4.948"
+url = "https://api.crossref.org/works/10.1093%2Fbiomet%2F86.4.948"
+fetched = 2026-11-27
 
 [[fixture]]
 file = "audit_crossref_chapter_container_without_subtitle.json"
@@ -570,3 +577,17 @@ Zotero's own item JSON: four objects, being two parent journalArticles \
 both children of ABCD1234. Not the same items as the CSL export beside it — \
 EFGH5678 is ehbccg2002 under its other schema, and ABCD1234 \
 (10.1093/aje/kwx137) appears in no CSL entry. Audited side."""
+
+[[fixture]]
+file = "zbmath_byline_past_crossref.json"
+source = "zbmath"
+id = "10.1093/biomet/86.4.948"
+url = "https://api.zbmath.org/v1/document/_search?search_string=en%3A10.1093%2Fbiomet%2F86.4.948&results_per_page=10"
+fetched = 2026-11-27
+
+[[fixture]]
+file = "zbmath_byline_withheld.json"
+source = "zbmath"
+id = "10.1080/01621459.2017.1422737"
+url = "https://api.zbmath.org/v1/document/_search?search_string=en%3A10.1080%2F01621459.2017.1422737&results_per_page=10"
+fetched = 2026-11-27

@@ -17,11 +17,12 @@ An entry is a claim by whoever wrote it. The offline suite establishes only that
 
 ## What the networked comparison ignores
 
-MEDLINE and the Retraction Watch rows are compared with nothing ignored. Three registries stamp their own record-keeping into the payload, and comparing on those would redden the check every week over values no deposit carries, until nobody ran it:
+MEDLINE and the Retraction Watch rows are compared with nothing ignored. Four registries stamp their own record-keeping into the payload, and comparing on those would redden the check every week over values no deposit carries, until nobody ran it:
 
 - Crossref: `indexed` and `deposited`, the index and last-deposit timestamps; `is-referenced-by-count`, a citation counter; and `link`, whose URL follows the publisher's hosting rather than the deposit.
 - DataCite: `updated`, and the aggregates `viewCount`, `downloadCount`, `citationCount`, `citationsOverTime`, `referenceCount`, `partCount`, `partOfCount`, `versionCount` and `versionOfCount`. One level over, under `data.relationships`, the same goes for `citations`, the list of citing records that `citationCount` counts, because comparing the list while ignoring the count would leave the check red for the same reason. Every other relationship is compared.
 - OpenAlex: `db_response_time_ms` under `meta`, the time OpenAlex took to answer this request; and `relevance_score` on each result, its search engine's score, which moves with the index rather than the work; and `fwci` and `citation_normalized_percentile` on each result, citation metrics OpenAlex recomputes as citing works are indexed. The results are compared in order, so a re-ranking is reported.
+- zbMATH Open: `time_stamp` and `query_execution_time_in_seconds` under `status`, when it answered this request and how long the query took. Every result is compared.
 
 Open Library edition records are compared with nothing ignored.
 

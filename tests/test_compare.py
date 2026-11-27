@@ -652,6 +652,67 @@ class _SavedPayload:
         return self._payload
 
 
+class TestAByLineWitness:
+    """zbMATH Open's byline answers for one finding and is read for nothing else."""
+
+    BARNARD = Name(family="Barnard", given="J")
+    RUBIN = Name(family="Rubin", given="Donald B.")
+
+    def _ref(self, authors: list[Name]) -> Reference:
+        return make_ref(authors=authors)
+
+    def _crossref(self) -> Record:
+        return make_record(authors=[self.BARNARD])
+
+    def _zbmath(self, **overrides: object) -> Record:
+        return Record(
+            source="zbmath", doi="10.1093/ije/dyx269",
+            authors=[Name(family="Barnard", given="John"), self.RUBIN], **overrides,  # type: ignore[arg-type]
+        )
+
+    @staticmethod
+    def _authors(result: Result) -> set[tuple[str, str]]:
+        return {(i.kind, i.severity) for i in result.issues if i.field == "authors"}
+
+    def test_a_tail_creator_the_witness_names_is_withdrawn(self) -> None:
+        result = compare(
+            self._ref([self.BARNARD, self.RUBIN]),
+            {"crossref": self._crossref(), "zbmath": self._zbmath()},
+        )
+
+        assert self._authors(result) == {("count", "warning")}
+        assert not result.fails
+
+    def test_a_tail_creator_the_witness_does_not_name_still_fails(self) -> None:
+        result = compare(
+            self._ref([self.BARNARD, Name(family="Meng", given="Xiao-Li")]),
+            {"crossref": self._crossref(), "zbmath": self._zbmath()},
+        )
+
+        assert ("uncorroborated", "error") in self._authors(result)
+
+    def test_no_other_field_is_compared_against_the_witness(self) -> None:
+        witness = self._zbmath(title="Some other title", years={"issued": 1950}, container="Elsewhere")
+        result = compare(
+            self._ref([self.BARNARD]), {"crossref": self._crossref(), "zbmath": witness}
+        )
+
+        assert result.verdict == "OK"
+        assert result.issues == []
+
+    def test_the_witness_alone_resolves_nothing(self) -> None:
+        result = compare(self._ref([self.BARNARD]), {"zbmath": self._zbmath()})
+
+        assert result.verdict == "BAD-ID"
+
+    def test_an_unreachable_witness_is_no_doubt_about_the_doi(self) -> None:
+        result = compare(
+            self._ref([self.BARNARD]), {}, unreachable={"zbmath"}, asked={"crossref", "zbmath"}
+        )
+
+        assert result.verdict == "BAD-ID"
+
+
 class TestACreatorOnlyTheTitlePageNames:
     """Open Library links one author for ISBN 0412042312 and transcribes two."""
 

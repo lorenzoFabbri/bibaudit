@@ -30,7 +30,9 @@ src/bibaudit/
                    no identifier — see "Adding a registry" below),
                  openlibrary (books: by ISBN, or by title/author search),
                  retractions (Retraction Watch's own export + PubMed's ECI
-                   cross-reference, independent of Crossref's `updated-by`)
+                   cross-reference, independent of Crossref's `updated-by`),
+                 zbmath (zbMATH Open, asked who wrote a work only where the
+                   entry names creators no other source does)
 
 docs/
   registry-artifacts.md   every documented registry defect, with its DOI, and
@@ -72,6 +74,8 @@ Adapters never call registries. Registries never see a `Reference`. Comparison n
 Registries are consulted for *independent* evidence. OpenAlex, Semantic Scholar and Unpaywall largely re-crawl Crossref, so adding them adds requests without adding corroboration. PubMed is there because it is curated separately. Apply that test before adding anything.
 
 Worked example, two sources that both live in `registries/search.py` and are treated oppositely: **Europe PMC is independent, OpenAlex is not.** Europe PMC is curated separately from Crossref and indexes material Crossref does not — preprints, grey literature, agency reports — so it corroborates a match the way PubMed does everywhere else in this tool. OpenAlex substantially re-crawls Crossref's own deposits, so an OpenAlex hit agreeing with a Crossref hit is one fact read twice, not two witnesses. OpenAlex fails the test and stays out of corroboration entirely, but it is not excluded outright. It is consulted for *discovery* only, on the path for entries with no identifier, where `search.py` widens what can be *found* to candidates no DOI lookup can reach. Every candidate, from every source, is judged by the identical bar in `compare.confirm_without_id`, so widening discovery never widens what gets accepted. The test decides whether a source's *answer* counts as a second opinion, not whether the source is worth querying at all.
+
+zbMATH Open passes the test for one field. FIZ Karlsruhe builds its records from publishers' tables of contents and its own editors' reviews, not from Crossref's deposits, so its byline is a second witness for the mathematics and statistics literature it indexes. It is asked for nothing else, and `compare._BYLINE_WITNESSES` keeps its record from ever being the one an entry is compared against: it can withdraw an `authors/uncorroborated` finding, and it can neither resolve a DOI nor clear any other field.
 
 ## Tests
 

@@ -170,7 +170,7 @@ An appended invented name is the documented failure mode of a generated bibliogr
 
 A live sweep of 1,177 entries written from the MEDLINE record, and so correct by construction, fails none of them and reports no uncorroborated creator. Append one fabricated name to each of the same 1,177 and every one fails, against 0 of 4,255 without the tail check.
 
-Four kinds of tail position do not support that claim, and each is excluded from it instead of reported.
+Five kinds of tail position do not support that claim, and each is excluded from it instead of reported.
 
 ### A creator the corroborating registry does name
 
@@ -183,6 +183,18 @@ Four kinds of tail position do not support that claim, and each is excluded from
 **Detection.** `compare._drop_creators_the_corroborator_names` matches on surnames, on the same terms as the rest of the author comparison. It excludes empty keys, because a corroborator holding one creator whose surname `fold` discards would otherwise vouch for every stored creator whose surname it also discards. The PMID path consults no second registry and keeps its findings.
 
 **The residual.** A fabricated name sharing a surname with a real creator on the corroborator's byline is dropped.
+
+### A creator zbMATH Open names
+
+**What happens.** Older Crossref deposits in mathematics and statistics often stop after the first creator, and PubMed does not index most of that literature, so no record that answered names the rest of the byline. Without this exception, every co-author of such a paper is reported `authors/uncorroborated` and the entry fails.
+
+**Observed.** 10.1093/biomet/86.4.948, Barnard and Rubin's 1999 *Biometrika* paper: Crossref's deposit names "J Barnard" alone (`tests/data/audit_crossref_short_byline.json`), PubMed holds no record, and zbMATH Open names John Barnard and Donald B. Rubin (`tests/data/zbmath_byline_past_crossref.json`, both fetched 2026-11-27). Of the 101 DOIs in two package bibliographies sampled that day, zbMATH held 52, and 4 of those carry every name replaced by the API's licence notice.
+
+**Reported as.** `authors/count`, at warning severity, as in the sections above.
+
+**Detection.** Only for an entry with a DOI whose first comparison raised `authors/uncorroborated`, `audit._ask_byline_witness` asks zbMATH Open for that DOI, one request per entry, through `registries/zbmath.py`. It then compares again with the answer filed under `zbmath`. `compare._drop_creators_the_corroborator_names` reads that byline on the same surname terms as PubMed's. `compare._BYLINE_WITNESSES` keeps the record out of every other check: it is never the primary or the corroborator, so no title, year or container is compared against it, and it resolves nothing. Only a result whose `links` carry the DOI itself counts. A name the API withholds is dropped, so a record withholding every name says nothing. A 404 leaves the finding standing and states `zbmath` as `answered`. An unreachable zbMATH leaves it standing, adds "zbMATH Open could not be reached to check it" to its note, and states `zbmath` as `unreachable`. `--no-zbmath` turns the lookup off.
+
+**The residual.** A fabricated name sharing a surname with a real creator on zbMATH's byline is dropped, and the literature zbMATH does not index keeps its findings.
 
 ### A creator Open Library's title-page transcription names
 

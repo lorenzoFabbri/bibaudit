@@ -41,6 +41,7 @@ from bibaudit.registries.retractions import (
     RetractionOutage,
     RetractionStatus,
 )
+from bibaudit.registries.zbmath import ZbMath
 from bibaudit.report import Summary, render_text
 from bibaudit.suppress import Suppression, Suppressions
 
@@ -184,6 +185,24 @@ class _StubRegistry:
                 if pmid in pmids
             },
         )
+
+
+class _StubZbMath:
+    """Stands in for :class:`~bibaudit.registries.zbmath.ZbMath`."""
+
+    def __init__(self, records: dict[str, Record] | None = None, *, transient: bool = False) -> None:
+        self.records = dict(records or {})
+        self.transient = transient
+        self.by_doi_calls: list[str] = []
+
+    def make(self, client: object) -> _StubZbMath:
+        return self
+
+    def by_doi(self, doi: str) -> Record | None:
+        self.by_doi_calls.append(doi)
+        if self.transient:
+            raise Transient("zbmath: simulated outage")
+        return self.records.get(doi)
 
 
 class _StubSearch:
@@ -361,6 +380,7 @@ class _Stubs:
     search: _StubSearch
     openlibrary: _StubOpenLibrary
     retractions: _StubRetractions
+    zbmath: _StubZbMath
 
 
 def _install(
@@ -372,6 +392,7 @@ def _install(
     search: _StubSearch | None = None,
     openlibrary: _StubOpenLibrary | None = None,
     retractions: _StubRetractions | None = None,
+    zbmath: _StubZbMath | None = None,
 ) -> _Stubs:
     """Replace the registry clients audit.py builds, and forbid the HTTP client."""
     stubs = _Stubs(
@@ -381,6 +402,7 @@ def _install(
         search=search if search is not None else _StubSearch(),
         openlibrary=openlibrary if openlibrary is not None else _StubOpenLibrary(),
         retractions=retractions if retractions is not None else _StubRetractions(),
+        zbmath=zbmath if zbmath is not None else _StubZbMath(),
     )
     monkeypatch.setattr(audit_module, "Client", _ForbiddenClient)
     monkeypatch.setattr(audit_module, "Crossref", stubs.crossref.make)
@@ -389,6 +411,7 @@ def _install(
     monkeypatch.setattr(audit_module, "Search", stubs.search.make)
     monkeypatch.setattr(audit_module, "OpenLibrary", stubs.openlibrary.make)
     monkeypatch.setattr(audit_module, "Retractions", stubs.retractions.make)
+    monkeypatch.setattr(audit_module, "ZbMath", stubs.zbmath.make)
     return stubs
 
 
@@ -1003,6 +1026,135 @@ class TestAChapterWhoseBookHasASubtitle:
         [issue] = [i for i in result.issues if i.field == "container"]
         assert (issue.kind, issue.severity) == ("mismatch", "error")
         assert issue.note == "the book's own record could not be reached"
+
+
+def _recorded_zbmath(fixture: str) -> Record | None:
+    """The ``Record`` the zbMATH client builds from a recorded search response."""
+    payload = json.loads((Path(__file__).parent / "data" / fixture).read_text(encoding="utf-8"))
+    client = _FixedClient(payload)
+    doi = payload["result"][0]["links"][0]["identifier"]
+    return ZbMath(client).by_doi(doi)  # type: ignore[arg-type]
+
+
+class _FixedClient:
+    """A client that answers every request with one recorded payload."""
+
+    def __init__(self, payload: dict[str, Any] | None) -> None:
+        self.payload = payload
+        self.urls: list[str] = []
+
+    def get_json(self, url: str) -> dict[str, Any] | None:
+        self.urls.append(url)
+        return self.payload
+
+
+class TestACoAuthorOnlyZbMathNames:
+    """Barnard and Rubin (1999): Crossref's byline stops at its first author."""
+
+    DOI = "10.1093/biomet/86.4.948"
+
+    def _ref(self, *coauthors: Name) -> Reference:
+        return make_ref(
+            key="barnard1999df",
+            doi=self.DOI,
+            title="Small-sample degrees of freedom with multiple imputation",
+            authors=[Name(family="Barnard", given="John"), *coauthors],
+            year=1999,
+            container="Biometrika",
+            volume="86",
+            issue="4",
+            pages="948--955",
+        )
+
+    def _run(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, ref: Reference,
+        zbmath: _StubZbMath, **options: Any,
+    ) -> Result:
+        crossref = _StubRegistry(
+            "crossref", records={self.DOI: _recorded_crossref("audit_crossref_short_byline.json")}
+        )
+        _install(monkeypatch, crossref=crossref, zbmath=zbmath)
+        [result] = audit(
+            [ref], _options(tmp_path, corroborate=False, retraction_check=False, **options)
+        )
+        return result
+
+    def _witness(self) -> _StubZbMath:
+        record = _recorded_zbmath("zbmath_byline_past_crossref.json")
+        assert record is not None
+        return _StubZbMath({self.DOI: record})
+
+    @staticmethod
+    def _authors(result: Result) -> list[tuple[str, str]]:
+        return [(i.kind, i.severity) for i in result.issues if i.field == "authors"]
+
+    def test_a_co_author_zbmath_names_is_not_reported_invented(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        zbmath = self._witness()
+        result = self._run(
+            monkeypatch, tmp_path, self._ref(Name(family="Rubin", given="Donald B.")), zbmath
+        )
+
+        assert self._authors(result) == [("count", "warning")]
+        assert not result.fails
+        assert zbmath.by_doi_calls == [self.DOI]
+        assert result.consulted["zbmath"] == ANSWERED
+
+    def test_a_co_author_zbmath_does_not_name_still_fails(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        result = self._run(
+            monkeypatch, tmp_path, self._ref(Name(family="Meng", given="Xiao-Li")), self._witness()
+        )
+
+        assert ("uncorroborated", "error") in self._authors(result)
+        assert result.fails
+
+    def test_a_work_zbmath_does_not_hold_keeps_the_finding(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        result = self._run(
+            monkeypatch, tmp_path, self._ref(Name(family="Rubin", given="Donald B.")), _StubZbMath()
+        )
+
+        assert ("uncorroborated", "error") in self._authors(result)
+        assert result.consulted["zbmath"] == ANSWERED
+
+    def test_an_unreachable_zbmath_keeps_the_finding_and_says_so(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        result = self._run(
+            monkeypatch, tmp_path, self._ref(Name(family="Rubin", given="Donald B.")),
+            _StubZbMath(transient=True),
+        )
+
+        [issue] = [i for i in result.issues if i.kind == "uncorroborated"]
+        assert issue.severity == "error"
+        assert issue.note.endswith("; zbMATH Open could not be reached to check it")
+        assert result.consulted["zbmath"] == UNREACHABLE
+        assert result.verdict == "FIELD-MISMATCH"
+
+    def test_an_entry_whose_byline_agrees_asks_zbmath_nothing(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        zbmath = self._witness()
+        result = self._run(monkeypatch, tmp_path, self._ref(), zbmath)
+
+        assert zbmath.by_doi_calls == []
+        assert "zbmath" not in result.consulted
+
+    def test_no_zbmath_asks_it_nothing(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        zbmath = self._witness()
+        result = self._run(
+            monkeypatch, tmp_path, self._ref(Name(family="Rubin", given="Donald B.")), zbmath,
+            use_zbmath=False,
+        )
+
+        assert zbmath.by_doi_calls == []
+        assert ("uncorroborated", "error") in self._authors(result)
 
 
 class TestRegistryRouting:

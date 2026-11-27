@@ -104,7 +104,7 @@ Each result carries a `consulted` map — in the JSON report, per reference — 
 
 The map records what evidence a verdict rests on, so a registry is `answered` only when it was queried and replied; a reference never claims a curated second opinion nobody sought.
 
-`crossref`, `datacite`, `pubmed` and `retraction-watch` are named on every reference, whatever happened. The first three are the registries. The fourth is named because a retraction source the map left out would let its absence read as nothing to report, and the case where that matters most is a PMID-resolved entry, where none of the DOI-keyed sources is asked. Other names appear only when they were involved: `openlibrary` on a book — resolved by its ISBN, or searched for when it carries no identifier — and the search sources on an entry with no identifier.
+`crossref`, `datacite`, `pubmed` and `retraction-watch` are named on every reference, whatever happened. The first three are the registries. The fourth is named because a retraction source the map left out would let its absence read as nothing to report, and the case where that matters most is a PMID-resolved entry, where none of the DOI-keyed sources is asked. Other names appear only when they were involved: `openlibrary` on a book — resolved by its ISBN, or searched for when it carries no identifier — the search sources on an entry with no identifier, and `zbmath` on an entry whose creators past the registry's byline it was asked about.
 
 An unasked source that carries a retraction signal is also stated on the reference itself, as a `status/not-asked` issue, and beside the run's banner. [Retraction](retraction.md) has that.
 

@@ -172,6 +172,9 @@ class _Context:
     primary: Record
     corroborator: Record | None
     thresholds: Thresholds
+    #: Records from :data:`_BYLINE_WITNESSES`, read only by
+    #: :func:`_drop_creators_the_corroborator_names`.
+    byline_witnesses: list[Record] = dc_field(default_factory=list)
     issues: list[Issue] = dc_field(default_factory=list)
     suppressed: list[Issue] = dc_field(default_factory=list)
 
@@ -564,11 +567,18 @@ def _drop_creators_the_corroborator_names(ctx: _Context, diff: AuthorDiff) -> No
     corroborator's own and this needs no guard against it corroborating itself:
     every creator in it has already been excused by
     ``names.Reason.CREDITED_ELSEWHERE``, so nothing reaches here for it to drop.
+
+    A byline witness (:data:`_BYLINE_WITNESSES`) counts here on the same terms.
+    Crossref's deposit for 10.1093/biomet/86.4.948 names "J Barnard" alone,
+    PubMed does not index the paper, and zbMATH Open names John Barnard and
+    Donald B. Rubin; ``audit.py`` asks zbMATH only for an entry this finding was
+    raised on.
     """
-    if not diff.uncorroborated or not ctx.corroborator:
+    witnesses = [*([ctx.corroborator] if ctx.corroborator else []), *ctx.byline_witnesses]
+    if not diff.uncorroborated or not witnesses:
         return
     corroborated = {
-        key for key in (family_key(n) for n in ctx.corroborator.authors) if key
+        key for record in witnesses for key in (family_key(n) for n in record.authors) if key
     }
     diff.uncorroborated = [
         (position, name)
@@ -1011,6 +1021,9 @@ def _check_kind(ctx: _Context) -> None:
 #: source is a fact for ``docs/limits.md``; what it is not is evidence about a
 #: particular work.
 #:
+#: zbMATH Open is asked for a byline alone (see :data:`_BYLINE_WITNESSES`), and
+#: ``registries/zbmath.py`` reads nothing from it but the names.
+#:
 #: Written as an exclusion rather than as the list of sources that *do* carry
 #: the signal, because the two fail in opposite directions: a registry missing
 #: from an inclusion list would be silently dropped from the notice, and
@@ -1021,7 +1034,9 @@ def _check_kind(ctx: _Context) -> None:
 #: clients themselves and fails when a new one skips this comment.
 #: ``"retraction-watch"`` is deliberately *not* here: it is the one source in
 #: this set that exists only to carry the signal.
-_NO_RETRACTION_SIGNAL = frozenset({"datacite", "openlibrary", "europepmc", "openalex"})
+_NO_RETRACTION_SIGNAL = frozenset(
+    {"datacite", "openlibrary", "europepmc", "openalex", "zbmath"}
+)
 
 #: The mirror image, and the sharper of the two. These sources hold no
 #: bibliographic record and can never resolve an identifier, so their being
@@ -1036,6 +1051,14 @@ _NO_RETRACTION_SIGNAL = frozenset({"datacite", "openlibrary", "europepmc", "open
 #: Open Library is deliberately absent: it *can* resolve an ISBN, so its outage
 #: is genuine ignorance about a book's existence.
 _NO_RESOLUTION_SIGNAL = frozenset({"retraction-watch"})
+
+#: Sources consulted only for who wrote a work another registry already
+#: resolved. Their byline can withdraw an ``authors/uncorroborated`` finding (see
+#: :func:`_drop_creators_the_corroborator_names`) and nothing else: their record
+#: is never the primary or the corroborator, so no other field is compared
+#: against it, and asking one is no evidence about whether the identifier
+#: resolves.
+_BYLINE_WITNESSES = frozenset({"zbmath"})
 
 #: Folded ``retraction_kind`` values that are **not** a retraction: the work has
 #: not been pulled back at all. An expression of concern is an editor recording
@@ -1648,7 +1671,7 @@ def compare(
     # the choice is made rather than by refusing to record the notice at all.
     resolving = {
         name: record for name, record in records.items()
-        if name not in _NO_RESOLUTION_SIGNAL
+        if name not in _NO_RESOLUTION_SIGNAL | _BYLINE_WITNESSES
     }
     primary = resolving.get("crossref") or resolving.get("datacite")
     corroborator = resolving.get("pubmed")
@@ -1683,7 +1706,7 @@ def compare(
         # retraction side-channel going down says nothing about whether the
         # work exists, and letting it answer that question turns a fabricated
         # DOI into a network problem.
-        blind_to_existence = set(unreachable) - _NO_RESOLUTION_SIGNAL
+        blind_to_existence = set(unreachable) - _NO_RESOLUTION_SIGNAL - _BYLINE_WITNESSES
         if blind_to_existence and not resolving:
             # Nothing that could hold the work answered. Silence from an
             # unreachable registry is not evidence of anything.
@@ -1763,7 +1786,13 @@ def compare(
             )
         return result
 
-    ctx = _Context(ref=ref, primary=primary, corroborator=corroborator, thresholds=thresholds)
+    ctx = _Context(
+        ref=ref,
+        primary=primary,
+        corroborator=corroborator,
+        thresholds=thresholds,
+        byline_witnesses=[records[name] for name in sorted(_BYLINE_WITNESSES) if name in records],
+    )
 
     title_score = _check_title(ctx)
     authors_ok = _check_authors(ctx)

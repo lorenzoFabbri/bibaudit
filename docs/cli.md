@@ -31,6 +31,7 @@ bibaudit check . --format json --output audit.json
 | `--no-isbn` | off | do not resolve books through Open Library |
 | `--no-europepmc` | off | drop Europe PMC from the identifier-less search |
 | `--no-openalex` | off | drop OpenAlex from the identifier-less search |
+| `--no-zbmath` | off | do not ask zbMATH Open who wrote a work |
 | `--offline` | off | use only cached registry responses |
 | `--refresh` | off | ignore cached responses and refetch |
 | `--cache-dir PATH` | per-user cache directory | where registry responses are cached |
@@ -60,6 +61,8 @@ The `ECI` half is the part no line states. PubMed answered — it returned the c
     `BAD-ID` requires a registry that answered "I do not hold this". Switching the only competent registry off produces no such answer, so it cannot produce that verdict. A malformed ISBN is different and still fails: a bad check digit is arithmetic on the stored value, and no registry's answer could change it. See [verdicts](verdicts.md).
 
 `--no-europepmc` and `--no-openalex` affect only the confirmation path for entries with no identifier; neither is consulted for a DOI. They are not symmetrical. Europe PMC is curated separately from Crossref and indexes material Crossref does not — preprints, some grey literature, agency reports — so dropping it loses candidates nothing else in the tool would find. OpenAlex substantially re-crawls Crossref's deposits, so it never corroborates a match on its own and is consulted for discovery only; dropping it narrows what can be *found*, never what would have been *accepted*. Every candidate, whichever source produced it, is judged by the identical bar. When *every* enabled search source fails for an entry, the search reports ignorance rather than an empty result, so a total outage leaves that entry `UNCHECKED` rather than `UNCONFIRMED`.
+
+`--no-zbmath` stops bibaudit asking zbMATH Open about an entry with a DOI that names creators past the resolving registry's byline when no other source that answered names them. zbMATH is asked only for those entries, one request each, and its byline can withdraw only that `authors/uncorroborated` finding. With the flag, those creators stay reported. See [registry artifacts](registry-artifacts.md#a-creator-zbmath-open-names).
 
 `--offline` never opens a socket. A cached answer is replayed, including a cached 404, which is a fact about a work and as worth replaying as a successful response; anything uncached is reported `UNCHECKED` rather than fetched. A cached response older than `--cache-ttl` is a miss like any other, so the same command re-run outside that window derives a narrower report, not a different one. `--refresh` cannot be honoured without a network: given both, the cache is still read.
 

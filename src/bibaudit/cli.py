@@ -166,6 +166,12 @@ def build_parser() -> argparse.ArgumentParser:
              "found in the first place",
     )
     network.add_argument(
+        "--no-zbmath", action="store_true",
+        help="do not ask zbMATH Open who wrote a work whose creators past the "
+             "resolving registry's byline nothing else names; those creators "
+             "then stay reported authors/uncorroborated",
+    )
+    network.add_argument(
         "--offline", action="store_true",
         help="use only cached registry responses; anything uncached is reported "
              "as UNCHECKED rather than fetched",
@@ -427,6 +433,7 @@ def _run_check(args: argparse.Namespace) -> int:
         use_isbn=not args.no_isbn,
         use_europepmc=not args.no_europepmc,
         use_openalex=not args.no_openalex,
+        use_zbmath=not args.no_zbmath,
         thresholds=Thresholds(
             wrong_work=args.title_wrong_work,
             title_mismatch=args.title_mismatch,

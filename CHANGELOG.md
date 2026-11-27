@@ -16,6 +16,8 @@ A book author missing from Open Library's linked author list, but named in the s
 
 A chapter entry naming its book in full, subtitle included, matches. Crossref's `container-title` on a chapter omits the book's subtitle, so "AIDS Epidemiology: Methodological Issues" failed against "AIDS Epidemiology". When a chapter's container fails, bibaudit now fetches the book Crossref links to it (by `relation.is-part-of`, else by ISBN) and accepts the book's full title. It reports the match as `container/alternate-title` (info). That costs one more Crossref request per batch of such chapters, and none for the rest. A wrong subtitle still fails.
 
+A co-author missing from a short Crossref byline is no longer reported `authors/uncorroborated` when zbMATH Open names them. Crossref names only "J Barnard" on 10.1093/biomet/86.4.948 and PubMed does not index the paper, so Rubin was failing the build. bibaudit asks zbMATH only for an entry with a DOI that raised that finding, one request each, and reads nothing from it but the byline. A warning that the author counts differ remains, and a name zbMATH does not carry still fails. Each such entry's `consulted` now names `zbmath`; if zbMATH cannot be reached the finding stays and its note says so. `--no-zbmath` turns the lookup off.
+
 ## [0.1.3] - 2026-11-26
 
 Two verdict changes, both towards reporting what was not checked and away from false mismatches.

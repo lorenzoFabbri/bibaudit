@@ -507,6 +507,21 @@ class TestExitCodes:
         assert main(check(tmp_path, str(bib), "--no-corroborate")) == 0
         assert stubs["pubmed"].requested == []
 
+    def test_no_zbmath_reaches_the_auditor(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, bib: Path
+    ) -> None:
+        seen: list[bool] = []
+
+        def audit(references: Sequence[Reference], options: object) -> list[object]:
+            seen.append(options.use_zbmath)  # type: ignore[attr-defined]
+            return []
+
+        monkeypatch.setattr(importlib.import_module("bibaudit.cli"), "audit", audit)
+        main(check(tmp_path, str(bib)))
+        main(check(tmp_path, str(bib), "--no-zbmath"))
+
+        assert seen == [True, False]
+
     def test_a_merely_incomplete_entry_exits_zero(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
         capsys: pytest.CaptureFixture[str],

@@ -109,6 +109,7 @@ from .registries.retractions import (
     concern_in,
 )
 from .registries.search import Search
+from .registries.zbmath import ZbMath
 from .suppress import Suppressions
 
 __all__ = ["AuditOptions", "audit", "resolve"]
@@ -164,6 +165,10 @@ class AuditOptions:
     #: widens what can be *found*, never what gets *accepted* — see
     #: ``compare.confirm_without_id``.
     use_openalex: bool = True
+    #: Ask zbMATH Open who wrote a work, for an entry whose creators past the
+    #: resolving registry's byline no other source named (see
+    #: ``registries/zbmath.py``). It can only withdraw that one finding.
+    use_zbmath: bool = True
 
 
 @dataclass(slots=True)
@@ -196,6 +201,9 @@ class _Registries:
     #: out of the set is not a reference reported as unchecked; it is one
     #: reported clean.
     retractions: Retractions | None = None
+    #: Byline witness for :func:`_ask_byline_witness`. ``None`` for a hand-built
+    #: test or under ``--no-zbmath``.
+    zbmath: ZbMath | None = None
 
 
 def _build(options: AuditOptions) -> _Registries:
@@ -227,6 +235,7 @@ def _build(options: AuditOptions) -> _Registries:
             if options.retraction_check
             else None
         ),
+        zbmath=ZbMath(client) if options.use_zbmath else None,
     )
 
 
@@ -632,23 +641,43 @@ def audit(refs: Sequence[Reference], options: AuditOptions | None = None) -> lis
     registries = _build(options)
     records, unreachable, inconclusive = resolve(refs, registries)
 
-    def result_for(ref: Reference) -> Result:
-        return _result_for(ref, records, unreachable, inconclusive, registries, options)
+    witnessed: set[str] = set()
+    witness_unreachable: set[str] = set()
 
+    def result_for(ref: Reference) -> Result:
+        doi = normalize_doi(ref.doi) if ref.doi else ""
+        return _result_for(
+            ref, records, unreachable, inconclusive, registries, options,
+            also_asked={"zbmath"} if doi in witnessed | witness_unreachable else set(),
+            also_unreachable={"zbmath"} if doi in witness_unreachable else set(),
+        )
+
+    dois = [normalize_doi(ref.doi) if ref.doi else "" for ref in refs]
     results = [result_for(ref) for ref in refs]
 
     # Registry records fetched only for the entries the first comparison could
     # not clear, and the comparison then run again on what they add. Audit reads
     # which issues were raised and never judges a field itself.
-    revisions = _add_parent_book_titles(refs, results, records, registries)
-    for index, ref in enumerate(refs):
-        doi = normalize_doi(ref.doi) if ref.doi else ""
-        if doi in revisions.revised:
-            results[index] = result_for(ref)
-        elif doi in revisions.unreachable:
-            for issue in results[index].issues:
-                if issue.field == "container" and issue.kind == "mismatch":
-                    issue.note = "the book's own record could not be reached"
+    books = _add_parent_book_titles(refs, results, records, registries)
+    results = [
+        result_for(ref) if doi in books.revised else result
+        for ref, doi, result in zip(refs, dois, results, strict=True)
+    ]
+    bylines = _ask_byline_witness(refs, results, records, registries)
+    witnessed.update(bylines.revised)
+    witness_unreachable.update(bylines.unreachable)
+    results = [
+        result_for(ref) if doi in witnessed | witness_unreachable else result
+        for ref, doi, result in zip(refs, dois, results, strict=True)
+    ]
+    for doi, result in zip(dois, results, strict=True):
+        for issue in result.issues:
+            if doi in books.unreachable and (issue.field, issue.kind) == ("container", "mismatch"):
+                issue.note = "the book's own record could not be reached"
+            if doi in witness_unreachable and (issue.field, issue.kind) == (
+                "authors", "uncorroborated"
+            ):
+                issue.note = f"{issue.note}; zbMATH Open could not be reached to check it"
 
     for result in results:
         if options.suppressions and options.suppressions.apply(result):
@@ -672,7 +701,7 @@ def audit(refs: Sequence[Reference], options: AuditOptions | None = None) -> lis
 
 @dataclass(slots=True)
 class _Revisions:
-    """DOIs whose records a second pass changed, and DOIs it could not reach for."""
+    """DOIs a second pass has new answers for, and DOIs it could not reach for."""
 
     revised: set[str] = field(default_factory=set)
     unreachable: set[str] = field(default_factory=set)
@@ -754,6 +783,42 @@ def _add_parent_book_titles(
     return revisions
 
 
+def _ask_byline_witness(
+    refs: Sequence[Reference],
+    results: Sequence[Result],
+    records: dict[str, dict[str, Record]],
+    registries: _Registries,
+) -> _Revisions:
+    """Ask zbMATH Open for the byline of each work whose entry names creators nothing else does.
+
+    Only for an entry with a DOI whose comparison raised
+    ``authors/uncorroborated``: one request each, so a bibliography whose
+    bylines all agree sends zbMATH nothing. Its byline is filed under
+    ``"zbmath"`` beside the records already found, where ``compare`` reads it
+    for that one finding. A DOI zbMATH answered for, held or not, is in
+    ``revised``, so the entry's ``consulted`` says it was asked; one it could
+    not be reached for is in ``unreachable`` and its finding stands.
+    """
+    revisions = _Revisions()
+    if registries.zbmath is None:
+        return revisions
+    for ref, result in zip(refs, results, strict=True):
+        if not ref.doi or not any(
+            (i.field, i.kind) == ("authors", "uncorroborated") for i in result.issues
+        ):
+            continue
+        doi = normalize_doi(ref.doi)
+        try:
+            record = registries.zbmath.by_doi(doi)
+        except Transient:
+            revisions.unreachable.add(doi)
+            continue
+        if record is not None:
+            records.setdefault(doi, {})["zbmath"] = record
+        revisions.revised.add(doi)
+    return revisions
+
+
 def _result_for(
     ref: Reference,
     records: dict[str, dict[str, Record]],
@@ -761,18 +826,27 @@ def _result_for(
     inconclusive: dict[str, tuple[str, ...]],
     registries: _Registries,
     options: AuditOptions,
+    *,
+    also_asked: set[str] | None = None,
+    also_unreachable: set[str] | None = None,
 ) -> Result:
-    """Compare one reference against whatever :func:`resolve` found for it."""
+    """Compare one reference against whatever :func:`resolve` found for it.
+
+    *also_asked* and *also_unreachable* name the sources a second pass in
+    :func:`audit` consulted for this DOI entry alone.
+    """
     pmid = _pmid_key(ref)
     isbn13 = normalize_isbn13(ref.isbn) if ref.isbn else None
     if ref.doi:
         found = records.get(normalize_doi(ref.doi), {})
+        here_unreachable = unreachable | (also_unreachable or set())
         result = compare(
             ref,
             found,
             thresholds=options.thresholds,
-            unreachable=unreachable,
-            asked=_asked_registries(ref, found, unreachable, options),
+            unreachable=here_unreachable,
+            asked=_asked_registries(ref, found, here_unreachable, options)
+            | (also_asked or set()),
         )
     elif pmid:
         found = records.get(pmid, {})

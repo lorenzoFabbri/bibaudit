@@ -6,7 +6,7 @@
 
 **Documentation: <https://lorenzofabbri.github.io/bibaudit/>**
 
-bibaudit checks that every reference in a bibliography exists and that every stored field matches the publisher's record in Crossref, DataCite, PubMed and, for books, Open Library: title, every author, year, journal, volume, issue, pages, publisher, and a PMID stored beside a DOI. Every reference that resolves to a DOI is also checked for retraction against Retraction Watch's own export and PubMed's expression-of-concern cross-reference, neither of which depends on what a publisher deposited with Crossref.
+bibaudit checks that every reference in a bibliography exists and that every stored field matches the publisher's record in Crossref, DataCite, PubMed and, for books, Open Library: title, every author, year, journal, volume, issue, pages, publisher, and a PMID stored beside a DOI. Every reference that resolves to a DOI is also checked for retraction against Retraction Watch's own export and PubMed's expression-of-concern cross-reference, neither of which depends on what a publisher deposited with Crossref. Where an entry names co-authors that no registry consulted for it names, zbMATH Open is asked who wrote the work.
 
 No language model is involved at any point. Every verdict is reproducible from the cached registry response, and any of them can be re-derived by hand.
 
@@ -105,6 +105,7 @@ Useful flags:
 - `--no-corroborate` drops PubMed's second opinion; an entry resolved by its PMID alone then has no registry left to ask and reports `UNCHECKED`.
 - `--no-retraction-check` skips the independent Retraction Watch and PubMed expression-of-concern check (see [Retraction](#retraction) below).
 - `--no-isbn` skips Open Library entirely.
+- `--no-zbmath` stops bibaudit asking zbMATH Open for the byline of a work whose co-authors no other source names.
 - `--verbose` shows cosmetic and informational findings.
 - `--mailto you@example.org` puts Crossref requests in the polite pool; nothing in this tool needs an account or a key.
 - `--suggest` proposes fixes for missing fields (see below).
