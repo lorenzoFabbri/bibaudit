@@ -159,7 +159,11 @@ _VOLATILE_OPENALEX_META = frozenset({"db_response_time_ms"})
 #: The search engine's score for each result, which moves with OpenAlex's
 #: index rather than with the work: 205.8494 and then 205.98607 for Borgan and
 #: Liestøl's 1990 note a day apart, every other field of the work unchanged.
-_VOLATILE_OPENALEX_WORK = frozenset({"relevance_score"})
+#: Beside it, two citation metrics OpenAlex recomputes as citing works are
+#: indexed: ``fwci`` went from 1.527 to 1.5264 and
+#: ``citation_normalized_percentile`` from 0.79571458 to 0.79562955 on that
+#: same note between 2026-11-26 and 2026-11-27.
+_VOLATILE_OPENALEX_WORK = frozenset({"relevance_score", "fwci", "citation_normalized_percentile"})
 
 
 def _entries() -> list[dict[str, Any]]:
