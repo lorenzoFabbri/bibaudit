@@ -4,7 +4,9 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 A change to what the tool *reports* is a user-visible change even when no signature moved, so verdict and wording changes are listed here alongside API ones. That is the point of the file: somebody deciding whether to re-run an audit needs to know whether the answer could differ.
 
-## [Unreleased]
+## [0.1.4] - 2026-11-27
+
+Five verdict changes, each withdrawing a failure that a registry's own thin or malformed record caused on a correct entry. One of them adds a source, zbMATH Open, which is asked only for a byline.
 
 Registry certificates are checked against Mozilla's list of certificate authorities, which bibaudit now installs through the `certifi` package, instead of the list the operating system ships. macOS's list, which Python reads, lacks the authority behind api.zbmath.org, so zbMATH Open would have been unreachable on every Mac. The same list now applies on every machine.
 
@@ -190,6 +192,7 @@ Nothing here relaxes a check to make a report quieter: every suppression added i
 - **`--suggest` proposed nothing for an entry that does not start in column 1.** An entry's source span was located at the start of its first line while bibtexparser's `raw` starts at the `@`, so any leading whitespace failed the verbatim check and the entry was dropped from the span map without a word. A file exported with every entry indented got an empty suggestion, and one entry moved by hand got a suggestion missing exactly that entry. The fields added to an indented entry now also keep the file's own indentation, and its closing brace keeps its own.
 - **A bibliography reached both from the command line and from a document's front matter was read twice.** Discovery resolves the paths it finds while the command line keeps what was typed, so the two compared unequal and every entry was collected twice. `_deduplicate` collapses on the identifier, so entries carrying a DOI survived it and the rest did not: the summary over-counted an arbitrary part of the file. Inputs are now compared as resolved paths, which also covers `bibaudit check notes/ notes/references.bib` and a `--bibliography` repeating a file already named.
 
+[0.1.4]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.4
 [0.1.3]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.3
 [0.1.2]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.2
 [0.1.1]: https://github.com/lorenzoFabbri/bibaudit/releases/tag/v0.1.1
